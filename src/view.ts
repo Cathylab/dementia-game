@@ -5,7 +5,7 @@ import { ICONS } from './icons';
 import { saveSettings, settings } from './settings';
 import { Typewriter } from './typewriter';
 import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, TextLine, UiKey } from './types';
-import { el, sleep, T } from './util';
+import { el, shuffle, sleep, T } from './util';
 
 /** 聲音模組需提供的介面（見 audio.ts）。 */
 export interface AudioLike {
@@ -165,7 +165,7 @@ export class AdvView implements View {
 
   onTool(key: UiKey): void {
     const b = this.buttons.get(key);
-    if (b?.disabled) return;
+    if (b?.disabled || b?.classList.contains('hidden-by-script')) return;
     if (this.engine.phase === 'title') return;
     switch (key) {
       case 'back':
@@ -223,9 +223,32 @@ export class AdvView implements View {
     }, T(1200 + len * 70));
   }
 
-  /** 自動播放時前進一句（ui.auto 覆寫在此生效）。 */
+  /** 自動播放時前進一句。ui.auto = "skips_lines" 時偶爾直接跳過一句。 */
   protected autoAdvance(): void {
     this.engine.next();
+    if (this.uiMode('auto') === 'skips_lines' && this.engine.phase === 'text' && Math.random() < 0.35) {
+      this.typer.complete();
+      this.engine.next();
+      this.stage.dataset.autoSkipped = String(Number(this.stage.dataset.autoSkipped ?? 0) + 1);
+    }
+  }
+
+  /** 目前場景對某個功能的 ui 覆寫值（預設 normal）。 */
+  uiMode(key: UiKey): string {
+    return this.engine.scene?.ui?.[key] ?? 'normal';
+  }
+
+  /** 依場景的 ui 欄位更新功能列：disabled 變灰不可按、hidden 隱藏，其餘值記在 data-override。 */
+  applyUi(): void {
+    for (const [key, b] of this.buttons) {
+      const mode = this.uiMode(key);
+      b.disabled = mode === 'disabled';
+      b.classList.toggle('hidden-by-script', mode === 'hidden');
+      if (mode === 'normal') delete b.dataset.override;
+      else b.dataset.override = mode;
+    }
+    if (this.buttons.get('skip')!.disabled) this.stopSkip();
+    if (this.buttons.get('auto')!.disabled) this.stopAuto();
   }
 
   startSkip(): void {
@@ -273,9 +296,25 @@ export class AdvView implements View {
     requestAnimationFrame(() => (list.scrollTop = list.scrollHeight));
   }
 
-  /** 產生對話紀錄的每一列；ui.log 覆寫會改寫這裡。 */
+  /** 產生對話紀錄的每一列。ui.log = "corrupt" 時隨機刪掉幾句，並對人名套 name_fade。 */
   protected logEntries(): { node: HTMLElement }[] {
-    return this.engine.log.map((e) => ({ node: this.logRow(e.name, e.text, e.speaker, !!e.choice) }));
+    const corrupt = this.uiMode('log') === 'corrupt';
+    this.logOverlay.classList.toggle('corrupt', corrupt);
+    let entries = this.engine.log;
+    if (corrupt && entries.length > 1) {
+      const drop = Math.max(1, Math.round(entries.length * 0.3));
+      const dropped = new Set(shuffle(entries.map((_, i) => i)).slice(0, drop));
+      entries = entries.filter((_, i) => !dropped.has(i));
+    }
+    return entries.map((e) => {
+      const row = this.logRow(e.name, e.text, e.speaker, !!e.choice);
+      if (corrupt && e.name) {
+        const name = row.querySelector<HTMLElement>('.log-name')!;
+        name.classList.add('fx-name-fade');
+        name.textContent = Math.random() < 0.4 ? '那個人' : [...e.name].map((c) => (Math.random() < 0.6 ? '＿' : c)).join('');
+      }
+      return { node: row };
+    });
   }
 
   protected logRow(name: string, text: string, speaker: string, choice: boolean): HTMLElement {
@@ -385,6 +424,7 @@ export class AdvView implements View {
   protected applyScene(scene: Scene, bgUrl: string, fgUrl: string): void {
     this.stage.dataset.scene = scene.id;
     this.stage.dataset.act = String(scene.act ?? 1);
+    this.applyUi();
     this.setBackground(scene.background ?? '', bgUrl);
     // 每個場景的視線起點略有不同，之後緩慢平移
     this.panTo(Math.random() * 5 - 2.5);
@@ -583,5 +623,10 @@ export class AdvView implements View {
     this.endingScreen.classList.add('open');
   }
 
-  stateChanged(): void {}
+  /** 狀態變化時的回呼（開發者面板用）。 */
+  onStateChange: (() => void) | null = null;
+
+  stateChanged(): void {
+    this.onStateChange?.();
+  }
 }

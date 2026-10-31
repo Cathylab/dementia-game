@@ -41,6 +41,8 @@ button {
   width: min(100vw, calc(100dvh * 16 / 9));
   height: min(100dvh, calc(100vw * 9 / 16));
   overflow: hidden;
+  /* clip 讓內容無法被程式或焦點捲動 */
+  overflow: clip;
   background: #0b0b0b;
   container-type: size;
   user-select: none;
@@ -1022,4 +1024,121 @@ button {
 /* 獨白期間台詞區隱藏 */
 .stage.monologue-on .dialog {
   opacity: 0;
+}
+
+/* ───────────── 開發者面板 ───────────── */
+
+.devpanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  width: min(360px, 92vw);
+  display: none;
+  overflow-y: auto;
+  padding: 12px 14px 24px;
+  background: rgba(14, 16, 20, 0.96);
+  border-left: 1px solid #333;
+  color: #ddd;
+  font: 14px/1.5 ui-monospace, 'SFMono-Regular', Menlo, Consolas, var(--font-body);
+}
+
+.devpanel.open {
+  display: block;
+}
+
+.devpanel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.devpanel h2 {
+  margin: 0;
+  font-size: 16px;
+  color: #8fd3ff;
+}
+
+.devpanel h3 {
+  margin: 14px 0 6px;
+  font-size: 13px;
+  color: #9aa;
+  letter-spacing: 0.08em;
+}
+
+.devpanel button,
+.devpanel select {
+  min-height: 34px;
+  padding: 2px 10px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #1e232b;
+  color: #eee;
+  font: inherit;
+  cursor: pointer;
+}
+
+.devpanel button:hover {
+  border-color: #8fd3ff;
+}
+
+.dev-close {
+  width: 36px;
+  font-size: 18px !important;
+}
+
+.dev-status {
+  display: grid;
+  grid-template-columns: 6.5em 1fr;
+  gap: 2px 8px;
+  margin: 0;
+}
+
+.dev-status dt {
+  color: #9aa;
+}
+
+.dev-status dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.dev-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.dev-row select,
+.dev-row input[type='range'] {
+  flex: 1;
+}
+
+.dev-stat-name {
+  width: 6.5em;
+  color: #9aa;
+}
+
+.dev-stat strong {
+  min-width: 2em;
+  text-align: center;
+}
+
+.dev-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.dev-problems {
+  margin: 0;
+  padding-left: 1.2em;
+  color: #ffb4a0;
+}
+
+.dev-ok {
+  margin: 0;
+  color: #9fe0a0;
 }
