@@ -1,10 +1,20 @@
 import { resolveImage } from './assets';
+import { Effects } from './fx';
 import type { CharPose, Engine, View } from './engine';
 import { ICONS } from './icons';
 import { saveSettings, settings } from './settings';
 import { Typewriter } from './typewriter';
 import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, TextLine, UiKey } from './types';
 import { el, sleep, T } from './util';
+
+/** 聲音模組需提供的介面（見 audio.ts）。 */
+export interface AudioLike {
+  setMuffle(on: boolean): void;
+  setDegradation(d: number): void;
+  setVolume(v: number): void;
+  playMusic(name: string | null | undefined): void;
+  unlock(): void;
+}
 
 const TOOLBAR: { key: UiKey; label: string }[] = [
   { key: 'back', label: '回上一句' },
@@ -30,6 +40,7 @@ export class AdvView implements View {
   readonly dialog = el('div', { class: 'dialog' });
   readonly nameBox = el('div', { class: 'namebox' });
   readonly nameEl = el('span', { class: 'name' });
+  readonly traitEl = el('span', { class: 'trait' });
   readonly textEl = el('div', { class: 'text' });
   readonly choices = el('div', { class: 'choices' });
   readonly toolbar = el('nav', { class: 'toolbar', 'aria-label': '功能列' });
@@ -42,6 +53,8 @@ export class AdvView implements View {
   readonly buttons = new Map<UiKey, HTMLButtonElement>();
 
   readonly typer = new Typewriter(this.textEl);
+  readonly fx = new Effects(this);
+  audio: AudioLike | null = null;
   auto = false;
   skip = false;
   private autoTimer = 0;
@@ -62,7 +75,7 @@ export class AdvView implements View {
     this.charLayer.append(this.sprite);
     this.fgLayer.append(this.fg);
     this.layers.append(this.bgLayer, this.charLayer, this.fgLayer);
-    this.nameBox.append(this.nameEl);
+    this.nameBox.append(this.nameEl, this.traitEl);
     this.dialog.append(this.nameBox, this.textEl, el('div', { class: 'next-indicator', 'aria-hidden': 'true' }, ['▼']));
     this.sprite.hidden = true;
     this.fg.hidden = true;
@@ -347,19 +360,20 @@ export class AdvView implements View {
 
   async enterScene(scene: Scene, _opts: { restoring: boolean }): Promise<void> {
     this.typer.stop();
+    this.fx.clearScene();
     const bgUrl = scene.background ? await resolveImage('bg', scene.background) : '';
     const fgUrl = scene.foreground ? await resolveImage('fg', scene.foreground) : '';
     await this.blink(() => {
       this.stage.classList.remove('eyes-closed');
       this.applyScene(scene, bgUrl, fgUrl);
+      this.fx.applyGlobal();
     });
   }
 
   protected applyScene(scene: Scene, bgUrl: string, fgUrl: string): void {
     this.stage.dataset.scene = scene.id;
     this.stage.dataset.act = String(scene.act ?? 1);
-    this.bg.style.backgroundImage = bgUrl ? `url("${bgUrl}")` : '';
-    this.bg.dataset.name = scene.background ?? '';
+    this.setBackground(scene.background ?? '', bgUrl);
     this.fg.hidden = !fgUrl;
     if (fgUrl) this.fg.src = fgUrl;
     this.fg.dataset.name = scene.foreground ?? '';
@@ -369,19 +383,28 @@ export class AdvView implements View {
     this.dialog.classList.add('empty');
   }
 
+  setBackground(name: string, url: string): void {
+    this.bg.style.backgroundImage = url ? `url("${url}")` : '';
+    this.bg.dataset.name = name;
+  }
+
   showText(line: TextLine, ctx: { repeated: boolean; character: Character | null; pose: CharPose | null }): void {
     clearTimeout(this.autoTimer);
     this.stage.dataset.phase = 'text';
-    this.dialog.classList.remove('empty');
+    this.fx.clearLine();
+    this.fx.applyGlobal();
+    this.dialog.classList.remove('empty', 'done');
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
     this.nameEl.textContent = this.engine.speakerName(line.speaker);
+    this.traitEl.textContent = '';
     this.nameBox.classList.toggle('hidden', !this.nameEl.textContent);
     this.dialog.dataset.speaker = line.speaker;
-    this.typer.start(line.text, {
+    const spans = this.typer.start(line.text, {
       cps: settings.textSpeed,
-      degradation: 0,
+      degradation: this.engine.degradation,
       onDone: () => this.textFinished(),
     });
+    this.fx.applyLine(line, spans, ctx.repeated);
   }
 
   protected textFinished(): void {
@@ -414,11 +437,15 @@ export class AdvView implements View {
       });
       return b;
     });
+    this.fx.clearLine();
     this.choices.replaceChildren(...prompt, ...buttons);
     this.choices.className = 'choices open';
+    this.choices.dataset.mode = 'list';
+    this.fx.applyChoice(line, this.choices, buttons);
   }
 
   clearChoice(): void {
+    this.fx.stopChoiceFx();
     this.choices.replaceChildren();
     this.choices.className = 'choices';
   }

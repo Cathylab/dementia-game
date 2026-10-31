@@ -590,3 +590,185 @@ button {
     opacity: 0;
   }
 }
+
+/* ───────────── 全域退化：飽和度與暗角 ───────────── */
+
+.scene-layers {
+  filter: saturate(var(--sat, 1));
+  transition: filter 2.5s ease;
+}
+
+.vignette {
+  opacity: var(--vignette, 0.2);
+  transition: opacity 2s ease;
+}
+
+/* ───────────── 效果標籤 ───────────── */
+
+/* name_fade */
+.namebox .name {
+  transition:
+    color 0.6s,
+    letter-spacing 0.6s;
+}
+
+.namebox.fx-name-fade .name {
+  letter-spacing: 0.24em;
+}
+
+.namebox[data-faded] .name {
+  color: var(--ink-dim);
+  font-style: italic;
+}
+
+/* text_blur */
+.stage.fx-text-blur .text {
+  animation: text-unsteady 2.4s ease-in-out infinite;
+}
+
+.text .ch.on.glitch-missing {
+  opacity: 0;
+}
+
+.text .ch.glitch-block {
+  color: var(--ink-dim);
+  opacity: 0.75;
+  filter: blur(0.6px);
+}
+
+@keyframes text-unsteady {
+  0%,
+  100% {
+    filter: blur(0.2px);
+  }
+  50% {
+    filter: blur(1.1px);
+  }
+}
+
+/* repeat_line：重播的那一句帶一點既視感的閃爍 */
+.dialog.fx-repeat .text {
+  animation: deja-vu 1.4s ease-out;
+}
+
+@keyframes deja-vu {
+  0% {
+    opacity: 0.2;
+    filter: blur(3px);
+  }
+  30% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.6;
+  }
+  100% {
+    filter: blur(0);
+  }
+}
+
+/* wrong_object */
+.wrong-object {
+  position: absolute;
+  width: 14%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+  animation: fade-in 1.4s ease both;
+}
+
+.fg {
+  transition: opacity 0.3s;
+}
+
+/* time_skip：短暫切到另一個時空，帶舊照片色調 */
+.stage.fx-time-skip .bg {
+  filter: sepia(0.55) contrast(0.92) brightness(1.05);
+}
+
+/* focus_drift：對焦從角色飄到背景 */
+.char-layer,
+.bg-layer {
+  transition: filter 3.5s ease;
+}
+
+.stage.fx-focus-drift .char-layer {
+  filter: blur(7px);
+}
+
+.stage.fx-focus-drift .bg-layer {
+  filter: blur(0);
+}
+
+/* look_around：視線無目的地左右游移（立繪較近，移動幅度大一點） */
+.stage.fx-look-around .bg {
+  animation: look-around 13s ease-in-out infinite;
+}
+
+.stage.fx-look-around .char-layer {
+  animation: look-around-near 13s ease-in-out infinite;
+}
+
+@keyframes look-around {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5.5%);
+  }
+  38% {
+    transform: translateX(-3%);
+  }
+  55% {
+    transform: translateX(4.5%);
+  }
+  80% {
+    transform: translateX(2%);
+  }
+}
+
+@keyframes look-around-near {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-9%);
+  }
+  38% {
+    transform: translateX(-5%);
+  }
+  55% {
+    transform: translateX(7.5%);
+  }
+  80% {
+    transform: translateX(3%);
+  }
+}
+
+/* muffle：注意力渙散 */
+.stage.fx-muffle .dialog {
+  opacity: 0.72;
+}
+
+.stage.fx-muffle .text {
+  filter: blur(0.5px);
+}
+
+/* flat_options：所有選項一樣灰、一樣的語氣 */
+.choices.fx-flat-options .choice,
+.choices.fx-flat-options .choice:hover,
+.choices.fx-flat-options .choice:focus-visible {
+  background: rgba(70, 70, 70, 0.7);
+  border-color: rgba(150, 150, 150, 0.4);
+  color: #b4b4b4;
+}
+
+/* choice_vanish */
+.choice.vanishing,
+.hotspot.vanishing {
+  opacity: 0;
+  transform: scale(0.9) translateY(-8px);
+  pointer-events: none;
+}

@@ -85,6 +85,8 @@ export class Engine {
   token = 0;
   textFinished = false;
   ending: Ending | null = null;
+  /** 開發者面板手動覆寫的退化係數；null 表示依幕自動決定。 */
+  degradationOverride: number | null = null;
 
   private readonly scenes = new Map<string, Scene>();
   private readonly chars = new Map<string, Character>();
@@ -101,6 +103,13 @@ export class Engine {
 
   getChar(id: string | null): Character | null {
     return id ? this.chars.get(id) ?? null : null;
+  }
+
+  /** 全域退化係數：第一幕 0、第二幕 0.5、第三幕 1（之後依此類推並夾在 0–1）。 */
+  get degradation(): number {
+    if (this.degradationOverride != null) return this.degradationOverride;
+    const act = this.scene?.act ?? 1;
+    return clamp((act - 1) / 2, 0, 1);
   }
 
   get currentLine(): Line | undefined {
