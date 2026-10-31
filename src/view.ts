@@ -43,6 +43,8 @@ export class AdvView implements View {
   readonly traitEl = el('span', { class: 'trait' });
   readonly textEl = el('div', { class: 'text' });
   readonly choices = el('div', { class: 'choices' });
+  readonly monologueText = el('p', { class: 'monologue-text' });
+  readonly monologue = el('div', { class: 'monologue', 'aria-live': 'polite' }, [this.monologueText]);
   readonly toolbar = el('nav', { class: 'toolbar', 'aria-label': '功能列' });
   readonly menuToggle = el('button', { class: 'menu-toggle', type: 'button', 'aria-label': '選單' });
   readonly blinkEl = el('div', { class: 'blink' }, [el('div', { class: 'lid top' }), el('div', { class: 'lid bottom' })]);
@@ -59,6 +61,7 @@ export class AdvView implements View {
   skip = false;
   private autoTimer = 0;
   private skipTimer = 0;
+  private monologueTimer = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -101,6 +104,7 @@ export class AdvView implements View {
       this.layers,
       el('div', { class: 'vignette' }),
       this.dialog,
+      this.monologue,
       this.choices,
       this.toolbar,
       this.menuToggle,
@@ -336,6 +340,8 @@ export class AdvView implements View {
     this.stopSkip();
     this.closeOverlays();
     this.typer.stop();
+    clearTimeout(this.monologueTimer);
+    this.monologue.classList.remove('show');
     this.endingScreen.classList.remove('open');
     const meta = this.engine.script.meta;
     const start = el('button', { class: 'start-button', type: 'button' }, ['開始']);
@@ -374,13 +380,20 @@ export class AdvView implements View {
     this.stage.dataset.scene = scene.id;
     this.stage.dataset.act = String(scene.act ?? 1);
     this.setBackground(scene.background ?? '', bgUrl);
+    // 每個場景的視線起點略有不同，之後緩慢平移
+    this.panTo(Math.random() * 5 - 2.5);
     this.fg.hidden = !fgUrl;
     if (fgUrl) this.fg.src = fgUrl;
     this.fg.dataset.name = scene.foreground ?? '';
-    this.sprite.hidden = !this.engine.lastChar;
+    this.stage.classList.toggle('has-fg', !!fgUrl);
+    const char = this.engine.getChar(this.engine.lastChar);
+    const pose = char ? this.engine.poses[char.id] : null;
+    if (char && pose) void this.showSprite(char, pose);
+    else this.hideSprite();
     this.nameEl.textContent = '';
     this.textEl.replaceChildren();
     this.dialog.classList.add('empty');
+    this.monologue.classList.remove('show');
   }
 
   setBackground(name: string, url: string): void {
@@ -388,13 +401,25 @@ export class AdvView implements View {
     this.bg.dataset.name = name;
   }
 
+  /** 視線水平平移，單位為舞台寬度的百分比（背景有 1.2 倍寬，約可移動 ±8%）。 */
+  panTo(percent: number): void {
+    this.bgPan.style.setProperty('--pan', `${Math.max(-8, Math.min(8, percent)).toFixed(2)}%`);
+  }
+
   showText(line: TextLine, ctx: { repeated: boolean; character: Character | null; pose: CharPose | null }): void {
     clearTimeout(this.autoTimer);
+    clearTimeout(this.monologueTimer);
     this.stage.dataset.phase = 'text';
     this.fx.clearLine();
     this.fx.applyGlobal();
-    this.dialog.classList.remove('empty', 'done');
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
+    if (line.speaker === 'player') {
+      this.showMonologue(line, ctx.repeated);
+      return;
+    }
+    this.monologue.classList.remove('show');
+    this.stage.classList.remove('monologue-on');
+    this.dialog.classList.remove('empty', 'done');
     this.nameEl.textContent = this.engine.speakerName(line.speaker);
     this.traitEl.textContent = '';
     this.nameBox.classList.toggle('hidden', !this.nameEl.textContent);
@@ -407,18 +432,53 @@ export class AdvView implements View {
     this.fx.applyLine(line, spans, ctx.repeated);
   }
 
+  /** 內心獨白：不顯示人名框，換字體在畫面中央偏上淡入，停留後淡出並自動前進。 */
+  private showMonologue(line: TextLine, repeated: boolean): void {
+    this.typer.stop();
+    this.dialog.classList.add('empty');
+    this.stage.classList.add('monologue-on');
+    const spans = [...line.text].map((ch) => el('span', { class: 'ch on' }, [ch]));
+    this.monologueText.replaceChildren(...spans);
+    this.monologue.classList.remove('show', 'fading');
+    void this.monologue.offsetWidth; // 重新觸發淡入動畫
+    this.monologue.classList.add('show');
+    this.monologue.classList.toggle('fx-repeat', repeated);
+    this.fx.applyLine(line, spans, repeated);
+    this.engine.textDone();
+    const token = this.engine.token;
+    const stay = settings.textSpeed >= 100 ? 1200 : 2200 + [...line.text].length * 110;
+    this.monologueTimer = window.setTimeout(() => {
+      if (token !== this.engine.token) return;
+      this.monologue.classList.add('fading');
+      this.monologueTimer = window.setTimeout(() => {
+        if (token !== this.engine.token || this.overlayOpen()) return;
+        this.engine.next();
+      }, T(900));
+    }, T(stay));
+  }
+
   protected textFinished(): void {
     this.engine.textDone();
     this.dialog.classList.add('done');
     if (this.auto) this.scheduleAuto();
   }
 
-  protected async showSprite(character: Character, pose: CharPose): Promise<void> {
+  /** 立繪：依 gaze 翻轉或偏移、依 distance 縮放與上下位置（實際數值見 style.css）。 */
+  async showSprite(character: Character, pose: CharPose): Promise<void> {
     const url = await resolveImage('char', `${character.id}_${pose.expression}`);
     this.sprite.src = url;
     this.sprite.hidden = false;
     this.sprite.dataset.char = character.id;
     this.sprite.dataset.expression = pose.expression;
+    this.sprite.dataset.gaze = pose.gaze;
+    this.sprite.dataset.distance = pose.distance;
+    this.stage.classList.add('has-char');
+  }
+
+  hideSprite(): void {
+    this.sprite.hidden = true;
+    delete this.sprite.dataset.char;
+    this.stage.classList.remove('has-char');
   }
 
   completeText(): boolean {
@@ -428,20 +488,69 @@ export class AdvView implements View {
   showChoice(line: ChoiceLine, onPick: (opt: ChoiceOption, i: number) => void): void {
     this.stage.dataset.phase = 'choice';
     this.stopSkip();
+    this.fx.clearLine();
+    this.monologue.classList.remove('show');
+    if (line.mode === 'hotspot') {
+      this.showHotspots(line, onPick);
+      return;
+    }
     const prompt = line.prompt ? [el('p', { class: 'choice-prompt' }, [line.prompt])] : [];
     const buttons = line.choice.map((opt, i) => {
-      const b = el('button', { class: 'choice', type: 'button', 'data-index': String(i) }, [opt.text]);
+      const b = el('button', { class: 'choice', type: 'button', 'data-index': String(i) }, [
+        el('span', { class: 'label' }, [opt.text]),
+      ]);
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         onPick(opt, i);
       });
       return b;
     });
-    this.fx.clearLine();
     this.choices.replaceChildren(...prompt, ...buttons);
     this.choices.className = 'choices open';
     this.choices.dataset.mode = 'list';
     this.fx.applyChoice(line, this.choices, buttons);
+  }
+
+  /** 熱點選項：畫面上的發光圓點；滑鼠移上或長按顯示文字，點擊選擇。 */
+  private showHotspots(line: ChoiceLine, onPick: (opt: ChoiceOption, i: number) => void): void {
+    const spots = line.choice.map((opt, i) => {
+      const b = el('button', { class: 'hotspot', type: 'button', 'data-index': String(i), 'aria-label': opt.text }, [
+        el('span', { class: 'glow', 'aria-hidden': 'true' }),
+        el('span', { class: 'label' }, [opt.text]),
+      ]);
+      b.style.left = `${(opt.x ?? 0.5) * 100}%`;
+      b.style.top = `${(opt.y ?? 0.5) * 100}%`;
+      b.style.setProperty('--r', String(opt.r ?? 0.04));
+      let pressTimer = 0;
+      let longPressed = false;
+      b.addEventListener('pointerdown', () => {
+        longPressed = false;
+        pressTimer = window.setTimeout(() => {
+          longPressed = true;
+          spots.forEach((s) => s.classList.remove('show-label'));
+          b.classList.add('show-label');
+        }, 450);
+      });
+      const cancel = () => clearTimeout(pressTimer);
+      b.addEventListener('pointerup', cancel);
+      b.addEventListener('pointerleave', cancel);
+      b.addEventListener('contextmenu', (e) => e.preventDefault());
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (longPressed) {
+          // 長按只顯示文字，不選擇
+          longPressed = false;
+          return;
+        }
+        onPick(opt, i);
+      });
+      return b;
+    });
+    const prompt = line.prompt ? [el('p', { class: 'hotspot-prompt' }, [line.prompt])] : [];
+    this.choices.replaceChildren(...prompt, ...spots);
+    this.choices.className = 'choices open hotspots';
+    this.choices.dataset.mode = 'hotspot';
+    this.fx.applyChoice(line, this.choices, spots);
   }
 
   clearChoice(): void {

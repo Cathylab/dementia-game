@@ -772,3 +772,254 @@ button {
   transform: scale(0.9) translateY(-8px);
   pointer-events: none;
 }
+
+/* ───────────── 第一視角 ───────────── */
+
+/* 眼睛不會完全靜止：整個畫面極輕微地晃動，退化越重晃得越多 */
+.scene-layers {
+  animation: eye-sway 17s ease-in-out infinite;
+}
+
+@keyframes eye-sway {
+  0%,
+  100% {
+    transform: scale(1.03) translate(0, 0);
+  }
+  30% {
+    transform: scale(1.03) translate(calc(var(--degradation, 0) * -1.2% - 0.4%), 0.2%);
+  }
+  65% {
+    transform: scale(1.03) translate(calc(var(--degradation, 0) * 1% + 0.3%), -0.2%);
+  }
+}
+
+/* 視線平移（背景 1.2 倍寬） */
+.bg-pan {
+  transform: translateX(var(--pan, 0%));
+  transition: transform 9s ease-in-out;
+}
+
+/* 景深：有角色時背景略糊；退化越重越糊 */
+.bg-layer {
+  filter: blur(var(--bg-blur, 0px));
+}
+
+.char-layer {
+  filter: blur(var(--char-blur, 0px));
+}
+
+.stage.has-char {
+  --bg-blur: calc(1.4px + var(--degradation, 0) * 1.6px);
+}
+
+/* 立繪：gaze 與 distance */
+.sprite {
+  --gx: 0%;
+  --dy: 0%;
+  --ds: 1;
+  --flip: 1;
+  --ry: 0deg;
+  transform: perspective(1400px) translateX(calc(-50% + var(--gx))) translateY(var(--dy)) scale(var(--ds)) rotateY(var(--ry))
+    scaleX(var(--flip));
+  transition:
+    transform 0.8s ease,
+    opacity 0.4s;
+}
+
+.sprite[data-gaze='away'] {
+  --flip: -1;
+  --gx: 9%;
+}
+
+.sprite[data-gaze='other'] {
+  --gx: -20%;
+  --ry: 28deg;
+}
+
+.sprite[data-distance='near'] {
+  --ds: 1.25;
+  --dy: 9%;
+}
+
+.sprite[data-distance='far'] {
+  --ds: 0.8;
+  --dy: -5%;
+}
+
+/* 前景：手持物件 */
+.stage.has-fg .fg {
+  animation: hand-hold 6s ease-in-out infinite;
+}
+
+@keyframes hand-hold {
+  50% {
+    transform: translateX(-50%) translateY(1.2%) rotate(-0.6deg);
+  }
+}
+
+.fg {
+  transform: translateX(-50%);
+}
+
+/* 內心獨白：不同字體、畫面中央偏上淡入 */
+.monologue {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 22%;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.monologue.show {
+  animation: monologue-in 1.1s ease forwards;
+}
+
+.monologue.show.fading {
+  animation: monologue-out 0.9s ease forwards;
+}
+
+.monologue-text {
+  margin: 0;
+  max-width: 24em;
+  font-family: var(--font-mono);
+  font-size: calc(var(--text-size) * 1.08);
+  font-style: italic;
+  line-height: 1.8;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: #fbf6ec;
+  text-shadow:
+    0 0 18px rgba(0, 0, 0, 0.95),
+    0 1px 3px #000;
+}
+
+.monologue-text .ch {
+  white-space: pre-wrap;
+}
+
+.monologue.fx-repeat .monologue-text {
+  animation: deja-vu 1.4s ease-out;
+}
+
+.stage.fx-text-blur .monologue-text {
+  animation: text-unsteady 2.4s ease-in-out infinite;
+}
+
+@keyframes monologue-in {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(0.4em);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+@keyframes monologue-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+/* 熱點選項 */
+.choices.hotspots {
+  inset: 0;
+  height: auto;
+  display: block;
+  padding: 0;
+}
+
+.hotspot-prompt {
+  position: absolute;
+  top: 6%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  color: var(--ink);
+  font-size: 0.9em;
+  text-shadow: 0 1px 6px #000;
+  pointer-events: none;
+}
+
+.hotspot {
+  position: absolute;
+  translate: -50% -50%;
+  width: max(52px, calc(var(--r, 0.04) * 2 * 177.78cqmin));
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    left 0.9s ease,
+    top 0.9s ease,
+    opacity 0.6s,
+    transform 0.6s;
+}
+
+.hotspot .glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 244, 214, 0.95) 0%, rgba(255, 220, 150, 0.55) 28%, rgba(255, 200, 120, 0) 70%);
+  animation: glow-pulse 2.2s ease-in-out infinite;
+}
+
+.hotspot .label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  translate: -50% 0;
+  padding: 0.3em 0.8em;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.78);
+  font-size: 0.85em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.hotspot:hover .label,
+.hotspot:focus-visible .label,
+.hotspot.show-label .label {
+  opacity: 1;
+}
+
+.hotspot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.choices.fx-flat-options .hotspot .glow {
+  background: radial-gradient(circle, rgba(200, 200, 200, 0.8) 0%, rgba(160, 160, 160, 0) 70%);
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+/* 獨白期間台詞區隱藏 */
+.stage.monologue-on .dialog {
+  opacity: 0;
+}
