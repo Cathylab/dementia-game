@@ -317,7 +317,9 @@ export class AdvView implements View {
     return v >= 100 ? '瞬間' : `${v} 字／秒`;
   }
 
-  protected onVolume(_v: number): void {}
+  protected onVolume(v: number): void {
+    this.audio?.setVolume(v);
+  }
 
   // ───────────────────────── 眨眼轉場 ─────────────────────────
 
@@ -343,6 +345,8 @@ export class AdvView implements View {
     clearTimeout(this.monologueTimer);
     this.monologue.classList.remove('show');
     this.endingScreen.classList.remove('open');
+    this.audio?.setMuffle(false);
+    this.audio?.playMusic(null);
     const meta = this.engine.script.meta;
     const start = el('button', { class: 'start-button', type: 'button' }, ['開始']);
     start.onclick = (e) => {
@@ -359,6 +363,7 @@ export class AdvView implements View {
   }
 
   protected onStart(): void {
+    this.audio?.unlock();
     this.titleScreen.classList.remove('open');
     this.stage.classList.add('eyes-closed');
     void this.engine.start();
@@ -373,6 +378,7 @@ export class AdvView implements View {
       this.stage.classList.remove('eyes-closed');
       this.applyScene(scene, bgUrl, fgUrl);
       this.fx.applyGlobal();
+      this.audio?.playMusic(scene.music);
     });
   }
 
