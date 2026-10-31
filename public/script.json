@@ -1,0 +1,217 @@
+{
+  "meta": {
+    "title": "兩碗粥",
+    "durationMinutes": 3,
+    "stats": { "trust": 0, "lucidity": 0 },
+    "statRange": { "min": -4, "max": 4 }
+  },
+  "characters": [
+    { "id": "daughter", "name": "小婷", "trait": "總是戴著紅色髮圈", "relation": "女兒" },
+    { "id": "caregiver", "name": "林小姐", "trait": "胸前別著向日葵胸章", "relation": "照顧服務員" }
+  ],
+  "scenes": [
+    {
+      "id": "a1_s01",
+      "act": 1,
+      "title": "早餐",
+      "background": "kitchen_morning",
+      "music": "calm_home",
+      "foreground": null,
+      "ui": {},
+      "lines": [
+        { "speaker": "narrator", "text": "早上。桌上有兩碗粥，還冒著熱氣。", "fx": [] },
+        { "speaker": "player", "text": "兩碗。阿秀大概還在後面炒菜。", "fx": [] },
+        { "speaker": "daughter", "expression": "neutral", "gaze": "camera", "distance": "normal", "text": "爸，早。粥我先幫你放涼了。", "fx": [] },
+        { "speaker": "narrator", "text": "她把一個塑膠藥盒推到我面前。盒蓋上寫著星期一到星期日。", "fx": [] },
+        { "speaker": "daughter", "text": "爸，今天記得吃藥，好不好？", "fx": [] },
+        {
+          "choice": [
+            { "text": "我知道。", "effects": { "trust": 1, "lucidity": 0 }, "flags": [], "goto": "a1_s02" },
+            { "text": "什麼藥？", "effects": { "trust": -1, "lucidity": -1 }, "flags": ["asked_about_meds"], "goto": "a1_s02" },
+            { "text": "阿秀呢？", "effects": { "trust": 0, "lucidity": -1 }, "flags": ["asked_for_wife"], "goto": "a1_s02" }
+          ],
+          "mode": "list",
+          "fx": []
+        }
+      ],
+      "next": "a1_s02"
+    },
+    {
+      "id": "a1_s02",
+      "act": 1,
+      "title": "藥盒",
+      "background": "living_room",
+      "music": "calm_home",
+      "foreground": "pill_box",
+      "ui": {},
+      "lines": [
+        { "speaker": "narrator", "text": "我拿著藥盒走到客廳。窗外的光斜斜地照在地板上。", "fx": [] },
+        { "speaker": "player", "text": "星期一。今天是星期一嗎？", "fx": [] },
+        { "speaker": "narrator", "text": "我低頭看手上的東西。", "fx": ["wrong_object"], "wrongObject": "tv_remote" },
+        { "speaker": "player", "text": "……這不是藥盒。", "fx": [] },
+        { "speaker": "daughter", "expression": "worried", "gaze": "other", "distance": "far", "text": "爸？你在找什麼？", "fx": [] },
+        {
+          "prompt": "藥盒放到哪裡去了？",
+          "choice": [
+            { "text": "沙發上的靠墊旁邊", "effects": { "lucidity": 1 }, "flags": [], "goto": "a2_s01", "x": 0.28, "y": 0.62, "r": 0.05 },
+            { "text": "電視櫃的抽屜", "effects": { "trust": 1 }, "flags": [], "goto": "a2_s01", "x": 0.72, "y": 0.55, "r": 0.05 },
+            { "text": "口袋裡", "effects": { "lucidity": -1 }, "flags": ["pocket"], "goto": "a2_s01", "x": 0.5, "y": 0.4, "r": 0.04 }
+          ],
+          "mode": "hotspot",
+          "fx": []
+        }
+      ],
+      "next": "a2_s01"
+    },
+    {
+      "id": "a2_s01",
+      "act": 2,
+      "title": "公園",
+      "background": "park_afternoon",
+      "music": "walk_afternoon",
+      "foreground": null,
+      "ui": {},
+      "lines": [
+        { "speaker": "narrator", "text": "下午。她說出來走走對我比較好。", "fx": [] },
+        { "speaker": "daughter", "expression": "smile", "gaze": "camera", "distance": "normal", "text": "爸，你看，那邊的樹開花了。", "fx": ["name_fade"] },
+        { "speaker": "narrator", "text": "我轉過頭，想找她說的那棵樹。", "fx": ["look_around"] },
+        { "speaker": "player", "text": "這裡的樹本來就這麼高嗎？", "fx": [] },
+        { "speaker": "narrator", "text": "有個小孩背著書包從我旁邊跑過去。", "fx": ["time_skip"], "timeSkipTo": "school_gate_1985" },
+        { "speaker": "player", "text": "該去接小婷放學了。她會在校門口等我。", "fx": ["repeat_line"] },
+        { "speaker": "daughter", "expression": "worried", "gaze": "camera", "distance": "near", "text": "爸，我在這裡啊。", "fx": ["muffle"] },
+        { "speaker": "narrator", "text": "她的聲音好遠，像隔著一層水。", "fx": ["muffle"] },
+        {
+          "choice": [
+            { "text": "我知道妳在這裡。", "effects": { "trust": 1, "lucidity": 1 }, "flags": [], "goto": "a2_s02" },
+            { "text": "我要去學校。", "effects": { "lucidity": -1 }, "flags": ["school_gate"], "goto": "a2_s02" }
+          ],
+          "mode": "list",
+          "fx": []
+        }
+      ],
+      "next": "a2_s02"
+    },
+    {
+      "id": "a2_s02",
+      "act": 2,
+      "title": "回家的路",
+      "background": "street_dusk",
+      "music": "walk_afternoon",
+      "foreground": null,
+      "ui": { "log": "corrupt", "back": "wrong_scene", "skip": "disabled", "auto": "skips_lines" },
+      "backTarget": "a1_s01",
+      "lines": [
+        { "speaker": "narrator", "text": "天色暗了。我一個人站在路口。", "fx": [] },
+        { "speaker": "player", "text": "小婷呢？我剛剛不是跟誰在一起？", "fx": [] },
+        { "speaker": "narrator", "text": "招牌上的每個字我都認得，可是拼不成一句話。", "fx": ["text_blur"] },
+        { "speaker": "narrator", "text": "便利商店的門叮咚一聲打開，又關上。", "fx": [] },
+        { "speaker": "player", "text": "往左？往右？我是從哪一邊來的？", "fx": [] },
+        {
+          "prompt": "要怎麼辦？",
+          "choice": [
+            { "text": "打電話給小婷", "effects": { "trust": 1 }, "flags": [], "goto": "a3_s01" },
+            { "text": "問路邊的人", "effects": { "lucidity": 1 }, "flags": [], "goto": "a3_s01" },
+            { "text": "自己走回去", "effects": { "lucidity": -1 }, "flags": ["walked_alone"], "goto": "a3_s01" },
+            { "text": "站在這裡等", "effects": {}, "flags": [], "goto": "a3_s01" }
+          ],
+          "mode": "list",
+          "fx": ["choice_vanish"]
+        }
+      ],
+      "next": "a3_s01"
+    },
+    {
+      "id": "a3_s01",
+      "act": 3,
+      "title": "白色的燈",
+      "background": "room_night",
+      "music": "night_room",
+      "foreground": null,
+      "ui": {},
+      "lines": [
+        { "speaker": "narrator", "text": "我醒來的時候，房間的燈是白的。", "fx": ["desaturate"] },
+        { "speaker": "narrator", "text": "窗簾不是我家的窗簾。", "fx": [] },
+        { "speaker": "caregiver", "expression": "smile", "gaze": "camera", "distance": "normal", "text": "伯伯，醒了喔？我是小林，今天也是我陪你。", "fx": ["focus_drift"] },
+        { "speaker": "player", "text": "她胸前有一朵向日葵。我好像在哪裡見過那朵花。", "fx": [] },
+        { "speaker": "caregiver", "expression": "neutral", "gaze": "away", "distance": "far", "text": "你女兒等一下會來看你喔。", "fx": [] },
+        { "speaker": "narrator", "text": "女兒。我有一個女兒。", "fx": ["desaturate"] }
+      ],
+      "next": "a3_s02"
+    },
+    {
+      "id": "a3_s02",
+      "act": 3,
+      "title": "探望",
+      "background": "room_night",
+      "music": "night_room",
+      "foreground": null,
+      "ui": {},
+      "lines": [
+        { "speaker": "narrator", "text": "門開了。一個女人走進來，手腕上套著一個紅色的圈。", "fx": [] },
+        { "speaker": "daughter", "expression": "smile", "gaze": "camera", "distance": "near", "text": "爸，我來了。", "fx": ["name_fade"] },
+        { "speaker": "player", "text": "紅色的……髮圈。", "fx": [] },
+        { "speaker": "daughter", "expression": "sad", "gaze": "away", "distance": "near", "text": "今天有沒有好好吃飯？", "fx": [] },
+        { "speaker": "narrator", "text": "我應該要叫她的名字。那個名字明明就在嘴邊。", "fx": ["text_blur"] },
+        {
+          "choice": [
+            { "text": "小婷。", "effects": { "trust": 1, "lucidity": 1 }, "flags": [], "goto": "@ending" },
+            { "text": "妳是誰？", "effects": { "trust": -1 }, "flags": [], "goto": "@ending" },
+            { "text": "阿秀？", "effects": { "lucidity": -1 }, "flags": ["called_wife"], "goto": "@ending" }
+          ],
+          "mode": "list",
+          "fx": ["flat_options"]
+        }
+      ],
+      "next": "@ending"
+    },
+    {
+      "id": "end_a",
+      "act": 3,
+      "title": "紅色髮圈",
+      "background": "kitchen_morning",
+      "music": "calm_home",
+      "foreground": null,
+      "ui": {},
+      "lines": [
+        { "speaker": "narrator", "text": "早上。桌上有兩碗粥。", "fx": [] },
+        { "speaker": "daughter", "expression": "smile", "gaze": "camera", "distance": "normal", "text": "爸，早。", "fx": [] },
+        { "speaker": "player", "text": "我想不起她的名字。可是我記得那個紅色的髮圈。", "fx": [] },
+        { "speaker": "narrator", "text": "那樣就夠了。我想。", "fx": [] }
+      ]
+    },
+    {
+      "id": "end_b",
+      "act": 3,
+      "title": "回家的路",
+      "background": "street_night",
+      "music": null,
+      "foreground": null,
+      "ui": {},
+      "lines": [
+        { "speaker": "narrator", "text": "我走了很久。每一條路都長得很像。", "fx": [] },
+        { "speaker": "player", "text": "家在哪裡？家是一個地方，還是一個人？", "fx": [] },
+        { "speaker": "narrator", "text": "後來有人牽起我的手。我不知道是誰，但那隻手很暖。", "fx": [] }
+      ]
+    },
+    {
+      "id": "end_c",
+      "act": 3,
+      "title": "還是熱的",
+      "background": "kitchen_morning",
+      "music": "calm_home",
+      "foreground": null,
+      "ui": {},
+      "lines": [
+        { "speaker": "narrator", "text": "早上。桌上有兩碗粥。", "fx": [] },
+        { "speaker": "player", "text": "兩碗。阿秀大概還在後面炒菜。", "fx": [] },
+        { "speaker": "narrator", "text": "對面的女人看著我，眼睛紅紅的。", "fx": ["desaturate"] },
+        { "speaker": "narrator", "text": "粥還是熱的。", "fx": [] }
+      ]
+    }
+  ],
+  "endings": [
+    { "id": "ending_a", "title": "紅色髮圈", "condition": "trust >= 2 && lucidity >= 0", "scene": "end_a" },
+    { "id": "ending_b", "title": "回家的路", "condition": "flags.includes(\"walked_alone\")", "scene": "end_b" },
+    { "id": "ending_c", "title": "還是熱的", "condition": "true", "scene": "end_c" }
+  ]
+}

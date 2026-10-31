@@ -1,0 +1,6 @@
+body { margin: 0; background: #000; color: #eee; font-family: system-ui, sans-serif; font-size: 22px; }
+#app { padding: 24px; }
+button { font-size: 22px; padding: 12px 20px; margin: 6px; }
+.box { min-height: 160px; border-top: 1px solid #555; padding: 16px; cursor: pointer; }
+.name { color: #fc8; min-height: 1.4em; }
+.choices { display: flex; flex-direction: column; align-items: flex-start; }
