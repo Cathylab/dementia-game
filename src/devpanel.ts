@@ -18,6 +18,7 @@ export class DevPanel {
   private readonly degOut = el('output', {});
   private readonly gazeSelect = el('select', { name: 'dev-gaze' });
   private readonly distSelect = el('select', { name: 'dev-distance' });
+  private lastScene = '';
 
   constructor(
     private readonly engine: Engine,
@@ -142,7 +143,14 @@ export class DevPanel {
       this.section('腳本檢查', problemList),
     );
     this.root.addEventListener('click', (ev) => ev.stopPropagation());
-    this.root.addEventListener('keydown', (ev) => ev.stopPropagation());
+    // 面板內的按鍵不要傳到遊戲（例如空白鍵推進台詞），但開關鍵照樣有效
+    this.root.addEventListener('keydown', (ev) => {
+      ev.stopPropagation();
+      if (ev.key === '`' || ev.key === 'F8') {
+        ev.preventDefault();
+        this.toggle(false);
+      }
+    });
   }
 
   /** 手動觸發效果：作用在目前這一句；選項類效果若畫面上沒有選項，會叫出一組測試選項。 */
@@ -200,7 +208,11 @@ export class DevPanel {
         ]),
       ),
     );
-    if (e.scene) this.sceneSelect.value = e.scene.id;
+    // 只在場景真的換了時同步下拉選單，避免蓋掉使用者剛選的值
+    if (e.scene && e.scene.id !== this.lastScene) {
+      this.lastScene = e.scene.id;
+      this.sceneSelect.value = e.scene.id;
+    }
     this.degRange.value = String(e.degradation);
     this.degOut.textContent = e.degradation.toFixed(2);
     const pose = e.lastChar ? e.poses[e.lastChar] : null;

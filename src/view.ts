@@ -311,7 +311,7 @@ export class AdvView implements View {
       if (corrupt && e.name) {
         const name = row.querySelector<HTMLElement>('.log-name')!;
         name.classList.add('fx-name-fade');
-        name.textContent = Math.random() < 0.4 ? '那個人' : [...e.name].map((c) => (Math.random() < 0.6 ? '＿' : c)).join('');
+        name.textContent = Math.random() < 0.4 ? '那個人' : this.underscoreSome(e.name);
       }
       return { node: row };
     });
@@ -320,6 +320,13 @@ export class AdvView implements View {
   protected logRow(name: string, text: string, speaker: string, choice: boolean): HTMLElement {
     const cls = choice ? 'log-row choice' : speaker === 'player' ? 'log-row monologue' : 'log-row';
     return el('li', { class: cls }, [el('span', { class: 'log-name' }, [name]), el('span', { class: 'log-text' }, [text])]);
+  }
+
+  /** 把名字的部分字元換成底線（至少一個）。 */
+  private underscoreSome(name: string): string {
+    const chars = [...name];
+    const keep = Math.floor(Math.random() * chars.length);
+    return chars.map((c, i) => (i !== keep || chars.length === 1 ? '＿' : c)).join('');
   }
 
   openSettings(): void {
