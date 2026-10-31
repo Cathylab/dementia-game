@@ -1,0 +1,109 @@
+{
+  "meta": {
+    "title": "測試腳本",
+    "durationMinutes": 1,
+    "stats": { "trust": 0, "lucidity": 0 },
+    "statRange": { "min": -2, "max": 2 }
+  },
+  "characters": [
+    { "id": "amin", "name": "阿明哥", "trait": "戴著藍色帽子", "relation": "鄰居" }
+  ],
+  "scenes": [
+    {
+      "id": "t_start", "act": 1, "title": "開始", "background": "test_room", "music": "test_music", "foreground": null,
+      "lines": [
+        { "speaker": "narrator", "text": "旁白第一句。" },
+        { "speaker": "amin", "expression": "neutral", "text": "角色第一句。" },
+        { "speaker": "player", "text": "獨白第一句。" },
+        { "speaker": "narrator", "text": "旁白第二句。" }
+      ],
+      "next": "t_end_choice"
+    },
+    {
+      "id": "t_end_choice", "act": 1, "background": "test_room",
+      "lines": [
+        { "choice": [
+          { "text": "加分", "effects": { "trust": 5 }, "goto": "@ending" },
+          { "text": "設旗標", "flags": ["flag_y"], "goto": "@ending" }
+        ], "mode": "list" }
+      ]
+    },
+    { "id": "fx_name", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "amin", "expression": "neutral", "text": "我的名字會消失。", "fx": ["name_fade"] },
+      { "speaker": "narrator", "text": "之後。" } ] },
+    { "id": "fx_text", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "這一句有很多字會缺失或者變成方塊亂碼。", "fx": ["text_blur"] } ] },
+    { "id": "fx_repeat", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "會重複的一句。", "fx": ["repeat_line"] },
+      { "speaker": "narrator", "text": "第二句。" },
+      { "speaker": "narrator", "text": "第三句。" },
+      { "speaker": "narrator", "text": "第四句。" },
+      { "speaker": "narrator", "text": "第五句。" } ] },
+    { "id": "fx_wrong_fg", "act": 1, "background": "test_room", "foreground": "cup", "lines": [
+      { "speaker": "narrator", "text": "手上的東西變了。", "fx": ["wrong_object"], "wrongObject": "phone" } ] },
+    { "id": "fx_wrong_bg", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "房間裡多了一樣東西。", "fx": ["wrong_object"] } ] },
+    { "id": "fx_time", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "一眨眼。", "fx": ["time_skip"], "timeSkipTo": "old_school" } ] },
+    { "id": "fx_desat", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "顏色變淡了。", "fx": ["desaturate"] },
+      { "speaker": "narrator", "text": "又更淡了。", "fx": ["desaturate"] } ] },
+    { "id": "fx_focus", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "amin", "text": "對焦飄走了。", "fx": ["focus_drift"] } ] },
+    { "id": "fx_look", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "四處張望。", "fx": ["look_around"] } ] },
+    { "id": "fx_muffle", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "聲音變悶。", "fx": ["muffle"] } ] },
+    { "id": "ch_vanish", "act": 1, "background": "test_room", "lines": [
+      { "choice": [
+        { "text": "一", "goto": "flat_a" }, { "text": "二", "goto": "flat_a" },
+        { "text": "三", "goto": "flat_a" }, { "text": "四", "goto": "flat_a" }
+      ], "mode": "list", "fx": ["choice_vanish"] } ] },
+    { "id": "ch_hot_vanish", "act": 1, "background": "test_room", "lines": [
+      { "choice": [
+        { "text": "左", "goto": "flat_a", "x": 0.2, "y": 0.5, "r": 0.05 },
+        { "text": "中", "goto": "flat_a", "x": 0.5, "y": 0.5, "r": 0.05 },
+        { "text": "右", "goto": "flat_a", "x": 0.8, "y": 0.5, "r": 0.05 }
+      ], "mode": "hotspot", "fx": ["choice_vanish"] } ] },
+    { "id": "ch_flat", "act": 1, "background": "test_room", "lines": [
+      { "choice": [
+        { "text": "走 A！", "goto": "flat_a" },
+        { "text": "走 B？", "effects": { "lucidity": 1 }, "goto": "flat_b" }
+      ], "mode": "list", "fx": ["flat_options"] } ] },
+    { "id": "ch_hot", "act": 1, "background": "test_room", "lines": [
+      { "prompt": "點一個", "choice": [
+        { "text": "窗戶", "goto": "flat_a", "x": 0.25, "y": 0.4, "r": 0.05 },
+        { "text": "門", "goto": "flat_b", "x": 0.75, "y": 0.4, "r": 0.05 }
+      ], "mode": "hotspot" } ] },
+    { "id": "ui_scene", "act": 2, "background": "test_room",
+      "ui": { "log": "corrupt", "back": "wrong_scene", "skip": "disabled", "auto": "skips_lines", "settings": "hidden" },
+      "backTarget": "t_start",
+      "lines": [
+        { "speaker": "amin", "text": "紀錄一。" },
+        { "speaker": "amin", "text": "紀錄二。" },
+        { "speaker": "amin", "text": "紀錄三。" },
+        { "speaker": "amin", "text": "紀錄四。" },
+        { "speaker": "amin", "text": "紀錄五。" },
+        { "speaker": "amin", "text": "紀錄六。" },
+        { "speaker": "amin", "text": "紀錄七。" },
+        { "speaker": "amin", "text": "紀錄八。" }
+      ] },
+    { "id": "pose", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "amin", "expression": "smile", "gaze": "camera", "distance": "normal", "text": "看著你。" },
+      { "speaker": "amin", "gaze": "away", "distance": "near", "text": "看別處，很近。" },
+      { "speaker": "amin", "gaze": "other", "distance": "far", "text": "看別人，很遠。" },
+      { "speaker": "amin", "text": "沿用上一句。" } ] },
+    { "id": "act3", "act": 3, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "第三幕。" } ] },
+    { "id": "flat_a", "act": 1, "background": "room_a", "lines": [ { "speaker": "narrator", "text": "A。" } ], "next": "@ending" },
+    { "id": "flat_b", "act": 1, "background": "room_b", "lines": [ { "speaker": "narrator", "text": "B。" } ], "next": "@ending" },
+    { "id": "end_x", "act": 1, "background": "test_room", "lines": [ { "speaker": "narrator", "text": "結局 X。" } ] },
+    { "id": "end_y", "act": 1, "background": "test_room", "lines": [ { "speaker": "narrator", "text": "結局 Y。" } ] },
+    { "id": "end_z", "act": 1, "background": "test_room", "lines": [ { "speaker": "narrator", "text": "結局 Z。" } ] }
+  ],
+  "endings": [
+    { "id": "ending_x", "title": "結局X", "condition": "trust >= 2", "scene": "end_x" },
+    { "id": "ending_y", "title": "結局Y", "condition": "flags.includes(\"flag_y\")", "scene": "end_y" },
+    { "id": "ending_z", "title": "結局Z", "condition": "true", "scene": "end_z" }
+  ]
+}
