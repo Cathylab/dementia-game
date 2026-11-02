@@ -4,7 +4,18 @@ import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
 import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
-import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, SceneObject, TextLine, UiKey } from './types';
+import type {
+  Character,
+  ChoiceLine,
+  ChoiceOption,
+  Ending,
+  Scene,
+  SceneObject,
+  SpriteFraming,
+  TextLine,
+  TransitionStyle,
+  UiKey,
+} from './types';
 import { el, shuffle, sleep, T } from './util';
 
 /** 聲音模組需提供的介面（見 audio.ts）。 */
@@ -14,6 +25,10 @@ export interface AudioLike {
   setVolume(v: number): void;
   playMusic(name: string | null | undefined): void;
   unlock(): void;
+  /** 目前播放的曲名。 */
+  readonly musicName: string | null;
+  /** 把電腦裡的音樂檔暫時當成某個曲名來播（開發者面板試聽用）。 */
+  useFile(name: string, file: Blob): Promise<boolean>;
 }
 
 /** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
@@ -104,6 +119,8 @@ export class AdvView implements View {
   readonly toolbar = el('nav', { class: 'toolbar', 'aria-label': '功能列' });
   readonly menuToggle = el('button', { class: 'menu-toggle', type: 'button', 'aria-label': '選單' });
   readonly blinkEl = el('div', { class: 'blink' }, [el('div', { class: 'lid top' }), el('div', { class: 'lid bottom' })]);
+  /** 淡入淡出轉場用的黑幕。 */
+  readonly fadeEl = el('div', { class: 'fade-curtain' });
   readonly logOverlay = el('div', { class: 'overlay log-overlay', role: 'dialog' });
   readonly settingsOverlay = el('div', { class: 'overlay settings-overlay', role: 'dialog' });
   readonly titleScreen = el('div', { class: 'screen title-screen' });
@@ -175,6 +192,7 @@ export class AdvView implements View {
       this.menuToggle,
       this.inspectEl,
       this.blinkEl,
+      this.fadeEl,
       this.logOverlay,
       this.settingsOverlay,
       this.endingScreen,
@@ -480,15 +498,57 @@ export class AdvView implements View {
   // ───────────────────────── 眨眼轉場 ─────────────────────────
 
   /** 上下眼皮合攏 → 執行 mid → 張開。 */
+  /**
+   * 轉場：關上 → 執行 mid → 打開。樣式由 meta.transition 決定：
+   * blink 眨眼、blink_soft 柔和的眨眼、fade 淡入淡出、focus 模糊對焦。
+   */
   async blink(mid?: () => void | Promise<void>, hold = 140): Promise<void> {
-    this.blinkEl.classList.add('closed');
+    const style = this.transitionStyle;
+    const dur = { blink: 320, blink_soft: 700, fade: 600, focus: 700 }[style];
+    this.applyTransitionStyle();
+    this.stage.classList.add('transitioning');
     this.stage.dataset.blink = 'closed';
-    await sleep(T(320));
+    this.setCurtain(style, true);
+    await sleep(T(dur));
     await mid?.();
     await sleep(T(hold));
-    this.blinkEl.classList.remove('closed');
+    this.setCurtain(style, false);
     this.stage.dataset.blink = 'open';
-    await sleep(T(320));
+    await sleep(T(dur));
+    this.stage.classList.remove('transitioning');
+  }
+
+  get transitionStyle(): TransitionStyle {
+    return this.engine.script.meta.transition ?? 'blink';
+  }
+
+  /** 把轉場樣式寫到舞台上（CSS 依此決定眼皮或黑幕的樣子）。 */
+  applyTransitionStyle(): void {
+    this.stage.dataset.transition = this.transitionStyle;
+  }
+
+  private setCurtain(style: TransitionStyle, closed: boolean): void {
+    this.blinkEl.classList.toggle('closed', closed && (style === 'blink' || style === 'blink_soft'));
+    this.fadeEl.classList.toggle('on', closed && style === 'fade');
+    this.stage.classList.toggle('focus-out', closed && style === 'focus');
+  }
+
+  /** 立繪構圖：角色自己的 sprite 覆寫 meta.sprite。 */
+  framingFor(charId: string): Required<SpriteFraming> {
+    const base = this.engine.script.meta.sprite ?? {};
+    const own = this.engine.getChar(charId)?.sprite ?? {};
+    return { scale: own.scale ?? base.scale ?? 1, y: own.y ?? base.y ?? 0 };
+  }
+
+  applyFraming(charId: string): void {
+    const f = this.framingFor(charId);
+    this.sprite.style.setProperty('--sprite-scale', String(f.scale));
+    this.sprite.style.setProperty('--sprite-y', String(f.y));
+  }
+
+  /** 物件提示樣式：glow 物品本身發亮、ring 圓圈。 */
+  applyHighlightStyle(): void {
+    this.stage.dataset.highlight = this.engine.script.meta.objectHighlight ?? 'glow';
   }
 
   // ───────────────────────── View 介面 ─────────────────────────
@@ -527,6 +587,7 @@ export class AdvView implements View {
   protected onStart(): void {
     this.audio?.unlock();
     this.titleScreen.classList.remove('open');
+    this.applyTransitionStyle();
     this.stage.classList.add('eyes-closed');
     void this.engine.start();
   }
@@ -546,6 +607,7 @@ export class AdvView implements View {
 
   protected applyScene(scene: Scene, bgUrl: string, fgUrl: string): void {
     this.stage.dataset.scene = scene.id;
+    this.applyHighlightStyle();
     this.stage.dataset.act = String(scene.act ?? 1);
     this.objectsBg.replaceChildren();
     this.memoryCard.classList.remove('open');
@@ -777,6 +839,7 @@ export class AdvView implements View {
     this.sprite.dataset.expression = pose.expression;
     this.sprite.dataset.gaze = pose.gaze;
     this.sprite.dataset.distance = pose.distance;
+    this.applyFraming(character.id);
     this.stage.classList.add('has-char');
   }
 

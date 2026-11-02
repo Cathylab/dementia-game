@@ -18,7 +18,12 @@ async function boot() {
     view.audio = new AudioEngine(settings.volume, view.stage);
     engine.view = view;
     const editor = new TextEditor(engine, view);
-    const dev = new DevPanel(engine, view, () => editor.open());
+    const dev = new DevPanel(
+      engine,
+      view,
+      () => editor.open(),
+      () => editor.save(),
+    );
     view.onStateChange = () => dev.refresh();
     // 給測試與主控台除錯用
     (window as unknown as { __vn: unknown }).__vn = { engine, view, dev, editor };

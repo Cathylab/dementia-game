@@ -4,7 +4,10 @@
     "durationMinutes": 16,
     "stats": { "trust": 0, "lucidity": 0 },
     "statRange": { "min": -4, "max": 4 },
-    "settingsDefaults": { "hiddenHints": false, "memoryReview": "inline" }
+    "settingsDefaults": { "hiddenHints": false, "memoryReview": "inline" },
+    "transition": "fade",
+    "objectHighlight": "glow",
+    "sprite": { "scale": 2.2, "y": -95 }
   },
   "characters": [
     { "id": "husband", "name": "國華", "trait": "老花眼鏡總掛在脖子上", "relation": "丈夫" },
