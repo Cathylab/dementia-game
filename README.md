@@ -167,7 +167,7 @@ npx playwright install chromium
 
 ### v2 新功能
 
-完整規格見 [`docs/script-format-v2.md`](docs/script-format-v2.md)（給劇本 AI 與引擎 AI 共用的文件，最後一節是引擎對文件沒寫到的情況所做的決定）。v1 腳本不用修改也能照常執行。
+完整規格見 [`docs/script-format-v2.md`](docs/script-format-v2.md)（v1 的部分另外整理在 [`docs/script-format-v1.md`](docs/script-format-v1.md)）（給劇本 AI 與引擎 AI 共用的文件，最後一節是引擎對文件沒寫到的情況所做的決定）。v1 腳本不用修改也能照常執行。
 
 #### 條件 `if`
 
@@ -355,6 +355,7 @@ npx playwright install chromium
 
 ```
 docs/
+  script-format-v1.md  v1 腳本格式（與本 README「如何換腳本」相同）
   script-format-v2.md  v2 腳本格式（給劇本 AI 與引擎 AI）
 public/
   script.json          故事腳本（換這個）
