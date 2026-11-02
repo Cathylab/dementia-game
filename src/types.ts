@@ -64,6 +64,20 @@ export interface TextLine {
   timeSkipTo?: string;
   /** 條件：不成立時整句跳過（v2）。 */
   if?: string;
+  /** 引擎內部用：記憶對照產生的台詞，附帶物件圖與當時的說明。腳本裡不要寫。 */
+  memory?: { objectId: string; label: string; description: string; image?: string };
+}
+
+/** 記憶對照的位置標記，只能放在 end_ 開頭的結局場景（v2）。 */
+export interface MemoryReviewLine {
+  memoryReview: {
+    /** 說出真相的人：narrator、player 或角色 id。 */
+    speaker: string;
+    /** 開頭的旁白。 */
+    intro?: string;
+  };
+  if?: string;
+  fx?: FxTag[];
 }
 
 export interface ChoiceOption {
@@ -97,7 +111,7 @@ export interface ChoiceLine {
   if?: string;
 }
 
-export type Line = TextLine | ChoiceLine;
+export type Line = TextLine | ChoiceLine | MemoryReviewLine;
 
 export type UiKey = 'back' | 'auto' | 'skip' | 'log' | 'hide' | 'settings' | 'title';
 
@@ -165,3 +179,12 @@ export interface Script {
 export function isChoice(line: Line): line is ChoiceLine {
   return Array.isArray((line as ChoiceLine).choice);
 }
+
+export function isMemoryReview(line: Line): line is MemoryReviewLine {
+  return typeof (line as MemoryReviewLine).memoryReview === 'object' && (line as MemoryReviewLine).memoryReview !== null;
+}
+
+export function isText(line: Line): line is TextLine {
+  return !isChoice(line) && !isMemoryReview(line);
+}
+

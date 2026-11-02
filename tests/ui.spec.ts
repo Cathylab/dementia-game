@@ -85,7 +85,7 @@ test('結局條件依序判定，最後一條是 fallback', async ({ page }) => 
   await page.locator('.choice').nth(1).click();
   await expect(page.locator('#stage')).toHaveAttribute('data-scene', 'end_y');
   await expect(page.locator('.dialog .text')).toHaveText('結局 Y。');
-  await advance(page);
+  for (let i = 0; i < 5 && !(await page.locator('.ending-screen.open').count()); i++) await advance(page);
   await expect(page.locator('.ending-screen.open')).toBeVisible();
   await expect(page.locator('.ending-screen')).toHaveAttribute('data-ending-id', 'ending_y');
   await expect(page.locator('.ending-title')).toHaveText('結局Y');

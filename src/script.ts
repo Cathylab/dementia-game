@@ -1,4 +1,4 @@
-import { ALL_FX, isChoice, requiredObjects, type Ending, type Script } from './types';
+import { ALL_FX, isChoice, isMemoryReview, requiredObjects, type Ending, type Script } from './types';
 
 export const ENDING_TARGET = '@ending';
 
@@ -113,6 +113,15 @@ export function validateScript(script: Script): string[] {
             problems.push(`${where}.choice[${j}]：hotspot 模式需要 x、y`);
           }
         });
+      } else if (isMemoryReview(line)) {
+        if (!scene.id.startsWith('end_')) problems.push(`${where}：memoryReview 只能放在 end_ 開頭的結局場景`);
+        if (scene.lines.indexOf(line) !== scene.lines.findIndex(isMemoryReview)) {
+          problems.push(`${where}：同一個結局只能有一行 memoryReview`);
+        }
+        const speaker = line.memoryReview.speaker;
+        if (!['narrator', 'player'].includes(speaker) && !charIds.has(speaker)) {
+          problems.push(`${where}.memoryReview：未知 speaker "${speaker}"`);
+        }
       } else if (!['narrator', 'player'].includes(line.speaker) && !charIds.has(line.speaker)) {
         problems.push(`${where}：未知 speaker "${line.speaker}"`);
       }

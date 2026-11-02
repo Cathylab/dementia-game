@@ -1,6 +1,9 @@
 import { ENDING_TARGET, evalCondition, pickEnding, type CondContext } from './script';
+import { settings } from './settings';
 import {
   isChoice,
+  isMemoryReview,
+  isText,
   requiredObjects,
   type Character,
   type ChoiceLine,
@@ -9,6 +12,7 @@ import {
   type Ending,
   type Gaze,
   type Line,
+  type MemoryReviewLine,
   type Scene,
   type SceneObject,
   type Script,
@@ -100,6 +104,8 @@ export class Engine {
   history: Snapshot[] = [];
   log: LogEntry[] = [];
   repeats: PendingRepeat[] = [];
+  /** 記憶對照展開後還沒播的台詞。 */
+  virtual: TextLine[] = [];
   /** 自增序號：每次換句或換場景都會變，非同步流程據此判斷是否已過期。 */
   token = 0;
   textFinished = false;
@@ -197,6 +203,7 @@ export class Engine {
     this.view.clearChoice();
     this.scene = scene;
     this.repeats = [];
+    this.virtual = [];
     if (!opts.restoring) this.lastChar = null;
     await this.view.enterScene(scene, { restoring: !!opts.restoring });
     if (token !== this.token) return;
@@ -217,20 +224,30 @@ export class Engine {
     };
   }
 
-  private playLine(index: number, repeatOf?: TextLine): void {
+  /**
+   * 播放第 index 句。forced 表示改播指定的台詞（repeat_line 的重播、記憶對照產生的台詞），
+   * 這時不判定 if，也不往下推進句數。
+   */
+  private playLine(index: number, forced?: { line: TextLine; repeated: boolean }): void {
     this.index = index;
-    if (!repeatOf && index >= this.scene.lines.length) {
+    if (!forced && index >= this.scene.lines.length) {
       this.endScene();
       return;
     }
-    const line = repeatOf ?? this.scene.lines[index];
+    const line = forced?.line ?? this.scene.lines[index];
     // if 不成立：整句跳過，不顯示、不寫入紀錄、不觸發效果、不留回上一句的快照
-    if (!repeatOf && !this.test(line.if)) {
+    if (!forced && !this.test(line.if)) {
       this.playLine(index + 1);
       return;
     }
+    if (!forced && isMemoryReview(line)) {
+      this.virtual = this.expandMemoryReview(line);
+      if (this.virtual.length === 0) this.playLine(index + 1);
+      else this.playLine(index, { line: this.virtual.shift()!, repeated: false });
+      return;
+    }
     let shown: ShownOption[] = [];
-    if (!repeatOf && isChoice(line)) {
+    if (!forced && isChoice(line)) {
       shown = line.choice
         .map((opt, i) => {
           const missing = requiredObjects(opt).filter((id) => !this.seen.includes(id));
@@ -242,12 +259,12 @@ export class Engine {
         this.playLine(index + 1);
         return;
       }
-    }
-    // 選項出現前，先把還沒重播的 repeat_line 補播完。
-    if (!repeatOf && isChoice(line) && this.repeats.length) {
-      const due = this.repeats.shift()!;
-      this.playLine(index, due.line);
-      return;
+      // 選項出現前，先把還沒重播的 repeat_line 補播完。
+      if (this.repeats.length) {
+        const due = this.repeats.shift()!;
+        this.playLine(index, { line: due.line, repeated: true });
+        return;
+      }
     }
     this.history.push(this.snapshot());
     this.token++;
@@ -256,7 +273,7 @@ export class Engine {
       this.phase = 'choice';
       this.shown = shown;
       this.view.showChoice(line, shown, (opt) => this.choose(line, opt));
-    } else {
+    } else if (isText(line)) {
       this.phase = 'text';
       this.textFinished = false;
       const character = this.getChar(line.speaker);
@@ -271,13 +288,42 @@ export class Engine {
         this.poses[character.id] = pose;
         this.lastChar = character.id;
       }
-      if (!repeatOf && line.fx?.includes('repeat_line')) {
+      if (!forced && line.fx?.includes('repeat_line')) {
         this.repeats.push({ line, remaining: Math.random() < 0.5 ? 1 : 2 });
       }
       this.log.push({ speaker: line.speaker, name: this.speakerName(line.speaker), text: line.text });
-      this.view.showText(line, { repeated: !!repeatOf, character, pose });
+      this.view.showText(line, { repeated: !!forced?.repeated, character, pose });
     }
     this.view.stateChanged();
+  }
+
+  /** 記憶對照的資料：點過、有 truth 的物件，依第一次點的順序，最多 4 件。 */
+  get memoryItems(): SceneObject[] {
+    return this.seen
+      .map((id) => this.objects.get(id))
+      .filter((o): o is SceneObject => !!o?.truth)
+      .slice(0, 4);
+  }
+
+  /** inline 模式：把記憶對照展開成一串台詞（intro 旁白＋每件物件由 speaker 說出 truth）。page 模式不展開。 */
+  private expandMemoryReview(line: MemoryReviewLine): TextLine[] {
+    if (settings.memoryReview === 'page') return [];
+    const { speaker, intro } = line.memoryReview;
+    const lines: TextLine[] = [];
+    if (intro) lines.push({ speaker: 'narrator', text: intro });
+    for (const obj of this.memoryItems) {
+      lines.push({
+        speaker,
+        text: obj.truth!,
+        memory: { objectId: obj.id, label: obj.label, description: obj.description, image: obj.image },
+      });
+    }
+    return lines;
+  }
+
+  /** 這個結局場景有沒有記憶對照（page 模式用來決定要不要多一頁）。 */
+  get sceneHasMemoryReview(): boolean {
+    return !!this.scene?.lines.some(isMemoryReview);
   }
 
   /** 目前這一句可以點的物件（只在台詞播放中）。 */
@@ -319,10 +365,14 @@ export class Engine {
   /** 前進到下一句（略過打字判定）。 */
   next(): void {
     if (this.phase !== 'text') return;
+    if (this.virtual.length) {
+      this.playLine(this.index, { line: this.virtual.shift()!, repeated: false });
+      return;
+    }
     const due = this.repeats.findIndex((r) => r.remaining <= 0);
     if (due >= 0) {
       const [r] = this.repeats.splice(due, 1);
-      this.playLine(this.index, r.line);
+      this.playLine(this.index, { line: r.line, repeated: true });
       return;
     }
     for (const r of this.repeats) r.remaining--;
@@ -351,7 +401,7 @@ export class Engine {
   private endScene(): void {
     if (this.repeats.length) {
       const r = this.repeats.shift()!;
-      this.playLine(this.scene.lines.length - 1, r.line);
+      this.playLine(this.scene.lines.length - 1, { line: r.line, repeated: true });
       return;
     }
     if (this.scene.id.startsWith('end_')) {
@@ -390,6 +440,7 @@ export class Engine {
     this.seen = [...snap.seen];
     this.log.length = snap.logLength;
     this.repeats = [];
+    this.virtual = [];
     if (snap.sceneId !== this.scene.id) {
       await this.gotoScene(snap.sceneId, { restoring: true, index: snap.index });
     } else {

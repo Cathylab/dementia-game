@@ -228,6 +228,21 @@ npx playwright install chromium
 - 有 `requires` 的 choice 至少要有兩個沒有 `requires` 的選項；隱藏選項要設一個 `hidden_` 開頭的旗標。
 - 結局裡的專屬內容不需要新欄位，用 `"if": "has(\"hidden_phone_photo\")"` 即可。
 
+#### 記憶對照
+
+資料來源：玩家點過、而且有 `truth` 的物件，依第一次點的順序，最多 4 件。在結局場景（`end_` 開頭）裡放一行：
+
+```json
+{ "memoryReview": { "speaker": "daughter", "intro": "佳穎收拾母親的包包，一件一件拿出來。" } }
+```
+
+| 設定 | 呈現方式 |
+| --- | --- |
+| 融入結局（`inline`，預設） | 播到這一行時，先由旁白說 `intro`；接著每件物件依序：畫面上方出現物件圖與劃掉的當時說明，再由 `speaker` 說出 `truth` |
+| 結局後獨立一頁（`page`） | 這一行直接跳過；結局畫面按「繼續」後多一頁對照表，左欄當時的說明、右欄真相，可以捲動、可以略過 |
+
+沒有點過任何有 `truth` 的物件時，inline 只播 `intro`；page 顯示「你沒有留下任何記憶。」
+
 #### 預設設定 `meta.settingsDefaults`
 
 ```json
@@ -251,6 +266,8 @@ npx playwright install chromium
   - 物件 id 重複、缺少必填欄位、說明套了不支援的效果、位置太低會被台詞區蓋住
   - `requires` 指向不存在的物件，或物件在這個選項之後才出現（玩家不可能先點到）
   - 有 `requires` 的 choice，沒有 `requires` 的選項少於兩個；隱藏選項沒有 `hidden_` 旗標
+  - `memoryReview` 放在非結局場景、同一結局出現兩次、`speaker` 不存在
+  - `meta.settingsDefaults` 的值不合法
 - `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合（包含每個物件點或不點），確認**每一個結局都有路線可以走到**；狀態太多時改用隨機抽樣五千次。
 - `tests/script.spec.ts` 裡的「示範腳本規格」一組只是驗證目前的示範腳本；換成正式腳本後可以整組刪掉。
 

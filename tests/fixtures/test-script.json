@@ -132,7 +132,8 @@
     { "id": "req_scene", "act": 1, "background": "test_room",
       "objects": [
         { "id": "o_key", "label": "鑰匙", "x": 0.75, "y": 0.3, "description": "一串鑰匙。", "truth": "那是老家的鑰匙。" },
-        { "id": "o_photo", "label": "照片", "x": 0.88, "y": 0.45, "description": "一張照片。", "truth": "照片裡是我們三個人。" }
+        { "id": "o_photo", "label": "照片", "x": 0.88, "y": 0.45, "description": "一張照片。", "truth": "照片裡是我們三個人。" },
+        { "id": "o_letter", "label": "信", "x": 0.62, "y": 0.2, "description": "一封信。", "truth": "信是我寫給自己的。" }
       ],
       "lines": [
         { "speaker": "narrator", "text": "隱藏選項之前。" },
@@ -149,7 +150,10 @@
     { "id": "end_x", "act": 1, "background": "test_room", "lines": [
       { "speaker": "narrator", "text": "結局 X。" },
       { "speaker": "narrator", "text": "鑰匙的專屬內容。", "if": "has(\"hidden_key\")" } ] },
-    { "id": "end_y", "act": 1, "background": "test_room", "lines": [ { "speaker": "narrator", "text": "結局 Y。" } ] },
+    { "id": "end_y", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "結局 Y。" },
+      { "memoryReview": { "speaker": "amin", "intro": "阿明哥把東西一件一件拿出來。" } },
+      { "speaker": "narrator", "text": "結局 Y 最後。" } ] },
     { "id": "end_z", "act": 1, "background": "test_room", "lines": [ { "speaker": "narrator", "text": "結局 Z。" } ] }
   ],
   "endings": [

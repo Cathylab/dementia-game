@@ -152,3 +152,26 @@ test.describe('腳本檢查：settingsDefaults', () => {
     expect(problems).toContain('memoryReview 必須是 "inline" 或 "page"');
   });
 });
+
+test.describe('腳本檢查：memoryReview', () => {
+  const review = { memoryReview: { speaker: 'narrator', intro: '開頭' } };
+
+  test('放在結局場景沒有問題', () => {
+    const s = make([]);
+    s.scenes.find((x) => x.id === 'end_a')!.lines.push(review);
+    expect(validateScript(s)).toEqual([]);
+  });
+
+  test('放在非結局場景', () => {
+    const s = make([{ lines: [review] }]);
+    expect(validateScript(s).join()).toContain('memoryReview 只能放在 end_ 開頭的結局場景');
+  });
+
+  test('同一結局出現兩次、speaker 不存在', () => {
+    const s = make([]);
+    s.scenes.find((x) => x.id === 'end_a')!.lines.push(review, { memoryReview: { speaker: 'ghost' } });
+    const problems = validateScript(s).join('\n');
+    expect(problems).toContain('同一個結局只能有一行 memoryReview');
+    expect(problems).toContain('未知 speaker "ghost"');
+  });
+});

@@ -77,6 +77,8 @@ export class AdvView implements View {
   readonly choices = el('div', { class: 'choices' });
   readonly objectsLayer = el('div', { class: 'objects' });
   readonly inspectEl = el('div', { class: 'inspect', role: 'dialog', 'aria-modal': 'true' });
+  readonly memoryCard = el('div', { class: 'memory-card', 'aria-live': 'polite' });
+  readonly memoryPage = el('div', { class: 'screen memory-page', role: 'dialog' });
   readonly monologueText = el('p', { class: 'monologue-text' });
   readonly monologue = el('div', { class: 'monologue', 'aria-live': 'polite' }, [this.monologueText]);
   readonly toolbar = el('nav', { class: 'toolbar', 'aria-label': '功能列' });
@@ -96,6 +98,8 @@ export class AdvView implements View {
   private autoTimer = 0;
   private skipTimer = 0;
   private monologueTimer = 0;
+  private pendingType: (() => void) | null = null;
+  private pendingTimer = 0;
   private monologueStay = 0;
   private inspectTimer = 0;
 
@@ -140,6 +144,7 @@ export class AdvView implements View {
       this.layers,
       this.objectsLayer,
       el('div', { class: 'vignette' }),
+      this.memoryCard,
       this.dialog,
       this.monologue,
       this.choices,
@@ -150,6 +155,7 @@ export class AdvView implements View {
       this.logOverlay,
       this.settingsOverlay,
       this.endingScreen,
+      this.memoryPage,
       this.titleScreen,
     );
     this.root.replaceChildren(this.stage);
@@ -469,6 +475,10 @@ export class AdvView implements View {
     this.endingScreen.classList.remove('open');
     this.inspectEl.classList.remove('open');
     this.objectsLayer.replaceChildren();
+    this.memoryCard.classList.remove('open');
+    this.memoryPage.classList.remove('open');
+    clearTimeout(this.pendingTimer);
+    this.pendingType = null;
     this.audio?.setMuffle(false);
     this.audio?.playMusic(null);
     const meta = this.engine.script.meta;
@@ -510,6 +520,7 @@ export class AdvView implements View {
     this.stage.dataset.scene = scene.id;
     this.stage.dataset.act = String(scene.act ?? 1);
     this.objectsLayer.replaceChildren();
+    this.memoryCard.classList.remove('open');
     this.applyUi();
     this.setBackground(scene.background ?? '', bgUrl);
     // 每個場景的視線起點略有不同，之後緩慢平移
@@ -546,7 +557,8 @@ export class AdvView implements View {
     this.fx.applyGlobal();
     this.renderObjects();
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
-    if (line.speaker === 'player') {
+    this.showMemoryCard(line);
+    if (line.speaker === 'player' && !line.memory) {
       this.showMonologue(line, ctx.repeated);
       return;
     }
@@ -557,12 +569,44 @@ export class AdvView implements View {
     this.traitEl.textContent = '';
     this.nameBox.classList.toggle('hidden', !this.nameEl.textContent);
     this.dialog.dataset.speaker = line.speaker;
-    const spans = this.typer.start(line.text, {
-      cps: settings.textSpeed,
-      degradation: this.engine.degradation,
-      onDone: () => this.textFinished(),
-    });
-    this.fx.applyLine(line, spans, ctx.repeated);
+    const type = () => {
+      this.pendingType = null;
+      const spans = this.typer.start(line.text, {
+        cps: settings.textSpeed,
+        degradation: this.engine.degradation,
+        onDone: () => this.textFinished(),
+      });
+      this.fx.applyLine(line, spans, ctx.repeated);
+    };
+    clearTimeout(this.pendingTimer);
+    if (line.memory) {
+      // 記憶對照：先讓物件圖與當時的說明出現，再由角色說出真相
+      this.textEl.replaceChildren();
+      this.pendingType = type;
+      this.pendingTimer = window.setTimeout(type, T(1100));
+    } else {
+      this.pendingType = null;
+      type();
+    }
+  }
+
+  /** 記憶對照的物件卡：物件圖＋劃掉的當時說明。非記憶對照的台詞會把它收起來。 */
+  private showMemoryCard(line: TextLine): void {
+    const m = line.memory;
+    this.memoryCard.classList.toggle('open', !!m);
+    if (!m) return;
+    const card: HTMLElement[] = [];
+    if (m.image) {
+      const img = el('img', { class: 'memory-image', alt: '', 'data-name': m.image });
+      void resolveImage('fg', m.image).then((url) => (img.src = url));
+      card.push(img);
+    }
+    card.push(el('p', { class: 'memory-label' }, [m.label]), el('p', { class: 'memory-desc' }, [m.description]));
+    this.memoryCard.replaceChildren(...card);
+    this.memoryCard.dataset.object = m.objectId;
+    this.memoryCard.classList.remove('open');
+    void this.memoryCard.offsetWidth; // 重新觸發淡入
+    this.memoryCard.classList.add('open');
   }
 
   /** 內心獨白：不顯示人名框，換字體在畫面中央偏上淡入，停留後淡出並自動前進。 */
@@ -623,6 +667,12 @@ export class AdvView implements View {
   }
 
   completeText(): boolean {
+    if (this.pendingType) {
+      clearTimeout(this.pendingTimer);
+      this.pendingType();
+      this.typer.complete();
+      return true;
+    }
     return this.typer.complete();
   }
 
@@ -773,10 +823,14 @@ export class AdvView implements View {
     this.stopSkip();
     this.stage.dataset.phase = 'ending';
     this.objectsLayer.replaceChildren();
-    const again = el('button', { class: 'start-button', type: 'button' }, ['回到標題']);
+    this.memoryCard.classList.remove('open');
+    // page 模式：結局畫面之後多一頁記憶對照
+    const withPage = settings.memoryReview === 'page' && this.engine.sceneHasMemoryReview;
+    const again = el('button', { class: 'start-button', type: 'button' }, [withPage ? '繼續' : '回到標題']);
     again.onclick = (e) => {
       e.stopPropagation();
-      this.engine.toTitle();
+      if (withPage) this.showMemoryPage();
+      else this.engine.toTitle();
     };
     this.endingScreen.dataset.endingId = ending?.id ?? '';
     this.endingScreen.replaceChildren(
@@ -785,6 +839,46 @@ export class AdvView implements View {
       again,
     );
     this.endingScreen.classList.add('open');
+  }
+
+  /** 記憶對照的獨立一頁：左欄當時的說明、右欄真相，可以捲動、可以略過。 */
+  showMemoryPage(): void {
+    const toTitle = (e: Event) => {
+      e.stopPropagation();
+      this.engine.toTitle();
+    };
+    const skip = el('button', { class: 'memory-skip', type: 'button' }, ['略過']);
+    skip.onclick = toTitle;
+    const done = el('button', { class: 'start-button', type: 'button' }, ['回到標題']);
+    done.onclick = toTitle;
+    const items = this.engine.memoryItems;
+    const body = items.length
+      ? el('table', { class: 'memory-table' }, [
+          el('thead', {}, [el('tr', {}, [el('th', {}, ['當時記得的']), el('th', {}, ['真正的樣子'])])]),
+          el(
+            'tbody',
+            {},
+            items.map((o) =>
+              el('tr', { 'data-object': o.id }, [
+                el('td', { class: 'memory-before' }, [
+                  el('span', { class: 'memory-label' }, [o.label]),
+                  el('span', { class: 'memory-desc' }, [o.description]),
+                ]),
+                el('td', { class: 'memory-truth' }, [o.truth ?? '']),
+              ]),
+            ),
+          ),
+        ])
+      : el('p', { class: 'memory-empty' }, ['你沒有留下任何記憶。']);
+    this.memoryPage.replaceChildren(
+      el('h2', { class: 'memory-title' }, ['記憶對照']),
+      skip,
+      el('div', { class: 'memory-scroll' }, [body]),
+      done,
+    );
+    this.memoryPage.onclick = (e) => e.stopPropagation();
+    this.endingScreen.classList.remove('open');
+    this.memoryPage.classList.add('open');
   }
 
   /** 狀態變化時的回呼（開發者面板用）。 */

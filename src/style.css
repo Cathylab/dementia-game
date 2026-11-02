@@ -1353,3 +1353,134 @@ button {
   height: 22px;
   accent-color: var(--accent);
 }
+
+/* ───────────── 記憶對照（v2） ───────────── */
+
+.memory-card {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  translate: -50% 0;
+  width: min(520px, 86%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+  padding: 0.8em 1.2em;
+  border-radius: 14px;
+  background: rgba(14, 12, 10, 0.92);
+  font-size: calc(var(--text-size) * 0.85);
+  text-align: center;
+  pointer-events: none;
+}
+
+.memory-card.open {
+  display: flex;
+  animation: fade-in 0.9s ease both;
+}
+
+.memory-image {
+  max-width: 100%;
+  max-height: 26cqh;
+  object-fit: contain;
+}
+
+.memory-label {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.8em;
+  letter-spacing: 0.15em;
+}
+
+.memory-desc {
+  margin: 0;
+  color: rgba(244, 239, 230, 0.45);
+  font-family: var(--font-mono);
+  text-decoration: line-through;
+  text-decoration-color: rgba(244, 239, 230, 0.55);
+}
+
+.memory-page {
+  justify-content: flex-start;
+  gap: 0.6em;
+  padding: 4% 6%;
+  background: radial-gradient(ellipse at center, #1c1915 0%, #000 85%);
+  font-size: clamp(15px, 3cqh, 22px);
+}
+
+.memory-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+}
+
+.memory-skip {
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  min-width: 72px;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.memory-scroll {
+  flex: 1;
+  width: 100%;
+  max-width: 900px;
+  overflow-y: auto;
+}
+
+.memory-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.memory-table th {
+  padding: 0.4em 0.8em;
+  color: var(--ink-dim);
+  font-weight: 400;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.memory-table td {
+  width: 50%;
+  padding: 0.8em;
+  vertical-align: top;
+  line-height: 1.7;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.memory-table .memory-label {
+  display: block;
+  margin-bottom: 0.2em;
+}
+
+.memory-truth {
+  color: var(--ink);
+}
+
+.memory-empty {
+  margin: 3em 0;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+}
+
+@media (orientation: portrait) {
+  .memory-table thead {
+    display: none;
+  }
+  .memory-table tr,
+  .memory-table td {
+    display: block;
+    width: 100%;
+  }
+  .memory-table .memory-before {
+    padding-bottom: 0.2em;
+    border-bottom: 0;
+  }
+}

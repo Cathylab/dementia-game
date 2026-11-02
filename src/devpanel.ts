@@ -1,7 +1,7 @@
 // 開發者面板：按 ` 鍵（或 F8）開關，網址加 ?dev=1 則一開始就打開。
 import type { Engine } from './engine';
 import { pickEnding, validateScript } from './script';
-import { ALL_FX, isChoice, type ChoiceLine, type Distance, type FxTag, type Gaze } from './types';
+import { ALL_FX, isText, type ChoiceLine, type Distance, type FxTag, type Gaze } from './types';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -176,10 +176,10 @@ export class DevPanel {
       });
       return;
     }
-    if (fx === 'repeat_line' && line && !isChoice(line)) {
+    if (fx === 'repeat_line' && line && isText(line)) {
       e.repeats.push({ line, remaining: 1 });
     }
-    v.fx.trigger(fx, { line: line && !isChoice(line) ? line : undefined });
+    v.fx.trigger(fx, { line: line && isText(line) ? line : undefined });
   }
 
   refresh(): void {
