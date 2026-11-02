@@ -79,12 +79,23 @@ button {
 }
 
 /* 背景以 1.2 倍寬載入，留出左右平移的空間 */
-.bg {
+/* 背景圖的框：至少 1.2 倍畫面寬（留給視線平移），並維持背景圖的長寬比（--bg-aspect）。
+   橫式時剛好是 1.2 倍寬；直式時框會比畫面寬很多，可以左右拖曳看整張圖。 */
+.stage {
+  --bg-aspect: 2.1333;
+}
+
+.bg,
+.objects-bg {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -10%;
-  width: 120%;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: max(120cqw, calc(100cqh * var(--bg-aspect)));
+  height: max(100cqh, calc(120cqw / var(--bg-aspect)));
+}
+
+.bg {
   background: #222 center / cover no-repeat;
 }
 
@@ -1163,7 +1174,7 @@ button {
   display: none;
 }
 
-/* 和 .scene-layers 同樣的晃動、和 .bg-pan 同樣的平移、和 .bg 同樣的位置與裁切，
+/* 和 .scene-layers 同樣的晃動、和 .bg-pan 同樣的平移、和 .bg 同樣的框（見上方 .bg），
    所以熱點會一直貼在背景圖的同一個位置上 */
 .objects {
   animation: eye-sway 17s ease-in-out infinite;
@@ -1176,29 +1187,8 @@ button {
   transition: transform 9s ease-in-out;
 }
 
-.objects-bg {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -10%;
-  width: 120%;
-  overflow: visible;
-  container-type: size;
-  --bg-aspect: 2.1333;
-}
-
 .stage.fx-look-around .objects-bg {
   animation: look-around 13s ease-in-out infinite;
-}
-
-/* background-size: cover 的範圍：與背景圖顯示出來的大小一致 */
-.objects-img {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  width: max(100cqw, calc(100cqh * var(--bg-aspect)));
-  height: max(100cqh, calc(100cqw / var(--bg-aspect)));
 }
 
 .object-spot {
@@ -1687,4 +1677,85 @@ button {
   margin: 0;
   padding-left: 1.2em;
   color: #ffd98a;
+}
+
+/* ───────────── 手機直式：左右拖曳看整張背景 ───────────── */
+
+@media (orientation: portrait) {
+  .stage {
+    /* 拖曳由程式處理，不讓瀏覽器拿去做捲動或返回手勢 */
+    touch-action: none;
+  }
+}
+
+.stage.dragging .bg-pan,
+.stage.dragging .objects-pan {
+  transition: none;
+}
+
+/* 有物件在畫面外時，邊緣的提示箭頭；和熱點一樣隨退化變淡 */
+.edge-hint {
+  position: absolute;
+  top: 40%;
+  display: none;
+  padding: 0.2em 0.35em;
+  color: rgba(255, 250, 235, 0.95);
+  font-size: clamp(28px, 9cqw, 44px);
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+  opacity: var(--obj-alpha);
+  pointer-events: none;
+  animation: edge-nudge 1.6s ease-in-out infinite;
+}
+
+.edge-hint.show {
+  display: block;
+}
+
+.edge-hint.left {
+  left: 2px;
+  --nudge: -6px;
+}
+
+.edge-hint.right {
+  right: 2px;
+  --nudge: 6px;
+}
+
+@keyframes edge-nudge {
+  50% {
+    transform: translateX(var(--nudge));
+  }
+}
+
+.swipe-hint {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  translate: -50% 0;
+  padding: 0.5em 1.1em;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--ink);
+  font-size: 16px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.swipe-hint.show {
+  animation: swipe-hint 3.2s ease 0.6s both;
+}
+
+@keyframes swipe-hint {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
