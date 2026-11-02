@@ -55,6 +55,8 @@ export interface TextLine {
   wrongObject?: string;
   /** time_skip 用：短暫切換到的背景名稱。省略時隨機挑腳本裡另一個背景。 */
   timeSkipTo?: string;
+  /** 條件：不成立時整句跳過（v2）。 */
+  if?: string;
 }
 
 export interface ChoiceOption {
@@ -67,6 +69,8 @@ export interface ChoiceOption {
   x?: number;
   y?: number;
   r?: number;
+  /** 條件：不成立時這個選項不出現（v2）。 */
+  if?: string;
 }
 
 export interface ChoiceLine {
@@ -75,6 +79,8 @@ export interface ChoiceLine {
   fx?: FxTag[];
   /** 選項上方可選的提示文字。 */
   prompt?: string;
+  /** 條件：不成立時整組選項跳過（v2）。 */
+  if?: string;
 }
 
 export type Line = TextLine | ChoiceLine;
@@ -91,6 +97,25 @@ export interface UiOverrides {
   title?: 'normal' | 'disabled' | 'hidden';
 }
 
+/** 場景裡可以點來看說明的物件（v2）。 */
+export interface SceneObject {
+  /** 整份腳本唯一。 */
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  r?: number;
+  /** 從本場景第幾句（0 起算）開始可以點。 */
+  appearAt?: number;
+  /** 物件圖：public/assets/fg/{image}.png。 */
+  image?: string;
+  description: string;
+  /** 真相，用於記憶對照。 */
+  truth?: string;
+  /** 套在說明上的效果，只支援 text_blur、name_fade。 */
+  fx?: FxTag[];
+}
+
 export interface Scene {
   id: string;
   act?: number;
@@ -103,6 +128,8 @@ export interface Scene {
   /** ui.back = "wrong_scene" 時，回上一句會跳到這個場景。 */
   backTarget?: string;
   lines: Line[];
+  /** 可以點的物件（v2）。 */
+  objects?: SceneObject[];
   /** 省略或 "@ending" 表示判定結局；end_ 開頭的場景結束後顯示結局畫面。 */
   next?: string | null;
 }

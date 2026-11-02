@@ -170,7 +170,7 @@ export class DevPanel {
         mode: 'list',
         fx: [fx],
       };
-      v.showChoice(test, () => {
+      v.showChoice(test, test.choice.map((opt, index) => ({ opt, index })), () => {
         v.clearChoice();
         v.stage.dataset.phase = e.phase;
       });
@@ -185,7 +185,7 @@ export class DevPanel {
   refresh(): void {
     if (!this.isOpen) return;
     const e = this.engine;
-    const ending = pickEnding(e.script, e.stats, e.flags);
+    const ending = pickEnding(e.script, e.condContext);
     const rows: [string, string][] = [
       ['場景', e.scene ? `${e.scene.id}（第 ${e.scene.act ?? 1} 幕）` : '—'],
       ['句', e.scene ? `${e.index + 1} / ${e.scene.lines.length}` : '—'],
@@ -193,6 +193,7 @@ export class DevPanel {
       ['退化', `${e.degradation.toFixed(2)}${e.degradationOverride == null ? '（自動）' : '（手動）'}`],
       ['去飽和', e.desat.toFixed(2)],
       ['旗標', e.flags.length ? e.flags.join(', ') : '（無）'],
+      ['看過', e.seen.length ? e.seen.join(', ') : '（無）'],
       ['目前會走向', ending ? `${ending.id}｜${ending.title}` : '—'],
     ];
     this.status.replaceChildren(...rows.flatMap(([k, v]) => [el('dt', {}, [k]), el('dd', {}, [v])]));

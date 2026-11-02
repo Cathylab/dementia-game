@@ -1,6 +1,6 @@
 import { resolveImage } from './assets';
 import { Effects } from './fx';
-import type { CharPose, Engine, View } from './engine';
+import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
 import { saveSettings, settings } from './settings';
 import { Typewriter } from './typewriter';
@@ -14,6 +14,38 @@ export interface AudioLike {
   setVolume(v: number): void;
   playMusic(name: string | null | undefined): void;
   unlock(): void;
+}
+
+/** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
+function placeSpot(b: HTMLElement, x = 0.5, y = 0.5, r = 0.04): void {
+  b.style.left = `${x * 100}%`;
+  b.style.top = `${y * 100}%`;
+  b.style.setProperty('--r', String(r));
+}
+
+/** 點一下執行 onTap；長按（手機）執行 onLongPress，且不觸發 onTap。 */
+function bindPress(b: HTMLElement, onTap: () => void, onLongPress: () => void): void {
+  let pressTimer = 0;
+  let longPressed = false;
+  b.addEventListener('pointerdown', () => {
+    longPressed = false;
+    pressTimer = window.setTimeout(() => {
+      longPressed = true;
+      onLongPress();
+    }, 450);
+  });
+  const cancel = () => clearTimeout(pressTimer);
+  b.addEventListener('pointerup', cancel);
+  b.addEventListener('pointerleave', cancel);
+  b.addEventListener('contextmenu', (e) => e.preventDefault());
+  b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (longPressed) {
+      longPressed = false;
+      return;
+    }
+    onTap();
+  });
 }
 
 const TOOLBAR: { key: UiKey; label: string }[] = [
@@ -538,23 +570,23 @@ export class AdvView implements View {
     return this.typer.complete();
   }
 
-  showChoice(line: ChoiceLine, onPick: (opt: ChoiceOption, i: number) => void): void {
+  showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
     this.stage.dataset.phase = 'choice';
     this.stopSkip();
     this.fx.clearLine();
     this.monologue.classList.remove('show');
     if (line.mode === 'hotspot') {
-      this.showHotspots(line, onPick);
+      this.showHotspots(line, options, onPick);
       return;
     }
     const prompt = line.prompt ? [el('p', { class: 'choice-prompt' }, [line.prompt])] : [];
-    const buttons = line.choice.map((opt, i) => {
-      const b = el('button', { class: 'choice', type: 'button', 'data-index': String(i) }, [
+    const buttons = options.map(({ opt, index }) => {
+      const b = el('button', { class: 'choice', type: 'button', 'data-index': String(index) }, [
         el('span', { class: 'label' }, [opt.text]),
       ]);
       b.addEventListener('click', (e) => {
         e.stopPropagation();
-        onPick(opt, i);
+        onPick(opt, index);
       });
       return b;
     });
@@ -565,38 +597,21 @@ export class AdvView implements View {
   }
 
   /** 熱點選項：畫面上的發光圓點；滑鼠移上或長按顯示文字，點擊選擇。 */
-  private showHotspots(line: ChoiceLine, onPick: (opt: ChoiceOption, i: number) => void): void {
-    const spots = line.choice.map((opt, i) => {
-      const b = el('button', { class: 'hotspot', type: 'button', 'data-index': String(i), 'aria-label': opt.text }, [
+  private showHotspots(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
+    const spots: HTMLButtonElement[] = options.map(({ opt, index }) => {
+      const b = el('button', { class: 'hotspot', type: 'button', 'data-index': String(index), 'aria-label': opt.text }, [
         el('span', { class: 'glow', 'aria-hidden': 'true' }),
         el('span', { class: 'label' }, [opt.text]),
       ]);
-      b.style.left = `${(opt.x ?? 0.5) * 100}%`;
-      b.style.top = `${(opt.y ?? 0.5) * 100}%`;
-      b.style.setProperty('--r', String(opt.r ?? 0.04));
-      let pressTimer = 0;
-      let longPressed = false;
-      b.addEventListener('pointerdown', () => {
-        longPressed = false;
-        pressTimer = window.setTimeout(() => {
-          longPressed = true;
+      placeSpot(b, opt.x, opt.y, opt.r);
+      bindPress(
+        b,
+        () => onPick(opt, index),
+        () => {
           spots.forEach((s) => s.classList.remove('show-label'));
           b.classList.add('show-label');
-        }, 450);
-      });
-      const cancel = () => clearTimeout(pressTimer);
-      b.addEventListener('pointerup', cancel);
-      b.addEventListener('pointerleave', cancel);
-      b.addEventListener('contextmenu', (e) => e.preventDefault());
-      b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (longPressed) {
-          // 長按只顯示文字，不選擇
-          longPressed = false;
-          return;
-        }
-        onPick(opt, i);
-      });
+        },
+      );
       return b;
     });
     const prompt = line.prompt ? [el('p', { class: 'hotspot-prompt' }, [line.prompt])] : [];

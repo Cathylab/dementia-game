@@ -1,4 +1,4 @@
-import { ENDING_TARGET, pickEnding } from './script';
+import { ENDING_TARGET, evalCondition, pickEnding, type CondContext } from './script';
 import {
   isChoice,
   type Character,
@@ -37,6 +37,13 @@ export interface Snapshot {
   lastChar: string | null;
   desat: number;
   logLength: number;
+  seen: string[];
+}
+
+/** 實際顯示給玩家的一個選項。index 是它在腳本 choice 陣列裡的位置。 */
+export interface ShownOption {
+  opt: ChoiceOption;
+  index: number;
 }
 
 interface PendingRepeat {
@@ -55,7 +62,7 @@ export interface View {
   showText(line: TextLine, ctx: { repeated: boolean; character: Character | null; pose: CharPose | null }): void;
   /** 若仍在打字則直接顯示完整句子並回傳 true。 */
   completeText(): boolean;
-  showChoice(line: ChoiceLine, onPick: (opt: ChoiceOption, index: number) => void): void;
+  showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, index: number) => void): void;
   clearChoice(): void;
   showEnding(ending: Ending | null): void;
   /** 狀態改變（數值、場景、旗標等）時通知，供開發者面板更新。 */
@@ -78,12 +85,16 @@ export class Engine {
   lastChar: string | null = null;
   /** desaturate 疊加量（0–1），不會自己恢復。 */
   desat = 0;
+  /** 點過的物件 id，依第一次點的順序。 */
+  seen: string[] = [];
   history: Snapshot[] = [];
   log: LogEntry[] = [];
   repeats: PendingRepeat[] = [];
   /** 自增序號：每次換句或換場景都會變，非同步流程據此判斷是否已過期。 */
   token = 0;
   textFinished = false;
+  /** 目前顯示中的選項。 */
+  shown: ShownOption[] = [];
   ending: Ending | null = null;
   /** 開發者面板手動覆寫的退化係數；null 表示依幕自動決定。 */
   degradationOverride: number | null = null;
@@ -112,6 +123,16 @@ export class Engine {
     return clamp((act - 1) / 2, 0, 1);
   }
 
+  /** 判定 if／結局條件用的狀態。 */
+  get condContext(): CondContext {
+    return { stats: this.stats, flags: this.flags, seen: this.seen };
+  }
+
+  /** 判定一段 if；省略時成立。 */
+  test(cond: string | undefined): boolean {
+    return evalCondition(cond, this.condContext);
+  }
+
   get currentLine(): Line | undefined {
     return this.scene?.lines[this.index];
   }
@@ -128,6 +149,7 @@ export class Engine {
     this.poses = {};
     this.lastChar = null;
     this.desat = 0;
+    this.seen = [];
     this.history = [];
     this.log = [];
     this.repeats = [];
@@ -144,7 +166,7 @@ export class Engine {
 
   async gotoScene(id: string, opts: { restoring?: boolean; index?: number } = {}): Promise<void> {
     if (id === ENDING_TARGET) {
-      const ending = pickEnding(this.script, this.stats, this.flags);
+      const ending = pickEnding(this.script, this.condContext);
       if (!ending) return this.finish();
       this.ending = ending;
       id = ending.scene;
@@ -175,6 +197,7 @@ export class Engine {
       lastChar: this.lastChar,
       desat: this.desat,
       logLength: this.log.length,
+      seen: [...this.seen],
     };
   }
 
@@ -185,6 +208,20 @@ export class Engine {
       return;
     }
     const line = repeatOf ?? this.scene.lines[index];
+    // if 不成立：整句跳過，不顯示、不寫入紀錄、不觸發效果、不留回上一句的快照
+    if (!repeatOf && !this.test(line.if)) {
+      this.playLine(index + 1);
+      return;
+    }
+    let shown: ShownOption[] = [];
+    if (!repeatOf && isChoice(line)) {
+      shown = line.choice.map((opt, i) => ({ opt, index: i })).filter((o) => this.test(o.opt.if));
+      if (shown.length === 0) {
+        console.warn('[engine] 這組選項全部不成立，直接播下一句', this.scene.id, index);
+        this.playLine(index + 1);
+        return;
+      }
+    }
     // 選項出現前，先把還沒重播的 repeat_line 補播完。
     if (!repeatOf && isChoice(line) && this.repeats.length) {
       const due = this.repeats.shift()!;
@@ -196,7 +233,8 @@ export class Engine {
     this.view.clearChoice();
     if (isChoice(line)) {
       this.phase = 'choice';
-      this.view.showChoice(line, (opt) => this.choose(line, opt));
+      this.shown = shown;
+      this.view.showChoice(line, shown, (opt) => this.choose(line, opt));
     } else {
       this.phase = 'text';
       this.textFinished = false;
@@ -248,8 +286,9 @@ export class Engine {
 
   private choose(line: ChoiceLine, opt: ChoiceOption): void {
     if (this.phase !== 'choice') return;
+    // flat_options：走「第一個實際出現的選項」的 goto
     const flat = line.fx?.includes('flat_options');
-    const target = flat ? line.choice[0].goto : opt.goto;
+    const target = flat ? (this.shown[0]?.opt ?? line.choice[0]).goto : opt.goto;
     const range = this.script.meta.statRange ?? { min: -Infinity, max: Infinity };
     for (const [k, v] of Object.entries(opt.effects ?? {})) {
       this.stats[k] = clamp((this.stats[k] ?? 0) + v, range.min, range.max);
@@ -302,6 +341,7 @@ export class Engine {
     this.poses = structuredClone(snap.poses);
     this.lastChar = snap.lastChar;
     this.desat = snap.desat;
+    this.seen = [...snap.seen];
     this.log.length = snap.logLength;
     this.repeats = [];
     if (snap.sceneId !== this.scene.id) {

@@ -165,10 +165,38 @@ npx playwright install chromium
 | `settings` 設定 | `normal`、`disabled`、`hidden` |
 | `title` 回標題 | `normal`、`disabled`、`hidden` |
 
+### v2 新功能
+
+完整規格見 [`docs/script-format-v2.md`](docs/script-format-v2.md)（給劇本 AI 與引擎 AI 共用的文件，最後一節是引擎對文件沒寫到的情況所做的決定）。v1 腳本不用修改也能照常執行。
+
+#### 條件 `if`
+
+台詞、整組 choice、單一選項都可以加 `if`，值是 JavaScript 布林表達式：
+
+```json
+{ "speaker": "husband", "text": "這件是佳穎幫妳選的。", "if": "has(\"daughter_picked_qipao\") && trust >= 1" }
+```
+
+| 可以用的名稱 | 意思 |
+| --- | --- |
+| 數值名稱 | `meta.stats` 裡的數值，例如 `lucidity >= 1` |
+| `has("旗標")` | 是否記下過這個旗標 |
+| `seen("物件id")` | 是否點過這個物件 |
+| `flags` | v1 的旗標陣列，例如 `flags.includes("x")` |
+
+- 台詞的 `if` 不成立：整句跳過，不顯示、不寫入對話紀錄、不觸發效果。「回上一句」也會跳過它。
+- 選項的 `if` 不成立：這個選項不出現。整組都不成立時直接播下一句。
+- 條件在播到那一句（或選項出現）的那一刻才判定。
+- `has()`、`seen()` 也能用在 `endings[].condition`。
+
 ### 檢查腳本
 
-- 開發者面板最下方的「腳本檢查」會列出找不到的場景、未知的 speaker 或效果、條件語法錯誤等問題（也會印在瀏覽器主控台）。
-- `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合，確認**每一個結局都有路線可以走到**。
+- 開發者面板最下方的「腳本檢查」會列出找不到的場景、未知的 speaker 或效果、條件語法錯誤等問題（也會印在瀏覽器主控台）。v2 另外檢查：
+  - `if` 語法錯誤
+  - `has("x")` 用到沒有任何選項會設定的旗標
+  - `seen("x")` 用到不存在的物件
+  - 一組 choice 的所有選項都有 `if`
+- `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合（包含每個物件點或不點），確認**每一個結局都有路線可以走到**；狀態太多時改用隨機抽樣五千次。
 - `tests/script.spec.ts` 裡的「示範腳本規格」一組只是驗證目前的示範腳本；換成正式腳本後可以整組刪掉。
 
 ---

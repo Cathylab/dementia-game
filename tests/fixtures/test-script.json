@@ -93,6 +93,23 @@
       { "speaker": "amin", "gaze": "away", "distance": "near", "text": "看別處，很近。" },
       { "speaker": "amin", "gaze": "other", "distance": "far", "text": "看別人，很遠。" },
       { "speaker": "amin", "text": "沿用上一句。" } ] },
+    { "id": "if_setup", "act": 1, "background": "test_room", "lines": [
+      { "choice": [
+        { "text": "記下 flag_a", "flags": ["flag_a"], "goto": "if_lines" },
+        { "text": "什麼都不記", "goto": "if_lines" }
+      ], "mode": "list" } ] },
+    { "id": "if_lines", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "第一句。" },
+      { "speaker": "narrator", "text": "只有 flag_a 才看得到。", "if": "has(\"flag_a\")" },
+      { "speaker": "narrator", "text": "沒有 flag_a 才看得到。", "if": "!has(\"flag_a\")", "fx": ["desaturate"] },
+      { "speaker": "narrator", "text": "trust 夠高才看得到。", "if": "trust >= 1" },
+      { "speaker": "narrator", "text": "最後一句。" },
+      { "choice": [
+        { "text": "一定出現", "goto": "flat_a" },
+        { "text": "有 flag_a 才出現", "if": "has(\"flag_a\")", "goto": "flat_a" },
+        { "text": "永遠不出現", "if": "false", "goto": "flat_b" }
+      ], "mode": "list" },
+      { "speaker": "narrator", "text": "選項之後。" } ] },
     { "id": "act3", "act": 3, "background": "test_room", "lines": [
       { "speaker": "narrator", "text": "第三幕。" } ] },
     { "id": "flat_a", "act": 1, "background": "room_a", "lines": [ { "speaker": "narrator", "text": "A。" } ], "next": "@ending" },
@@ -103,7 +120,7 @@
   ],
   "endings": [
     { "id": "ending_x", "title": "結局X", "condition": "trust >= 2", "scene": "end_x" },
-    { "id": "ending_y", "title": "結局Y", "condition": "flags.includes(\"flag_y\")", "scene": "end_y" },
+    { "id": "ending_y", "title": "結局Y", "condition": "has(\"flag_y\")", "scene": "end_y" },
     { "id": "ending_z", "title": "結局Z", "condition": "true", "scene": "end_z" }
   ]
 }
