@@ -269,7 +269,6 @@ npx playwright install chromium
   - `memoryReview` 放在非結局場景、同一結局出現兩次、`speaker` 不存在
   - `meta.settingsDefaults` 的值不合法
 - `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合（包含每個物件點或不點），確認**每一個結局都有路線可以走到**；狀態太多時改用隨機抽樣五千次。
-- `tests/script.spec.ts` 裡的「示範腳本規格」一組只是驗證目前的示範腳本；換成正式腳本後可以整組刪掉。
 
 ---
 
@@ -376,7 +375,7 @@ vite-plugin-script-save.ts   開發模式下把編輯結果寫回 script.json
   style.css            全部樣式
 tests/
   script.spec.ts       腳本檢查與結局可達性
-  play.spec.ts         用示範腳本實際走到每個結局
+  play.spec.ts         用 public/script.json 實際走到每個結局
   fx.spec.ts           每個效果對應的 class／DOM 變化
   ui.spec.ts           介面、ui 覆寫、第一視角元素、音樂、手機版
   validate.spec.ts     v2 腳本檢查規則
