@@ -110,6 +110,25 @@
         { "text": "永遠不出現", "if": "false", "goto": "flat_b" }
       ], "mode": "list" },
       { "speaker": "narrator", "text": "選項之後。" } ] },
+    { "id": "obj_scene", "act": 1, "background": "test_room",
+      "objects": [
+        { "id": "o_phone", "label": "手機", "x": 0.75, "y": 0.3, "r": 0.04, "image": "phone_on_table",
+          "description": "女兒傳來新做的指甲。", "truth": "照片下面還有一句：媽，十點喔。" },
+        { "id": "o_glasses", "label": "眼鏡", "x": 0.88, "y": 0.45, "r": 0.04,
+          "description": "誰的眼鏡放在這裡。", "fx": ["name_fade"] },
+        { "id": "o_cup", "label": "杯子", "x": 0.62, "y": 0.5, "r": 0.04, "appearAt": 2,
+          "description": "杯子裡的茶早就涼了，上面浮著一層膜。", "truth": "那是今天早上泡的。", "fx": ["text_blur"] }
+      ],
+      "lines": [
+        { "speaker": "narrator", "text": "物件第一句。" },
+        { "speaker": "narrator", "text": "物件第二句。" },
+        { "speaker": "narrator", "text": "物件第三句。" },
+        { "speaker": "narrator", "text": "我剛剛看過手機。", "if": "seen(\"o_phone\")" },
+        { "speaker": "player", "text": "物件獨白。" },
+        { "choice": [
+          { "text": "物件之後 A", "goto": "flat_a" },
+          { "text": "物件之後 B", "goto": "flat_b" }
+        ], "mode": "list" } ] },
     { "id": "act3", "act": 3, "background": "test_room", "lines": [
       { "speaker": "narrator", "text": "第三幕。" } ] },
     { "id": "flat_a", "act": 1, "background": "room_a", "lines": [ { "speaker": "narrator", "text": "A。" } ], "next": "@ending" },

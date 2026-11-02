@@ -9,6 +9,7 @@ import {
   type Gaze,
   type Line,
   type Scene,
+  type SceneObject,
   type Script,
   type TextLine,
 } from './types';
@@ -25,6 +26,8 @@ export interface LogEntry {
   name: string;
   text: string;
   choice?: boolean;
+  /** 點物件留下的紀錄，例如「（看了手機）」。 */
+  object?: boolean;
 }
 
 /** 每句台詞顯示前存一份，用於「回上一句」。 */
@@ -51,7 +54,7 @@ interface PendingRepeat {
   remaining: number;
 }
 
-export type Phase = 'title' | 'busy' | 'text' | 'choice' | 'ending';
+export type Phase = 'title' | 'busy' | 'text' | 'choice' | 'inspect' | 'ending';
 
 /** 引擎只處理流程與狀態；畫面、聲音、效果由 View 實作。 */
 export interface View {
@@ -65,6 +68,8 @@ export interface View {
   showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, index: number) => void): void;
   clearChoice(): void;
   showEnding(ending: Ending | null): void;
+  /** 顯示物件說明；玩家關閉時須呼叫 engine.closeInspect()。 */
+  showInspect(obj: SceneObject): void;
   /** 狀態改變（數值、場景、旗標等）時通知，供開發者面板更新。 */
   stateChanged(): void;
 }
@@ -256,6 +261,30 @@ export class Engine {
       this.log.push({ speaker: line.speaker, name: this.speakerName(line.speaker), text: line.text });
       this.view.showText(line, { repeated: !!repeatOf, character, pose });
     }
+    this.view.stateChanged();
+  }
+
+  /** 目前這一句可以點的物件（只在台詞播放中）。 */
+  get availableObjects(): SceneObject[] {
+    if (this.phase !== 'text') return [];
+    return (this.scene.objects ?? []).filter((o) => (o.appearAt ?? 0) <= this.index);
+  }
+
+  /** 點物件：暫停遊戲、顯示說明、記為 seen（只記第一次的順序）。不推進劇情。 */
+  inspect(id: string): boolean {
+    const obj = this.availableObjects.find((o) => o.id === id);
+    if (!obj) return false;
+    if (!this.seen.includes(id)) this.seen.push(id);
+    this.log.push({ speaker: 'object', name: '', text: `（看了${obj.label}）`, object: true });
+    this.phase = 'inspect';
+    this.view.showInspect(obj);
+    this.view.stateChanged();
+    return true;
+  }
+
+  /** 關閉物件說明，回到原本那句台詞。 */
+  closeInspect(): void {
+    if (this.phase === 'inspect') this.phase = 'text';
     this.view.stateChanged();
   }
 

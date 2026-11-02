@@ -45,7 +45,9 @@ export async function jumpTo(page: Page, sceneId: string): Promise<void> {
 
 /** 點一下畫面（推進台詞）。 */
 export async function advance(page: Page): Promise<void> {
-  await page.locator('#stage').click({ position: { x: 400, y: 200 } });
+  // 點在台詞區：它疊在物件與背景上方，不會誤點到物件
+  const box = (await page.locator('#stage').boundingBox())!;
+  await page.locator('#stage').click({ position: { x: box.width * 0.15, y: box.height * 0.86 } });
 }
 
 /** 按「開始」並等到第一句出現。 */

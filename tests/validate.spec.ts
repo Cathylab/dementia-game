@@ -71,3 +71,30 @@ test.describe('條件判定', () => {
     expect(evalCondition('nope()', ctx)).toBe(false);
   });
 });
+
+test.describe('腳本檢查：objects', () => {
+  const obj = { id: 'a1_phone', label: '手機', x: 0.5, y: 0.4, description: '說明' };
+
+  test('合法的物件沒有問題，seen() 找得到', () => {
+    const s = make([{ objects: [obj], lines: [{ speaker: 'narrator', text: 'x', if: 'seen("a1_phone")' }] }]);
+    expect(validateScript(s)).toEqual([]);
+  });
+
+  test('物件 id 重複（跨場景也算）', () => {
+    const s = make([
+      { objects: [obj], lines: [{ speaker: 'narrator', text: 'x' }] },
+      { objects: [obj], lines: [{ speaker: 'narrator', text: 'y' }] },
+    ]);
+    expect(validateScript(s).join()).toContain('物件 id "a1_phone" 重複');
+  });
+
+  test('缺少必填欄位、不支援的效果、位置太低、appearAt 超過句數', () => {
+    const bad = { id: 'x', x: 0.5, y: 0.9, appearAt: 5, fx: ['look_around'] } as unknown as typeof obj;
+    const problems = validateScript(make([{ objects: [bad], lines: [{ speaker: 'narrator', text: 'x' }] }])).join('\n');
+    expect(problems).toContain('缺少 label');
+    expect(problems).toContain('缺少 description');
+    expect(problems).toContain('只支援 text_blur、name_fade');
+    expect(problems).toContain('太低');
+    expect(problems).toContain('appearAt 5 超過');
+  });
+});

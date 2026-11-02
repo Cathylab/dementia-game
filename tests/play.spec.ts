@@ -50,7 +50,7 @@ async function playToEnding(page: Page, plan: Plan) {
       const target = page.locator(`.choices.open [data-index="${index}"]:not(.vanishing):not(:disabled)`);
       await ((await target.count()) > 0 ? target : items.first()).click({ timeout: 2000 });
     } else {
-      await stage.click({ position: { x: 400, y: 200 } });
+      await stage.click({ position: { x: 190, y: 620 } });
     }
     await page.waitForTimeout(60);
   }

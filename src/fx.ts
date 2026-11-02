@@ -95,42 +95,20 @@ export class Effects {
   /** name_fade：人名逐字變成底線，最後變成「那個人」，並露出角色特徵。 */
   nameFade(): void {
     const box = this.v.nameBox;
-    const nameEl = this.v.nameEl;
-    const full = nameEl.textContent ?? '';
-    if (!full) return;
+    if (!this.v.nameEl.textContent) return;
     clearInterval(this.nameTimer);
     box.classList.add('fx-name-fade');
-    const chars = [...full];
-    const order = shuffle(chars.map((_, i) => i));
-    let k = 0;
-    this.nameTimer = window.setInterval(() => {
-      if (k < order.length) {
-        chars[order[k++]] = '＿';
-        nameEl.textContent = chars.join('');
-        return;
-      }
-      clearInterval(this.nameTimer);
-      nameEl.textContent = '那個人';
+    this.nameTimer = fadeText(this.v.nameEl, '那個人', () => {
       box.dataset.faded = '1';
       const trait = this.v.engine.getChar(this.v.engine.lastChar)?.trait;
       if (trait) box.querySelector('.trait')?.replaceChildren(trait);
-    }, T(480));
+    });
   }
 
   /** text_blur：部分字元缺失或被亂碼方塊取代。 */
   textBlur(spans: HTMLSpanElement[]): void {
     this.stage.classList.add('fx-text-blur');
-    const candidates = spans.filter((s) => !SKIP_CHARS.test(s.textContent ?? ''));
-    const count = Math.max(1, Math.round(candidates.length * rand(0.25, 0.4)));
-    for (const s of shuffle([...candidates]).slice(0, count)) {
-      if (Math.random() < 0.5) {
-        s.classList.add('glitch-missing');
-      } else {
-        s.dataset.orig = s.textContent ?? '';
-        s.textContent = pick(GLITCH_CHARS);
-        s.classList.add('glitch-block');
-      }
-    }
+    glitchSpans(spans);
   }
 
   /** wrong_object：背景上多一個不該出現的東西；有前景時改為把手持物件換掉。 */
@@ -254,3 +232,37 @@ export class Effects {
     }, T(3000));
   }
 }
+
+/** 把元素文字逐字換成底線，最後換成 finalText。回傳 interval id。 */
+export function fadeText(node: HTMLElement, finalText: string, onDone?: () => void): number {
+  const chars = [...(node.textContent ?? '')];
+  const order = shuffle(chars.map((_, i) => i));
+  let k = 0;
+  const timer = window.setInterval(() => {
+    if (k < order.length) {
+      chars[order[k++]] = '＿';
+      node.textContent = chars.join('');
+      return;
+    }
+    clearInterval(timer);
+    node.textContent = finalText;
+    onDone?.();
+  }, T(480));
+  return timer;
+}
+
+/** 讓逐字 span 裡約三到四成的字缺失或變成亂碼方塊。 */
+export function glitchSpans(spans: HTMLSpanElement[]): void {
+  const candidates = spans.filter((s) => !SKIP_CHARS.test(s.textContent ?? ''));
+  const count = Math.max(1, Math.round(candidates.length * rand(0.25, 0.4)));
+  for (const s of shuffle([...candidates]).slice(0, count)) {
+    if (Math.random() < 0.5) {
+      s.classList.add('glitch-missing');
+    } else {
+      s.dataset.orig = s.textContent ?? '';
+      s.textContent = pick(GLITCH_CHARS);
+      s.classList.add('glitch-block');
+    }
+  }
+}
+

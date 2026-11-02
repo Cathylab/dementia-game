@@ -1142,3 +1142,157 @@ button {
   margin: 0;
   color: #9fe0a0;
 }
+
+/* ───────────── 可以點的物件（v2） ───────────── */
+
+.objects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 退化越重越看不出來（由程式設定） */
+  --obj-alpha: 0.85;
+}
+
+.stage:not([data-phase='text']) .objects,
+.stage.ui-hidden .objects {
+  display: none;
+}
+
+.object-spot {
+  position: absolute;
+  translate: -50% -50%;
+  width: max(48px, calc(var(--r, 0.04) * 2 * 177.78cqmin));
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.object-spot .glow {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 250, 235, 0.7);
+  background: radial-gradient(circle, rgba(255, 250, 235, 0.35) 0%, rgba(255, 250, 235, 0) 70%);
+  opacity: var(--obj-alpha);
+  animation: object-breathe 3.2s ease-in-out infinite;
+}
+
+.object-spot.seen .glow {
+  border-style: dashed;
+  animation: none;
+  opacity: calc(var(--obj-alpha) * 0.6);
+}
+
+.object-spot .label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  translate: -50% 0;
+  padding: 0.25em 0.7em;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.72);
+  font-size: clamp(14px, 2.6cqh, 20px);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.object-spot:hover .label,
+.object-spot:focus-visible .label,
+.object-spot.show-label .label {
+  opacity: 1;
+}
+
+.object-spot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@keyframes object-breathe {
+  50% {
+    transform: scale(1.12);
+    opacity: calc(var(--obj-alpha) * 0.6);
+  }
+}
+
+.inspect {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 4%;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+
+.inspect.open {
+  display: flex;
+  animation: fade-in 0.35s ease both;
+}
+
+.inspect-card {
+  max-width: min(640px, 92%);
+  max-height: 92%;
+  overflow: auto;
+  padding: 1.2em 1.6em 1em;
+  border-radius: 14px;
+  background: var(--panel);
+  font-size: var(--text-size);
+  line-height: 1.7;
+  text-align: center;
+}
+
+.inspect-image {
+  display: block;
+  max-width: 100%;
+  max-height: 34cqh;
+  margin: 0 auto 0.6em;
+  object-fit: contain;
+}
+
+.inspect-label {
+  margin: 0 0 0.3em;
+  font-size: 0.85em;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+}
+
+.inspect-card.fx-name-fade .inspect-label {
+  letter-spacing: 0.25em;
+  color: var(--ink-dim);
+}
+
+.inspect-desc {
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.inspect-desc .ch {
+  white-space: pre-wrap;
+}
+
+.inspect-desc .ch.glitch-missing {
+  opacity: 0;
+}
+
+.inspect-card.fx-text-blur .inspect-desc {
+  animation: text-unsteady 2.4s ease-in-out infinite;
+}
+
+.inspect-hint {
+  margin: 0.8em 0 0;
+  font-size: 0.6em;
+  color: var(--ink-dim);
+}
+
+.log-row.object .log-text {
+  color: var(--ink-dim);
+  font-size: 0.9em;
+}

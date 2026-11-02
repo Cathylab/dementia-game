@@ -1,10 +1,10 @@
 import { resolveImage } from './assets';
-import { Effects } from './fx';
+import { Effects, fadeText, glitchSpans } from './fx';
 import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
 import { saveSettings, settings } from './settings';
 import { Typewriter } from './typewriter';
-import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, TextLine, UiKey } from './types';
+import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, SceneObject, TextLine, UiKey } from './types';
 import { el, shuffle, sleep, T } from './util';
 
 /** 聲音模組需提供的介面（見 audio.ts）。 */
@@ -75,6 +75,8 @@ export class AdvView implements View {
   readonly traitEl = el('span', { class: 'trait' });
   readonly textEl = el('div', { class: 'text' });
   readonly choices = el('div', { class: 'choices' });
+  readonly objectsLayer = el('div', { class: 'objects' });
+  readonly inspectEl = el('div', { class: 'inspect', role: 'dialog', 'aria-modal': 'true' });
   readonly monologueText = el('p', { class: 'monologue-text' });
   readonly monologue = el('div', { class: 'monologue', 'aria-live': 'polite' }, [this.monologueText]);
   readonly toolbar = el('nav', { class: 'toolbar', 'aria-label': '功能列' });
@@ -94,6 +96,8 @@ export class AdvView implements View {
   private autoTimer = 0;
   private skipTimer = 0;
   private monologueTimer = 0;
+  private monologueStay = 0;
+  private inspectTimer = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -134,12 +138,14 @@ export class AdvView implements View {
 
     this.stage.append(
       this.layers,
+      this.objectsLayer,
       el('div', { class: 'vignette' }),
       this.dialog,
       this.monologue,
       this.choices,
       this.toolbar,
       this.menuToggle,
+      this.inspectEl,
       this.blinkEl,
       this.logOverlay,
       this.settingsOverlay,
@@ -149,6 +155,10 @@ export class AdvView implements View {
     this.root.replaceChildren(this.stage);
 
     this.stage.addEventListener('click', () => this.onStageClick());
+    this.inspectEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeInspect();
+    });
     window.addEventListener('keydown', (e) => this.onKey(e));
   }
 
@@ -167,7 +177,14 @@ export class AdvView implements View {
   }
 
   private onKey(e: KeyboardEvent): void {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+    if (this.inspectOpen()) {
+      if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        this.closeInspect();
+      }
+      return;
+    }
     if (e.key === 'Escape') {
       this.closeOverlays();
       this.stage.classList.remove('ui-hidden', 'menu-open');
@@ -185,7 +202,11 @@ export class AdvView implements View {
   }
 
   overlayOpen(): boolean {
-    return this.logOverlay.classList.contains('open') || this.settingsOverlay.classList.contains('open');
+    return this.logOverlay.classList.contains('open') || this.settingsOverlay.classList.contains('open') || this.inspectOpen();
+  }
+
+  inspectOpen(): boolean {
+    return this.inspectEl.classList.contains('open');
   }
 
   closeOverlays(): void {
@@ -350,7 +371,13 @@ export class AdvView implements View {
   }
 
   protected logRow(name: string, text: string, speaker: string, choice: boolean): HTMLElement {
-    const cls = choice ? 'log-row choice' : speaker === 'player' ? 'log-row monologue' : 'log-row';
+    const cls = choice
+      ? 'log-row choice'
+      : speaker === 'object'
+        ? 'log-row object'
+        : speaker === 'player'
+          ? 'log-row monologue'
+          : 'log-row';
     return el('li', { class: cls }, [el('span', { class: 'log-name' }, [name]), el('span', { class: 'log-text' }, [text])]);
   }
 
@@ -423,6 +450,8 @@ export class AdvView implements View {
     clearTimeout(this.monologueTimer);
     this.monologue.classList.remove('show');
     this.endingScreen.classList.remove('open');
+    this.inspectEl.classList.remove('open');
+    this.objectsLayer.replaceChildren();
     this.audio?.setMuffle(false);
     this.audio?.playMusic(null);
     const meta = this.engine.script.meta;
@@ -463,6 +492,7 @@ export class AdvView implements View {
   protected applyScene(scene: Scene, bgUrl: string, fgUrl: string): void {
     this.stage.dataset.scene = scene.id;
     this.stage.dataset.act = String(scene.act ?? 1);
+    this.objectsLayer.replaceChildren();
     this.applyUi();
     this.setBackground(scene.background ?? '', bgUrl);
     // 每個場景的視線起點略有不同，之後緩慢平移
@@ -497,6 +527,7 @@ export class AdvView implements View {
     this.stage.dataset.phase = 'text';
     this.fx.clearLine();
     this.fx.applyGlobal();
+    this.renderObjects();
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
     if (line.speaker === 'player') {
       this.showMonologue(line, ctx.repeated);
@@ -530,8 +561,16 @@ export class AdvView implements View {
     this.monologue.classList.toggle('fx-repeat', repeated);
     this.fx.applyLine(line, spans, repeated);
     this.engine.textDone();
+    this.monologueStay = settings.textSpeed >= 100 ? 1200 : 2200 + [...line.text].length * 110;
+    this.startMonologueTimer();
+  }
+
+  /** 獨白停留 → 淡出 → 自動前進。看物件說明時會暫停，關閉後重新計時。 */
+  private startMonologueTimer(): void {
+    clearTimeout(this.monologueTimer);
+    this.monologue.classList.remove('fading');
     const token = this.engine.token;
-    const stay = settings.textSpeed >= 100 ? 1200 : 2200 + [...line.text].length * 110;
+    const stay = this.monologueStay;
     this.monologueTimer = window.setTimeout(() => {
       if (token !== this.engine.token) return;
       this.monologue.classList.add('fading');
@@ -570,7 +609,69 @@ export class AdvView implements View {
     return this.typer.complete();
   }
 
+  // ───────────────────────── 可以點的物件 ─────────────────────────
+
+  /** 依目前句數畫出可以點的物件。熱點明顯程度隨退化係數降低。 */
+  renderObjects(): void {
+    const d = this.engine.degradation;
+    this.objectsLayer.style.setProperty('--obj-alpha', (0.85 - 0.72 * d).toFixed(2));
+    const spots = this.engine.availableObjects.map((obj) => {
+      const b = el('button', { class: 'object-spot', type: 'button', 'data-object': obj.id, 'aria-label': obj.label }, [
+        el('span', { class: 'glow', 'aria-hidden': 'true' }),
+        el('span', { class: 'label' }, [obj.label]),
+      ]);
+      b.classList.toggle('seen', this.engine.seen.includes(obj.id));
+      placeSpot(b, obj.x, obj.y, obj.r);
+      bindPress(
+        b,
+        () => this.engine.inspect(obj.id),
+        () => b.classList.add('show-label'),
+      );
+      return b;
+    });
+    this.objectsLayer.replaceChildren(...spots);
+  }
+
+  /** 物件說明：暫停遊戲，點一下關閉。 */
+  showInspect(obj: SceneObject): void {
+    clearTimeout(this.monologueTimer);
+    clearTimeout(this.autoTimer);
+    clearInterval(this.inspectTimer);
+    this.stopSkip();
+    this.stage.dataset.phase = 'inspect';
+    const label = el('h3', { class: 'inspect-label' }, [obj.label]);
+    const spans = [...obj.description].map((ch) => el('span', { class: 'ch on' }, [ch]));
+    const desc = el('p', { class: 'inspect-desc' }, spans);
+    const card = el('div', { class: 'inspect-card' });
+    if (obj.image) {
+      const img = el('img', { class: 'inspect-image', alt: '', 'data-name': obj.image });
+      void resolveImage('fg', obj.image).then((url) => (img.src = url));
+      card.append(img);
+    }
+    card.append(label, desc, el('p', { class: 'inspect-hint' }, ['點一下關閉']));
+    const fx = obj.fx ?? [];
+    card.classList.toggle('fx-text-blur', fx.includes('text_blur'));
+    card.classList.toggle('fx-name-fade', fx.includes('name_fade'));
+    if (fx.includes('text_blur')) glitchSpans(spans);
+    if (fx.includes('name_fade')) this.inspectTimer = fadeText(label, '那個東西');
+    this.inspectEl.replaceChildren(card);
+    this.inspectEl.dataset.object = obj.id;
+    this.inspectEl.classList.add('open');
+  }
+
+  closeInspect(): void {
+    if (!this.inspectOpen()) return;
+    clearInterval(this.inspectTimer);
+    this.inspectEl.classList.remove('open');
+    this.stage.dataset.phase = 'text';
+    this.engine.closeInspect();
+    this.renderObjects();
+    if (this.stage.classList.contains('monologue-on')) this.startMonologueTimer();
+    if (this.auto && this.engine.textFinished) this.scheduleAuto();
+  }
+
   showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
+    this.objectsLayer.replaceChildren();
     this.stage.dataset.phase = 'choice';
     this.stopSkip();
     this.fx.clearLine();
@@ -631,6 +732,7 @@ export class AdvView implements View {
     this.stopAuto();
     this.stopSkip();
     this.stage.dataset.phase = 'ending';
+    this.objectsLayer.replaceChildren();
     const again = el('button', { class: 'start-button', type: 'button' }, ['回到標題']);
     again.onclick = (e) => {
       e.stopPropagation();

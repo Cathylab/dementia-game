@@ -51,8 +51,23 @@ export function validateScript(script: Script): string[] {
       if (!objectIds.has(id)) problems.push(`${where}：seen() 用到不存在的物件 "${id}"`);
     }
   };
+  const objectSeen = new Set<string>();
   for (const scene of script.scenes) {
     checkTarget(`${scene.id}.next`, scene.next);
+    (scene.objects ?? []).forEach((obj, j) => {
+      const where = `${scene.id}.objects[${j}]`;
+      if (!obj.id) problems.push(`${where}：缺少 id`);
+      else if (objectSeen.has(obj.id)) problems.push(`${where}：物件 id "${obj.id}" 重複（整份腳本必須唯一）`);
+      objectSeen.add(obj.id);
+      if (!obj.label) problems.push(`${where}：缺少 label`);
+      if (!obj.description) problems.push(`${where}：缺少 description`);
+      if (typeof obj.x !== 'number' || typeof obj.y !== 'number') problems.push(`${where}：缺少 x、y`);
+      if (typeof obj.y === 'number' && obj.y > 0.62) problems.push(`${where}：y ${obj.y} 太低，會被下方台詞區蓋住而點不到（建議 0.62 以下）`);
+      if ((obj.appearAt ?? 0) >= scene.lines.length) problems.push(`${where}：appearAt ${obj.appearAt} 超過本場景的句數`);
+      for (const fx of obj.fx ?? []) {
+        if (fx !== 'text_blur' && fx !== 'name_fade') problems.push(`${where}：物件說明只支援 text_blur、name_fade，不支援 "${fx}"`);
+      }
+    });
     if (scene.ui?.back === 'wrong_scene') checkTarget(`${scene.id}.backTarget`, scene.backTarget);
     scene.lines.forEach((line, i) => {
       const where = `${scene.id}.lines[${i}]`;
