@@ -4,7 +4,18 @@ import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
 import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
-import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, SceneObject, TextLine, UiKey } from './types';
+import type {
+  Character,
+  ChoiceLine,
+  ChoiceOption,
+  Ending,
+  Scene,
+  SceneObject,
+  SpriteFraming,
+  TextLine,
+  TransitionStyle,
+  UiKey,
+} from './types';
 import { el, shuffle, sleep, T } from './util';
 
 /** 聲音模組需提供的介面（見 audio.ts）。 */
@@ -14,6 +25,10 @@ export interface AudioLike {
   setVolume(v: number): void;
   playMusic(name: string | null | undefined): void;
   unlock(): void;
+  /** 目前播放的曲名。 */
+  readonly musicName: string | null;
+  /** 把電腦裡的音樂檔暫時當成某個曲名來播（開發者面板試聽用）。 */
+  useFile(name: string, file: Blob): Promise<boolean>;
 }
 
 /** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
@@ -23,13 +38,17 @@ function placeSpot(b: HTMLElement, x = 0.5, y = 0.5, r = 0.04): void {
   b.style.setProperty('--r', String(r));
 }
 
-/** 點一下執行 onTap；長按（手機）執行 onLongPress，且不觸發 onTap。 */
-function bindPress(b: HTMLElement, onTap: () => void, onLongPress: () => void): void {
+/**
+ * 點一下執行 onTap；長按（手機）執行 onLongPress，且不觸發 onTap。
+ * ignore 回傳 true 時（例如正在拖曳畫面）兩者都不觸發。
+ */
+function bindPress(b: HTMLElement, onTap: () => void, onLongPress: () => void, ignore: () => boolean = () => false): void {
   let pressTimer = 0;
   let longPressed = false;
   b.addEventListener('pointerdown', () => {
     longPressed = false;
     pressTimer = window.setTimeout(() => {
+      if (ignore()) return;
       longPressed = true;
       onLongPress();
     }, 450);
@@ -40,7 +59,7 @@ function bindPress(b: HTMLElement, onTap: () => void, onLongPress: () => void): 
   b.addEventListener('contextmenu', (e) => e.preventDefault());
   b.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (longPressed) {
+    if (longPressed || ignore()) {
       longPressed = false;
       return;
     }
@@ -77,12 +96,21 @@ export class AdvView implements View {
   readonly choices = el('div', { class: 'choices' });
   /**
    * 物件熱點的座標是「背景圖上的位置」：外層跟著畫面晃動，中層跟著視線平移，
-   * 內層與背景圖同樣的 1.2 倍寬與 cover 裁切，熱點放在最裡面（objectsImg）。
+   * 內層（objectsBg）與背景圖同樣的框，熱點放在裡面。
    */
   readonly objectsLayer = el('div', { class: 'objects' });
   readonly objectsPan = el('div', { class: 'objects-pan' });
   readonly objectsBg = el('div', { class: 'objects-bg' });
-  readonly objectsImg = el('div', { class: 'objects-img' });
+  /** 物件在畫面外時，邊緣的提示箭頭。 */
+  readonly edgeLeft = el('div', { class: 'edge-hint left', 'aria-hidden': 'true' }, ['‹']);
+  readonly edgeRight = el('div', { class: 'edge-hint right', 'aria-hidden': 'true' }, ['›']);
+  readonly swipeHint = el('div', { class: 'swipe-hint', 'aria-hidden': 'true' }, ['← 左右滑動看看 →']);
+  /** 目前的視線平移（舞台寬度的百分比）。 */
+  private pan = 0;
+  /** 手機直式拖曳背景的狀態。 */
+  private drag: { id: number; x0: number; pan0: number; moved: boolean } | null = null;
+  /** 剛拖曳完：吃掉緊接著的 click，不推進台詞、不打開物件。 */
+  private justDragged = false;
   readonly inspectEl = el('div', { class: 'inspect', role: 'dialog', 'aria-modal': 'true' });
   readonly memoryCard = el('div', { class: 'memory-card', 'aria-live': 'polite' });
   readonly memoryPage = el('div', { class: 'screen memory-page', role: 'dialog' });
@@ -91,6 +119,8 @@ export class AdvView implements View {
   readonly toolbar = el('nav', { class: 'toolbar', 'aria-label': '功能列' });
   readonly menuToggle = el('button', { class: 'menu-toggle', type: 'button', 'aria-label': '選單' });
   readonly blinkEl = el('div', { class: 'blink' }, [el('div', { class: 'lid top' }), el('div', { class: 'lid bottom' })]);
+  /** 淡入淡出轉場用的黑幕。 */
+  readonly fadeEl = el('div', { class: 'fade-curtain' });
   readonly logOverlay = el('div', { class: 'overlay log-overlay', role: 'dialog' });
   readonly settingsOverlay = el('div', { class: 'overlay settings-overlay', role: 'dialog' });
   readonly titleScreen = el('div', { class: 'screen title-screen' });
@@ -147,9 +177,8 @@ export class AdvView implements View {
       this.stage.classList.toggle('menu-open');
     });
 
-    this.objectsBg.append(this.objectsImg);
     this.objectsPan.append(this.objectsBg);
-    this.objectsLayer.append(this.objectsPan);
+    this.objectsLayer.append(this.objectsPan, this.edgeLeft, this.edgeRight, this.swipeHint);
     this.stage.append(
       this.layers,
       el('div', { class: 'vignette' }),
@@ -163,6 +192,7 @@ export class AdvView implements View {
       this.menuToggle,
       this.inspectEl,
       this.blinkEl,
+      this.fadeEl,
       this.logOverlay,
       this.settingsOverlay,
       this.endingScreen,
@@ -172,6 +202,7 @@ export class AdvView implements View {
     this.root.replaceChildren(this.stage);
 
     this.stage.addEventListener('click', () => this.onStageClick());
+    this.bindDrag();
     this.inspectEl.addEventListener('click', (e) => {
       e.stopPropagation();
       this.closeInspect();
@@ -180,6 +211,10 @@ export class AdvView implements View {
   }
 
   private onStageClick(): void {
+    if (this.justDragged) {
+      this.justDragged = false;
+      return;
+    }
     if (this.stage.classList.contains('menu-open')) {
       this.stage.classList.remove('menu-open');
       return;
@@ -463,15 +498,57 @@ export class AdvView implements View {
   // ───────────────────────── 眨眼轉場 ─────────────────────────
 
   /** 上下眼皮合攏 → 執行 mid → 張開。 */
+  /**
+   * 轉場：關上 → 執行 mid → 打開。樣式由 meta.transition 決定：
+   * blink 眨眼、blink_soft 柔和的眨眼、fade 淡入淡出、focus 模糊對焦。
+   */
   async blink(mid?: () => void | Promise<void>, hold = 140): Promise<void> {
-    this.blinkEl.classList.add('closed');
+    const style = this.transitionStyle;
+    const dur = { blink: 320, blink_soft: 700, fade: 600, focus: 700 }[style];
+    this.applyTransitionStyle();
+    this.stage.classList.add('transitioning');
     this.stage.dataset.blink = 'closed';
-    await sleep(T(320));
+    this.setCurtain(style, true);
+    await sleep(T(dur));
     await mid?.();
     await sleep(T(hold));
-    this.blinkEl.classList.remove('closed');
+    this.setCurtain(style, false);
     this.stage.dataset.blink = 'open';
-    await sleep(T(320));
+    await sleep(T(dur));
+    this.stage.classList.remove('transitioning');
+  }
+
+  get transitionStyle(): TransitionStyle {
+    return this.engine.script.meta.transition ?? 'blink';
+  }
+
+  /** 把轉場樣式寫到舞台上（CSS 依此決定眼皮或黑幕的樣子）。 */
+  applyTransitionStyle(): void {
+    this.stage.dataset.transition = this.transitionStyle;
+  }
+
+  private setCurtain(style: TransitionStyle, closed: boolean): void {
+    this.blinkEl.classList.toggle('closed', closed && (style === 'blink' || style === 'blink_soft'));
+    this.fadeEl.classList.toggle('on', closed && style === 'fade');
+    this.stage.classList.toggle('focus-out', closed && style === 'focus');
+  }
+
+  /** 立繪構圖：角色自己的 sprite 覆寫 meta.sprite。 */
+  framingFor(charId: string): Required<SpriteFraming> {
+    const base = this.engine.script.meta.sprite ?? {};
+    const own = this.engine.getChar(charId)?.sprite ?? {};
+    return { scale: own.scale ?? base.scale ?? 1, y: own.y ?? base.y ?? 0 };
+  }
+
+  applyFraming(charId: string): void {
+    const f = this.framingFor(charId);
+    this.sprite.style.setProperty('--sprite-scale', String(f.scale));
+    this.sprite.style.setProperty('--sprite-y', String(f.y));
+  }
+
+  /** 物件提示樣式：glow 物品本身發亮、ring 圓圈。 */
+  applyHighlightStyle(): void {
+    this.stage.dataset.highlight = this.engine.script.meta.objectHighlight ?? 'glow';
   }
 
   // ───────────────────────── View 介面 ─────────────────────────
@@ -485,7 +562,7 @@ export class AdvView implements View {
     this.monologue.classList.remove('show');
     this.endingScreen.classList.remove('open');
     this.inspectEl.classList.remove('open');
-    this.objectsImg.replaceChildren();
+    this.objectsBg.replaceChildren();
     this.memoryCard.classList.remove('open');
     this.memoryPage.classList.remove('open');
     clearTimeout(this.pendingTimer);
@@ -510,6 +587,7 @@ export class AdvView implements View {
   protected onStart(): void {
     this.audio?.unlock();
     this.titleScreen.classList.remove('open');
+    this.applyTransitionStyle();
     this.stage.classList.add('eyes-closed');
     void this.engine.start();
   }
@@ -529,13 +607,20 @@ export class AdvView implements View {
 
   protected applyScene(scene: Scene, bgUrl: string, fgUrl: string): void {
     this.stage.dataset.scene = scene.id;
+    this.applyHighlightStyle();
     this.stage.dataset.act = String(scene.act ?? 1);
-    this.objectsImg.replaceChildren();
+    this.objectsBg.replaceChildren();
     this.memoryCard.classList.remove('open');
     this.applyUi();
     this.setBackground(scene.background ?? '', bgUrl);
     // 每個場景的視線起點略有不同，之後緩慢平移；有可以點的物件時不偏移，避免邊緣的物件被移出畫面
     this.panTo(scene.objects?.length ? 0 : Math.random() * 5 - 2.5);
+    // 手機直式看不到整張背景：有物件的場景提示可以左右滑動
+    this.swipeHint.classList.remove('show');
+    if (scene.objects?.length && this.isPortrait()) {
+      void this.swipeHint.offsetWidth;
+      this.swipeHint.classList.add('show');
+    }
     this.fg.hidden = !fgUrl;
     if (fgUrl) this.fg.src = fgUrl;
     this.fg.dataset.name = scene.foreground ?? '';
@@ -553,19 +638,96 @@ export class AdvView implements View {
   setBackground(name: string, url: string): void {
     this.bg.style.backgroundImage = url ? `url("${url}")` : '';
     this.bg.dataset.name = name;
-    // 熱點要和背景圖一樣 cover 裁切，所以需要背景圖的長寬比
+    // 背景框（與熱點框）要維持背景圖的長寬比
     if (url) {
       void imageSize(url).then(({ width, height }) => {
-        if (this.bg.dataset.name === name) this.objectsBg.style.setProperty('--bg-aspect', String(width / height));
+        if (this.bg.dataset.name !== name) return;
+        this.stage.style.setProperty('--bg-aspect', String(width / height));
+        this.panTo(this.pan);
+        this.updateEdgeHints();
       });
     }
   }
 
-  /** 視線水平平移，單位為舞台寬度的百分比（背景有 1.2 倍寬，約可移動 ±8%）。熱點跟著一起移動。 */
+  /**
+   * 視線水平平移，單位為舞台寬度的百分比。熱點跟著一起移動。
+   * 可移動的範圍是背景圖超出畫面的部分（電腦橫式約 ±10%，手機直式可以看到整張圖）。
+   */
   panTo(percent: number): void {
-    const pan = `${Math.max(-8, Math.min(8, percent)).toFixed(2)}%`;
+    const max = this.maxPan();
+    this.pan = Math.max(-max, Math.min(max, percent));
+    const pan = `${this.pan.toFixed(2)}%`;
     this.bgPan.style.setProperty('--pan', pan);
     this.objectsPan.style.setProperty('--pan', pan);
+  }
+
+  private maxPan(): number {
+    const w = this.stage.clientWidth || 1;
+    const h = this.stage.clientHeight;
+    const aspect = Number(getComputedStyle(this.stage).getPropertyValue('--bg-aspect')) || 16 / 9;
+    const imgW = Math.max(1.2 * w, h * aspect);
+    return Math.max(0, ((imgW - w) / 2 / w) * 100);
+  }
+
+  private isPortrait(): boolean {
+    return window.matchMedia('(orientation: portrait)').matches;
+  }
+
+  /** 手機直式：在畫面上左右拖曳來看背景的其他部分，找畫面外的物件。 */
+  private bindDrag(): void {
+    this.stage.addEventListener('pointerdown', (e) => {
+      if (!this.isPortrait() || this.engine.phase !== 'text' || this.overlayOpen()) return;
+      const target = e.target as HTMLElement;
+      if (target.closest('button:not(.object-spot), .toolbar, .menu-toggle, .overlay, .screen')) return;
+      this.drag = { id: e.pointerId, x0: e.clientX, pan0: this.pan, moved: false };
+      this.justDragged = false;
+    });
+    this.stage.addEventListener('pointermove', (e) => {
+      const d = this.drag;
+      if (!d || d.id !== e.pointerId) return;
+      const dx = e.clientX - d.x0;
+      if (!d.moved && Math.abs(dx) > 10) {
+        d.moved = true;
+        this.stage.classList.add('dragging');
+        this.stage.setPointerCapture(e.pointerId);
+      }
+      if (d.moved) {
+        this.panTo(d.pan0 + (dx / this.stage.clientWidth) * 100);
+        this.updateEdgeHints();
+      }
+    });
+    const end = (e: PointerEvent) => {
+      const d = this.drag;
+      if (!d || d.id !== e.pointerId) return;
+      this.drag = null;
+      if (!d.moved) return;
+      this.justDragged = true;
+      this.stage.classList.remove('dragging');
+      this.swipeHint.classList.remove('show');
+      this.updateEdgeHints();
+    };
+    this.stage.addEventListener('pointerup', end);
+    this.stage.addEventListener('pointercancel', end);
+    this.objectsPan.addEventListener('transitionend', () => this.updateEdgeHints());
+    window.addEventListener('resize', () => {
+      this.panTo(this.pan);
+      this.updateEdgeHints();
+    });
+  }
+
+  /** 有物件在畫面左右外側時，在那一側顯示提示箭頭。 */
+  private updateEdgeHints(): void {
+    const w = this.stage.getBoundingClientRect();
+    let left = false;
+    let right = false;
+    for (const spot of this.objectsBg.querySelectorAll('.object-spot')) {
+      const r = spot.getBoundingClientRect();
+      const cx = r.x + r.width / 2;
+      if (cx < w.left) left = true;
+      if (cx > w.right) right = true;
+    }
+    this.edgeLeft.classList.toggle('show', left);
+    this.edgeRight.classList.toggle('show', right);
   }
 
   showText(line: TextLine, ctx: { repeated: boolean; character: Character | null; pose: CharPose | null }): void {
@@ -677,6 +839,7 @@ export class AdvView implements View {
     this.sprite.dataset.expression = pose.expression;
     this.sprite.dataset.gaze = pose.gaze;
     this.sprite.dataset.distance = pose.distance;
+    this.applyFraming(character.id);
     this.stage.classList.add('has-char');
   }
 
@@ -714,10 +877,12 @@ export class AdvView implements View {
         b,
         () => this.engine.inspect(obj.id),
         () => b.classList.add('show-label'),
+        () => !!this.drag?.moved || this.justDragged,
       );
       return b;
     });
-    this.objectsImg.replaceChildren(...spots);
+    this.objectsBg.replaceChildren(...spots);
+    requestAnimationFrame(() => this.updateEdgeHints());
   }
 
   /** 物件說明：暫停遊戲，點一下關閉。 */
@@ -759,7 +924,7 @@ export class AdvView implements View {
   }
 
   showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
-    this.objectsImg.replaceChildren();
+    this.objectsBg.replaceChildren();
     this.stage.dataset.phase = 'choice';
     this.stopSkip();
     this.fx.clearLine();
@@ -843,7 +1008,7 @@ export class AdvView implements View {
     this.stopAuto();
     this.stopSkip();
     this.stage.dataset.phase = 'ending';
-    this.objectsImg.replaceChildren();
+    this.objectsBg.replaceChildren();
     this.memoryCard.classList.remove('open');
     // page 模式：結局畫面之後多一頁記憶對照
     const withPage = settings.memoryReview === 'page' && this.engine.sceneHasMemoryReview;

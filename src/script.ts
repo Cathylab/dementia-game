@@ -1,4 +1,14 @@
-import { ALL_FX, isChoice, isMemoryReview, isText, requiredObjects, type Ending, type Script } from './types';
+import {
+  ALL_FX,
+  isChoice,
+  isMemoryReview,
+  isText,
+  requiredObjects,
+  TRANSITION_STYLES,
+  type Ending,
+  type Script,
+  type SpriteFraming,
+} from './types';
 
 export const ENDING_TARGET = '@ending';
 
@@ -37,6 +47,21 @@ export function validateScript(script: Script): string[] {
       problems.push('meta.settingsDefaults.memoryReview 必須是 "inline" 或 "page"');
     }
   }
+  // 呈現設定
+  const meta = script.meta ?? ({} as Script['meta']);
+  if (meta.transition !== undefined && !TRANSITION_STYLES.includes(meta.transition)) {
+    problems.push(`meta.transition 必須是 ${TRANSITION_STYLES.map((t) => `"${t}"`).join('、')} 其中之一`);
+  }
+  if (meta.objectHighlight !== undefined && !['glow', 'ring'].includes(meta.objectHighlight)) {
+    problems.push('meta.objectHighlight 必須是 "glow" 或 "ring"');
+  }
+  const checkFraming = (where: string, f: SpriteFraming | undefined) => {
+    if (!f) return;
+    if (f.scale !== undefined && !(typeof f.scale === 'number' && f.scale > 0)) problems.push(`${where}.scale 必須是大於 0 的數字`);
+    if (f.y !== undefined && typeof f.y !== 'number') problems.push(`${where}.y 必須是數字`);
+  };
+  checkFraming('meta.sprite', meta.sprite);
+  for (const c of script.characters ?? []) checkFraming(`角色 ${c.id}.sprite`, c.sprite);
   const statNames = Object.keys(script.meta?.stats ?? {});
   for (const n of statNames) {
     if (RESERVED.includes(n)) problems.push(`meta.stats：數值名稱 "${n}" 與條件保留字撞名，條件裡請改用 stats.${n}`);

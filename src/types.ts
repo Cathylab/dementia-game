@@ -37,6 +37,21 @@ export interface Meta {
   statRange?: { min: number; max: number };
   /** 設定的預設值；玩家在設定裡改過的以玩家為準（v2）。 */
   settingsDefaults?: SettingsDefaults;
+  /** 換場景的轉場樣式，省略為 "blink"（呈現設定，開發者面板可調）。 */
+  transition?: TransitionStyle;
+  /** 可以點的物件怎麼提示：glow＝物品本身發亮（預設）、ring＝圓圈（呈現設定）。 */
+  objectHighlight?: 'glow' | 'ring';
+  /** 所有角色立繪的預設構圖；角色自己的 sprite 會覆寫（呈現設定）。 */
+  sprite?: SpriteFraming;
+}
+
+export type TransitionStyle = 'blink' | 'blink_soft' | 'fade' | 'focus';
+export const TRANSITION_STYLES: TransitionStyle[] = ['blink', 'blink_soft', 'fade', 'focus'];
+
+/** 立繪構圖：scale 是相對原本全身高度的倍數，y 是上下位移（畫面高度的 %，負數往下）。 */
+export interface SpriteFraming {
+  scale?: number;
+  y?: number;
 }
 
 export interface SettingsDefaults {
@@ -51,6 +66,8 @@ export interface Character {
   relation?: string;
   /** 這個角色有哪些表情（立繪檔名 {id}_{表情}.png）。列了之後，台詞的 expression 必須在清單裡。 */
   expressions?: string[];
+  /** 這個角色立繪的構圖，覆寫 meta.sprite（呈現設定）。 */
+  sprite?: SpriteFraming;
 }
 
 export interface TextLine {

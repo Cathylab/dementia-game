@@ -333,6 +333,32 @@ export class AudioEngine implements AudioLike {
     this.current?.setDegradation(d);
   }
 
+  /** 目前播放的曲名（null＝靜音）。 */
+  get musicName(): string | null {
+    return this.currentName;
+  }
+
+  /**
+   * 開發者面板試聽：把電腦裡的音樂檔暫時當成某個曲名來播（只在這次開啟的頁面有效）。
+   * 回傳 false 表示瀏覽器無法解碼這個檔案。
+   */
+  async useFile(name: string, file: Blob): Promise<boolean> {
+    this.unlock();
+    if (!this.ctx) return false;
+    try {
+      const buffer = await this.ctx.decodeAudioData(await file.arrayBuffer());
+      this.buffers.set(name, Promise.resolve(buffer));
+    } catch {
+      return false;
+    }
+    if (this.currentName === name) {
+      // 同一首正在播：重新開始，換成剛載入的檔案
+      this.currentName = null;
+      this.playMusic(name);
+    }
+    return true;
+  }
+
   /** 字串＝播放該曲；null＝停止；undefined＝沿用目前的曲子。 */
   playMusic(name: string | null | undefined): void {
     if (name === undefined || name === this.currentName) return;

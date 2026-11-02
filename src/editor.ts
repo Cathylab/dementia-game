@@ -172,7 +172,8 @@ export class TextEditor {
   }
 
   /** 本機開發寫回 script.json；線上版（或寫回失敗時）下載檔案。 */
-  async save(): Promise<void> {
+  /** 儲存目前的腳本（含開發者面板調整的呈現設定）。回傳給人看的結果訊息。 */
+  async save(): Promise<string> {
     const text = formatScript(this.engine.script);
     if (import.meta.env.DEV) {
       try {
@@ -180,12 +181,12 @@ export class TextEditor {
         const body = (await res.json().catch(() => null)) as { ok: boolean; message: string } | null;
         if (res.ok && body?.ok) {
           this.markSaved('已寫回 public/script.json');
-          return;
+          return this.message;
         }
         if (body?.message) {
           this.message = `沒有儲存：${body.message}`;
           this.refresh();
-          return;
+          return this.message;
         }
       } catch {
         /* 開發伺服器沒有這個端點：改下載 */
@@ -193,6 +194,7 @@ export class TextEditor {
     }
     download(text);
     this.markSaved('已下載 script.json，請用它取代 public/script.json');
+    return this.message;
   }
 
   private markSaved(message: string): void {

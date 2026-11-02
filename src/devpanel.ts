@@ -1,11 +1,26 @@
 // 開發者面板：按 ` 鍵（或 F8）開關，網址加 ?dev=1 則一開始就打開。
 import type { Engine } from './engine';
 import { neededSprites, pickEnding, spriteWarnings, validateScript } from './script';
-import { ALL_FX, isText, type ChoiceLine, type Distance, type FxTag, type Gaze } from './types';
+import {
+  ALL_FX,
+  isText,
+  TRANSITION_STYLES,
+  type ChoiceLine,
+  type Distance,
+  type FxTag,
+  type Gaze,
+  type TransitionStyle,
+} from './types';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
 const GAZES: Gaze[] = ['camera', 'away', 'other'];
+const TRANSITION_LABELS: Record<TransitionStyle, string> = {
+  blink: '眨眼（原本）',
+  blink_soft: '柔和的眨眼',
+  fade: '淡入淡出',
+  focus: '模糊對焦',
+};
 const DISTANCES: Distance[] = ['near', 'normal', 'far'];
 
 export class DevPanel {
@@ -26,6 +41,8 @@ export class DevPanel {
     private readonly view: AdvView,
     /** 打開文字編輯器。 */
     private readonly openEditor?: () => void,
+    /** 儲存腳本（本機寫回 script.json，線上版下載），回傳結果訊息。 */
+    private readonly saveScript?: () => Promise<string>,
   ) {
     this.build();
     document.body.append(this.root);
@@ -118,6 +135,7 @@ export class DevPanel {
       el('header', {}, [el('h2', {}, ['開發者面板']), close]),
       this.section('目前狀態', this.status, this.stats),
       this.section('跳到場景', el('div', { class: 'dev-row' }, [this.sceneSelect, jump])),
+      this.buildPresentation(),
       this.section('觸發效果', el('div', { class: 'dev-grid' }, fxButtons)),
       this.section(
         '退化係數',
@@ -188,6 +206,150 @@ export class DevPanel {
     );
   }
 
+  /**
+   * 呈現調整：轉場、物件提示、每個角色的大小與高度、場景音樂與試聽。
+   * 改動立即反映在畫面上，按「儲存調整」寫回 script.json（線上版下載）。
+   */
+  private buildPresentation(): HTMLElement {
+    const e = this.engine;
+    const v = this.view;
+    const meta = e.script.meta;
+
+    const transition = el('select', { name: 'dev-transition' });
+    for (const t of TRANSITION_STYLES) transition.append(el('option', { value: t }, [TRANSITION_LABELS[t]]));
+    transition.value = meta.transition ?? 'blink';
+    transition.onchange = () => {
+      meta.transition = transition.value as TransitionStyle;
+      v.applyTransitionStyle();
+    };
+    const preview = this.button('預覽', () => void v.blink(undefined, 400), { 'data-dev': 'preview-transition' });
+
+    const highlight = el('select', { name: 'dev-highlight' }, [
+      el('option', { value: 'glow' }, ['物品本身發亮']),
+      el('option', { value: 'ring' }, ['圓圈']),
+    ]);
+    highlight.value = meta.objectHighlight ?? 'glow';
+    highlight.onchange = () => {
+      meta.objectHighlight = highlight.value as 'glow' | 'ring';
+      v.applyHighlightStyle();
+    };
+
+    // 角色大小與高度
+    const charSelect = el('select', { name: 'dev-sprite-char' });
+    for (const c of e.script.characters ?? []) charSelect.append(el('option', { value: c.id }, [`${c.name}（${c.id}）`]));
+    const scale = el('input', { type: 'range', min: '0.5', max: '3', step: '0.05', name: 'dev-sprite-scale' });
+    const y = el('input', { type: 'range', min: '-200', max: '60', step: '1', name: 'dev-sprite-y' });
+    const scaleOut = el('output', {});
+    const yOut = el('output', {});
+    const syncSliders = () => {
+      const f = v.framingFor(charSelect.value);
+      scale.value = String(f.scale);
+      y.value = String(f.y);
+      scaleOut.textContent = `${f.scale.toFixed(2)} 倍`;
+      yOut.textContent = `${f.y}`;
+    };
+    /** 選到的角色不在畫面上時，先把他叫出來，才看得到調整的結果。 */
+    const showChosen = () => {
+      const c = e.getChar(charSelect.value);
+      if (!c || v.sprite.dataset.char === c.id) return;
+      void v.showSprite(c, e.poses[c.id] ?? { expression: 'neutral', gaze: 'camera', distance: 'normal' });
+    };
+    const applySliders = () => {
+      const c = e.getChar(charSelect.value);
+      if (!c) return;
+      c.sprite = { scale: Number(scale.value), y: Number(y.value) };
+      showChosen();
+      v.applyFraming(c.id);
+      syncSliders();
+    };
+    charSelect.onchange = () => {
+      syncSliders();
+      showChosen();
+    };
+    scale.oninput = applySliders;
+    y.oninput = applySliders;
+    const applyAll = this.button(
+      '套用到所有角色',
+      () => {
+        meta.sprite = { scale: Number(scale.value), y: Number(y.value) };
+        for (const c of e.script.characters ?? []) delete c.sprite;
+        if (v.sprite.dataset.char) v.applyFraming(v.sprite.dataset.char);
+      },
+      { 'data-dev': 'sprite-all' },
+    );
+    this.syncSpriteChar = () => {
+      if (e.lastChar && charSelect.value !== e.lastChar) charSelect.value = e.lastChar;
+      syncSliders();
+    };
+
+    // 音樂
+    const names = new Set<string>();
+    for (const s of e.script.scenes) {
+      if (s.music) names.add(s.music);
+      for (const l of s.lines) if (isText(l) && l.music) names.add(l.music);
+    }
+    const list = el('datalist', { id: 'dev-music-names' }, [...names].map((n) => el('option', { value: n })));
+    const music = el('input', { type: 'text', list: 'dev-music-names', name: 'dev-music', placeholder: '曲名（空白＝靜音）' });
+    const applyMusic = this.button(
+      '套用到這個場景',
+      () => {
+        if (!e.scene) return;
+        const name = music.value.trim() || null;
+        e.scene.music = name;
+        v.audio?.unlock();
+        v.audio?.playMusic(name);
+      },
+      { 'data-dev': 'apply-music' },
+    );
+    const file = el('input', { type: 'file', accept: 'audio/*', name: 'dev-music-file' });
+    const musicStatus = el('p', { class: 'dev-note' });
+    file.onchange = async () => {
+      const f = file.files?.[0];
+      const name = music.value.trim() || e.scene?.music || v.audio?.musicName;
+      if (!f || !name || !v.audio) {
+        musicStatus.textContent = '先在上面填曲名，或在有音樂的場景使用。';
+        return;
+      }
+      const ok = await v.audio.useFile(name, f);
+      if (ok) v.audio.playMusic(name);
+      musicStatus.textContent = ok
+        ? `正在用「${f.name}」試聽「${name}」（只在這次開啟的頁面有效）。確定要用的話，把檔案改名為 ${name}.mp3 或 ${name}.ogg 放進 public/assets/music/。`
+        : `這個檔案瀏覽器無法播放：${f.name}`;
+      file.value = '';
+    };
+    this.syncMusic = () => {
+      if (document.activeElement !== music) music.value = e.scene?.music ?? '';
+    };
+
+    // 儲存
+    const saveStatus = el('p', { class: 'dev-note' });
+    const save = this.button(
+      import.meta.env.DEV ? '儲存調整（寫回 script.json）' : '儲存調整（下載 script.json）',
+      () => {
+        void this.saveScript?.().then((m) => (saveStatus.textContent = m));
+      },
+      { 'data-dev': 'save-presentation', class: 'dev-primary' },
+    );
+
+    return this.section(
+      '呈現調整',
+      el('label', { class: 'dev-row' }, ['轉場', transition, preview]),
+      el('label', { class: 'dev-row' }, ['物件提示', highlight]),
+      el('div', { class: 'dev-row' }, ['角色', charSelect]),
+      el('label', { class: 'dev-row' }, ['大小', scale, scaleOut]),
+      el('label', { class: 'dev-row' }, ['上下', y, yOut]),
+      el('div', { class: 'dev-row' }, [applyAll]),
+      el('div', { class: 'dev-row' }, ['音樂', music, list, applyMusic]),
+      el('label', { class: 'dev-row' }, ['試聽檔案', file]),
+      musicStatus,
+      el('div', { class: 'dev-row' }, [save]),
+      saveStatus,
+    );
+  }
+
+  private syncSpriteChar: () => void = () => {};
+  private syncMusic: () => void = () => {};
+
   /** 手動觸發效果：作用在目前這一句；選項類效果若畫面上沒有選項，會叫出一組測試選項。 */
   private triggerFx(fx: FxTag): void {
     const e = this.engine;
@@ -248,7 +410,9 @@ export class DevPanel {
     if (e.scene && e.scene.id !== this.lastScene) {
       this.lastScene = e.scene.id;
       this.sceneSelect.value = e.scene.id;
+      this.syncMusic();
     }
+    this.syncSpriteChar();
     this.degRange.value = String(e.degradation);
     this.degOut.textContent = e.degradation.toFixed(2);
     const pose = e.lastChar ? e.poses[e.lastChar] : null;

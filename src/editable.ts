@@ -86,7 +86,20 @@ export function setAt(obj: unknown, path: Path, value: unknown): void {
 export function structureOf(script: Script): string {
   const copy = structuredClone(script);
   for (const f of editableFields(copy)) setAt(copy, f.path, '');
+  stripPresentation(copy);
   return JSON.stringify(copy);
+}
+
+/**
+ * 呈現設定（開發者面板可以調整並存檔的欄位）：轉場樣式、物件提示樣式、立繪構圖、場景音樂。
+ * 這些不算「結構」，寫回 script.json 時允許改變。
+ */
+export function stripPresentation(script: Script): void {
+  delete script.meta.transition;
+  delete script.meta.objectHighlight;
+  delete script.meta.sprite;
+  for (const c of script.characters ?? []) delete c.sprite;
+  for (const s of script.scenes) delete s.music;
 }
 
 /** 格式化成好讀的 JSON：短的物件或陣列放在同一行，長的才展開。 */
