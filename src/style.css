@@ -147,7 +147,8 @@ button {
   letter-spacing: 0.04em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
   transition: opacity var(--t-fast);
-  cursor: pointer;
+  /* 點擊交給後面的舞台處理（推進台詞）；台詞區上緣透明的部分才不會擋住物件熱點 */
+  pointer-events: none;
 }
 
 @media (orientation: portrait) {

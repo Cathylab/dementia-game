@@ -137,3 +137,25 @@ test.describe('手機直式', () => {
     await expect(page.locator('.inspect')).not.toHaveClass(/open/);
   });
 });
+
+test('y 在 0.62 以內的物件不會被台詞區擋住', async ({ page }) => {
+  await openWithTestScript(page, undefined, {
+    mutate: (s) => {
+      const objs = s.scenes.find((x) => x.id === 'obj_scene')!.objects!;
+      objs[0].y = 0.62;
+      objs[1].y = 0.6;
+    },
+  });
+  await jumpTo(page, 'obj_scene');
+  await expect(currentText(page)).toHaveText('物件第一句。');
+  for (const id of ['o_phone', 'o_glasses']) {
+    const hit = await spot(page, id).evaluate((b) => {
+      const r = b.getBoundingClientRect();
+      return b.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    });
+    expect(hit, id).toBe(true);
+  }
+  await spot(page, 'o_phone').click();
+  await expect(page.locator('.inspect')).toHaveClass(/open/);
+});
+

@@ -5,6 +5,9 @@ import { reachableEndings } from './simulate';
 
 const demo = JSON.parse(readFileSync(new URL('../public/script.json', import.meta.url), 'utf8')) as Script;
 
+// 完整走一輪的測試依腳本長度而定，給足時間
+test.describe.configure({ timeout: 300_000 });
+
 async function open(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem('dementia-vn-settings', JSON.stringify({ textSpeed: 100, volume: 0.2 }));
@@ -28,17 +31,20 @@ async function playToEnding(page: Page, plan: Plan) {
   const stage = page.locator('#stage');
   const ending = page.locator('.ending-screen.open, .memory-page.open');
   const pending = new Set(plan.clicks ?? []);
-  for (let i = 0; i < 600; i++) {
+  for (let i = 0; i < 3000; i++) {
     if (await ending.first().isVisible()) return;
     if (await page.locator('.inspect.open').count()) {
       await page.locator('.inspect.open').click();
       continue;
     }
-    for (const id of [...pending]) {
+    // 一次只點一個物件（說明卡會蓋住其他熱點），確認引擎真的記下來才算點過
+    const seen = await page.evaluate(() => (window as unknown as { __vn: { engine: { seen: string[] } } }).__vn.engine.seen);
+    for (const id of seen) pending.delete(id);
+    for (const id of pending) {
       const spot = page.locator(`.object-spot[data-object="${id}"]`);
       if ((await stage.getAttribute('data-phase')) === 'text' && (await spot.count()) && (await spot.isVisible())) {
         await spot.click({ force: true });
-        pending.delete(id);
+        break;
       }
     }
     if (await page.locator('.inspect.open').count()) continue;
