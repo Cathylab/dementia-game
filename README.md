@@ -228,6 +228,19 @@ npx playwright install chromium
 - 有 `requires` 的 choice 至少要有兩個沒有 `requires` 的選項；隱藏選項要設一個 `hidden_` 開頭的旗標。
 - 結局裡的專屬內容不需要新欄位，用 `"if": "has(\"hidden_phone_photo\")"` 即可。
 
+#### 預設設定 `meta.settingsDefaults`
+
+```json
+"meta": { "title": "婚禮前一個月", "stats": { "trust": 0 }, "settingsDefaults": { "hiddenHints": false, "memoryReview": "inline" } }
+```
+
+| 設定 | 值 | 預設 | 設定畫面 |
+| --- | --- | --- | --- |
+| `hiddenHints` | `true`、`false` | `false` | 隱藏選項提示 |
+| `memoryReview` | `"inline"`、`"page"` | `"inline"` | 記憶對照：融入結局／結局後獨立一頁 |
+
+玩家在設定裡動過的項目會存在瀏覽器裡，以玩家為準；沒動過的項目跟著腳本預設值。
+
 ### 檢查腳本
 
 - 開發者面板最下方的「腳本檢查」會列出找不到的場景、未知的 speaker 或效果、條件語法錯誤等問題（也會印在瀏覽器主控台）。v2 另外檢查：
@@ -270,6 +283,8 @@ npx playwright install chromium
 ---
 
 ## 操作
+
+設定畫面有：文字速度、音量、隱藏選項提示、記憶對照（融入結局／結局後獨立一頁）。
 
 | 動作 | 電腦 | 手機 |
 | --- | --- | --- |

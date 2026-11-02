@@ -2,7 +2,7 @@ import { resolveImage } from './assets';
 import { Effects, fadeText, glitchSpans } from './fx';
 import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
-import { saveSettings, settings } from './settings';
+import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
 import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, SceneObject, TextLine, UiKey } from './types';
 import { el, shuffle, sleep, T } from './util';
@@ -393,14 +393,24 @@ export class AdvView implements View {
     const vol = el('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(settings.volume), name: 'volume' });
     const speedOut = el('output', {}, [this.speedLabel(settings.textSpeed)]);
     speed.oninput = () => {
-      settings.textSpeed = Number(speed.value);
+      setSetting('textSpeed', Number(speed.value));
       speedOut.textContent = this.speedLabel(settings.textSpeed);
-      saveSettings();
     };
     vol.oninput = () => {
-      settings.volume = Number(vol.value);
-      saveSettings();
+      setSetting('volume', Number(vol.value));
       this.onVolume(settings.volume);
+    };
+    const hints = el('input', { type: 'checkbox', name: 'hiddenHints', class: 'toggle' });
+    hints.checked = settings.hiddenHints;
+    hints.onchange = () => {
+      setSetting('hiddenHints', hints.checked);
+      this.choices.querySelectorAll<HTMLElement>('.locked').forEach((b) => this.updateLockedLabel(b));
+    };
+    const review = (value: MemoryReviewMode, text: string) => {
+      const radio = el('input', { type: 'radio', name: 'memoryReview', value });
+      radio.checked = settings.memoryReview === value;
+      radio.onchange = () => radio.checked && setSetting('memoryReview', value);
+      return el('label', { class: 'radio' }, [radio, text]);
     };
     const close = el('button', { class: 'overlay-close', type: 'button', 'aria-label': '關閉' });
     close.innerHTML = ICONS.close;
@@ -411,8 +421,15 @@ export class AdvView implements View {
     this.settingsOverlay.replaceChildren(
       el('h2', {}, ['設定']),
       close,
-      el('label', { class: 'setting' }, [el('span', {}, ['文字速度']), speed, speedOut]),
-      el('label', { class: 'setting' }, [el('span', {}, ['音量']), vol]),
+      el('div', { class: 'settings-body' }, [
+        el('label', { class: 'setting' }, [el('span', {}, ['文字速度']), speed, speedOut]),
+        el('label', { class: 'setting' }, [el('span', {}, ['音量']), vol]),
+        el('label', { class: 'setting setting-toggle' }, [el('span', {}, ['隱藏選項提示']), hints]),
+        el('div', { class: 'setting setting-choice', role: 'radiogroup', 'aria-label': '記憶對照' }, [
+          el('span', {}, ['記憶對照']),
+          el('div', { class: 'radios' }, [review('inline', '融入結局'), review('page', '結局後獨立一頁')]),
+        ]),
+      ]),
     );
     this.settingsOverlay.onclick = (ev) => ev.stopPropagation();
     this.settingsOverlay.classList.add('open');

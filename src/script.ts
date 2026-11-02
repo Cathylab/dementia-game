@@ -25,6 +25,15 @@ export function validateScript(script: Script): string[] {
     if (target == null || target === ENDING_TARGET) return;
     if (!sceneIds.has(target)) problems.push(`${where}：找不到場景 "${target}"`);
   };
+  const defaults = script.meta?.settingsDefaults;
+  if (defaults) {
+    if (defaults.hiddenHints !== undefined && typeof defaults.hiddenHints !== 'boolean') {
+      problems.push('meta.settingsDefaults.hiddenHints 必須是 true 或 false');
+    }
+    if (defaults.memoryReview !== undefined && !['inline', 'page'].includes(defaults.memoryReview)) {
+      problems.push('meta.settingsDefaults.memoryReview 必須是 "inline" 或 "page"');
+    }
+  }
   const statNames = Object.keys(script.meta?.stats ?? {});
   for (const n of statNames) {
     if (RESERVED.includes(n)) problems.push(`meta.stats：數值名稱 "${n}" 與條件保留字撞名，條件裡請改用 stats.${n}`);

@@ -35,6 +35,13 @@ export interface Meta {
   durationMinutes?: number;
   stats: Record<string, number>;
   statRange?: { min: number; max: number };
+  /** 設定的預設值；玩家在設定裡改過的以玩家為準（v2）。 */
+  settingsDefaults?: SettingsDefaults;
+}
+
+export interface SettingsDefaults {
+  hiddenHints?: boolean;
+  memoryReview?: 'inline' | 'page';
 }
 
 export interface Character {

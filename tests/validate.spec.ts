@@ -143,3 +143,12 @@ test.describe('腳本檢查：requires', () => {
     expect(validateScript(s).join()).toContain('hidden_ 開頭的旗標');
   });
 });
+
+test.describe('腳本檢查：settingsDefaults', () => {
+  test('值的型別錯誤', () => {
+    const s = make([], { meta: { title: 't', stats: {}, settingsDefaults: { hiddenHints: 'yes', memoryReview: 'popup' } as never } });
+    const problems = validateScript(s).join('\n');
+    expect(problems).toContain('hiddenHints 必須是 true 或 false');
+    expect(problems).toContain('memoryReview 必須是 "inline" 或 "page"');
+  });
+});

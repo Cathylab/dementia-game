@@ -11,17 +11,19 @@ export function testScript(): Script {
 
 /**
  * 讓文字瞬間顯示，並用測試腳本取代 public/script.json。
- * mutate 可以在送出前修改腳本；settings 可以覆寫預先存好的設定。
+ * mutate 可以在送出前修改腳本；settings 可以覆寫預先存好的設定；skipSettings 表示不預寫設定。
  */
 export async function openWithTestScript(
   page: Page,
   query = 'timescale=0.2',
-  opts: { mutate?: (s: Script) => void; settings?: Record<string, unknown> } = {},
+  opts: { mutate?: (s: Script) => void; settings?: Record<string, unknown>; skipSettings?: boolean } = {},
 ): Promise<void> {
-  const settings = { textSpeed: 100, volume: 0.2, ...opts.settings };
-  await page.addInitScript((value) => {
-    localStorage.setItem('dementia-vn-settings', value);
-  }, JSON.stringify(settings));
+  if (!opts.skipSettings) {
+    const settings = { textSpeed: 100, volume: 0.2, ...opts.settings };
+    await page.addInitScript((value) => {
+      localStorage.setItem('dementia-vn-settings', value);
+    }, JSON.stringify(settings));
+  }
   const script = testScript();
   opts.mutate?.(script);
   const body = JSON.stringify(script);
