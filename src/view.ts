@@ -681,7 +681,8 @@ export class AdvView implements View {
       return;
     }
     const prompt = line.prompt ? [el('p', { class: 'choice-prompt' }, [line.prompt])] : [];
-    const buttons = options.map(({ opt, index }) => {
+    const buttons = options.map((o) => {
+      const { opt, index } = o;
       const b = el('button', { class: 'choice', type: 'button', 'data-index': String(index) }, [
         el('span', { class: 'label' }, [opt.text]),
       ]);
@@ -689,6 +690,7 @@ export class AdvView implements View {
         e.stopPropagation();
         onPick(opt, index);
       });
+      this.markLocked(b, o);
       return b;
     });
     this.choices.replaceChildren(...prompt, ...buttons);
@@ -699,11 +701,13 @@ export class AdvView implements View {
 
   /** 熱點選項：畫面上的發光圓點；滑鼠移上或長按顯示文字，點擊選擇。 */
   private showHotspots(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
-    const spots: HTMLButtonElement[] = options.map(({ opt, index }) => {
+    const spots: HTMLButtonElement[] = options.map((o) => {
+      const { opt, index } = o;
       const b = el('button', { class: 'hotspot', type: 'button', 'data-index': String(index), 'aria-label': opt.text }, [
         el('span', { class: 'glow', 'aria-hidden': 'true' }),
         el('span', { class: 'label' }, [opt.text]),
       ]);
+      this.markLocked(b, o);
       placeSpot(b, opt.x, opt.y, opt.r);
       bindPress(
         b,
@@ -720,6 +724,25 @@ export class AdvView implements View {
     this.choices.className = 'choices open hotspots';
     this.choices.dataset.mode = 'hotspot';
     this.fx.applyChoice(line, this.choices, spots);
+  }
+
+  /** requires 沒滿足的選項：灰掉、不能按，文字換成提示。 */
+  private markLocked(b: HTMLButtonElement, o: ShownOption): void {
+    if (!o.locked) return;
+    b.disabled = true;
+    b.classList.add('locked');
+    b.dataset.missing = o.missing.join(' ');
+    this.updateLockedLabel(b);
+  }
+
+  /** 依「隱藏選項提示」設定決定灰掉的選項顯示什麼。設定改變時也會呼叫。 */
+  updateLockedLabel(b: HTMLElement): void {
+    const missing = (b.dataset.missing ?? '').split(' ').filter(Boolean);
+    const text = settings.hiddenHints
+      ? missing.map((id) => `${this.engine.getObject(id)?.label ?? id}？`).join('、')
+      : '你好像記得什麼，但想不起來。';
+    b.querySelector('.label')!.textContent = text;
+    b.setAttribute('aria-label', text);
   }
 
   clearChoice(): void {

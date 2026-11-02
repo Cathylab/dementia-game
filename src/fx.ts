@@ -194,6 +194,7 @@ export class Effects {
   flatOptions(container: HTMLElement, items: HTMLElement[]): void {
     container.classList.add('fx-flat-options');
     for (const item of items) {
+      if (item.classList.contains('locked')) continue;
       const label = item.querySelector<HTMLElement>('.label') ?? item;
       label.textContent = (label.textContent ?? '').replace(/[。！？!?…，、.~～]+$/u, '') + '。';
     }

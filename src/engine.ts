@@ -1,6 +1,7 @@
 import { ENDING_TARGET, evalCondition, pickEnding, type CondContext } from './script';
 import {
   isChoice,
+  requiredObjects,
   type Character,
   type ChoiceLine,
   type ChoiceOption,
@@ -47,6 +48,10 @@ export interface Snapshot {
 export interface ShownOption {
   opt: ChoiceOption;
   index: number;
+  /** requires 還沒滿足：出現但灰掉、不能按。 */
+  locked: boolean;
+  /** 還沒點過的物件 id。 */
+  missing: string[];
 }
 
 interface PendingRepeat {
@@ -106,15 +111,21 @@ export class Engine {
 
   private readonly scenes = new Map<string, Scene>();
   private readonly chars = new Map<string, Character>();
+  private readonly objects = new Map<string, SceneObject>();
 
   constructor(script: Script) {
     this.script = script;
     for (const s of script.scenes) this.scenes.set(s.id, s);
+    for (const s of script.scenes) for (const o of s.objects ?? []) this.objects.set(o.id, o);
     for (const c of script.characters ?? []) this.chars.set(c.id, c);
   }
 
   getScene(id: string): Scene | undefined {
     return this.scenes.get(id);
+  }
+
+  getObject(id: string): SceneObject | undefined {
+    return this.objects.get(id);
   }
 
   getChar(id: string | null): Character | null {
@@ -220,7 +231,12 @@ export class Engine {
     }
     let shown: ShownOption[] = [];
     if (!repeatOf && isChoice(line)) {
-      shown = line.choice.map((opt, i) => ({ opt, index: i })).filter((o) => this.test(o.opt.if));
+      shown = line.choice
+        .map((opt, i) => {
+          const missing = requiredObjects(opt).filter((id) => !this.seen.includes(id));
+          return { opt, index: i, locked: missing.length > 0, missing };
+        })
+        .filter((o) => this.test(o.opt.if));
       if (shown.length === 0) {
         console.warn('[engine] 這組選項全部不成立，直接播下一句', this.scene.id, index);
         this.playLine(index + 1);
@@ -315,6 +331,7 @@ export class Engine {
 
   private choose(line: ChoiceLine, opt: ChoiceOption): void {
     if (this.phase !== 'choice') return;
+    if (this.shown.find((o) => o.opt === opt)?.locked) return;
     // flat_options：走「第一個實際出現的選項」的 goto
     const flat = line.fx?.includes('flat_options');
     const target = flat ? (this.shown[0]?.opt ?? line.choice[0]).goto : opt.goto;

@@ -1296,3 +1296,24 @@ button {
   color: var(--ink-dim);
   font-size: 0.9em;
 }
+
+/* ───────────── 隱藏選項（requires 未滿足，v2） ───────────── */
+
+.choice.locked,
+.choice.locked:hover {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(20, 20, 20, 0.5);
+  color: rgba(244, 239, 230, 0.42);
+  font-style: italic;
+  cursor: not-allowed;
+}
+
+.hotspot.locked {
+  cursor: not-allowed;
+}
+
+.hotspot.locked .glow {
+  background: radial-gradient(circle, rgba(200, 200, 200, 0.35) 0%, rgba(160, 160, 160, 0) 70%);
+  animation: none;
+}

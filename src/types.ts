@@ -71,6 +71,13 @@ export interface ChoiceOption {
   r?: number;
   /** 條件：不成立時這個選項不出現（v2）。 */
   if?: string;
+  /** 需要先點過的物件 id（全部點過才解鎖）；沒點過時選項灰掉不能按（v2）。 */
+  requires?: string | string[];
+}
+
+/** requires 統一成陣列。 */
+export function requiredObjects(opt: ChoiceOption): string[] {
+  return opt.requires == null ? [] : Array.isArray(opt.requires) ? opt.requires : [opt.requires];
 }
 
 export interface ChoiceLine {

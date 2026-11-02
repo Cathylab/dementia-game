@@ -98,3 +98,48 @@ test.describe('腳本檢查：objects', () => {
     expect(problems).toContain('appearAt 5 超過');
   });
 });
+
+test.describe('腳本檢查：requires', () => {
+  const obj = { id: 'a1_key', label: '鑰匙', x: 0.5, y: 0.4, description: '說明' };
+  const choice = (requires: string | string[], free = 2) => ({
+    choice: [
+      ...Array.from({ length: free }, (_, i) => ({ text: `普通${i}` })),
+      { text: '隱藏', requires, flags: ['hidden_key'] },
+    ],
+  });
+
+  test('合法的隱藏選項沒有問題', () => {
+    const s = make([{ objects: [obj], lines: [{ speaker: 'narrator', text: 'x' }, choice('a1_key')] }]);
+    expect(validateScript(s)).toEqual([]);
+  });
+
+  test('requires 指向不存在的物件', () => {
+    const s = make([{ lines: [{ speaker: 'narrator', text: 'x' }, choice(['ghost'])] }]);
+    expect(validateScript(s).join()).toContain('物件 "ghost" 不存在');
+  });
+
+  test('requires 的物件在之後的場景才出現', () => {
+    const s = make([
+      { lines: [choice('a1_key')], next: 's1' },
+      { objects: [obj], lines: [{ speaker: 'narrator', text: 'x' }] },
+    ]);
+    expect(validateScript(s).join()).toContain('玩家不可能先點到');
+  });
+
+  test('同一場景裡，物件在選項之後才出現', () => {
+    const late = { ...obj, appearAt: 1 };
+    const s = make([{ objects: [late], lines: [choice('a1_key'), { speaker: 'narrator', text: 'x' }] }]);
+    expect(validateScript(s).join()).toContain('玩家不可能先點到');
+  });
+
+  test('沒有 requires 的選項少於兩個', () => {
+    const s = make([{ objects: [obj], lines: [{ speaker: 'narrator', text: 'x' }, choice('a1_key', 1)] }]);
+    expect(validateScript(s).join()).toContain('至少要有兩個沒有 requires 的選項');
+  });
+
+  test('隱藏選項沒有 hidden_ 旗標', () => {
+    const line = { choice: [{ text: 'a' }, { text: 'b' }, { text: 'c', requires: 'a1_key' }] };
+    const s = make([{ objects: [obj], lines: [{ speaker: 'narrator', text: 'x' }, line] }]);
+    expect(validateScript(s).join()).toContain('hidden_ 開頭的旗標');
+  });
+});

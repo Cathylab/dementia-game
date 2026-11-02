@@ -1,4 +1,4 @@
-import { ALL_FX, isChoice, type Ending, type Script } from './types';
+import { ALL_FX, isChoice, requiredObjects, type Ending, type Script } from './types';
 
 export const ENDING_TARGET = '@ending';
 
@@ -30,6 +30,8 @@ export function validateScript(script: Script): string[] {
     if (RESERVED.includes(n)) problems.push(`meta.stats：數值名稱 "${n}" 與條件保留字撞名，條件裡請改用 stats.${n}`);
   }
   const objectIds = new Set(script.scenes.flatMap((s) => (s.objects ?? []).map((o) => o.id)));
+  const objectHome = new Map(script.scenes.flatMap((s) => (s.objects ?? []).map((o) => [o.id, { scene: s.id, at: o.appearAt ?? 0 }] as const)));
+  const reach = sceneReachability(script);
   // 所有選項會設定的旗標
   const settable = new Set(
     script.scenes.flatMap((s) => s.lines.flatMap((l) => (isChoice(l) ? l.choice.flatMap((o) => o.flags ?? []) : []))),
@@ -79,9 +81,25 @@ export function validateScript(script: Script): string[] {
         if (line.choice.length && line.choice.every((o) => o.if != null)) {
           problems.push(`${where}：所有選項都有 if，可能全部不出現`);
         }
+        const free = line.choice.filter((o) => requiredObjects(o).length === 0).length;
+        if (free < line.choice.length && free < 2) {
+          problems.push(`${where}：有 requires 的 choice 至少要有兩個沒有 requires 的選項（目前 ${free} 個）`);
+        }
         line.choice.forEach((opt, j) => {
           checkTarget(`${where}.choice[${j}].goto`, opt.goto);
           checkCond(`${where}.choice[${j}].if`, opt.if);
+          const req = requiredObjects(opt);
+          for (const id of req) {
+            const home = objectHome.get(id);
+            if (!home) {
+              problems.push(`${where}.choice[${j}].requires：物件 "${id}" 不存在`);
+            } else if (home.scene === scene.id ? home.at >= i : !reach.get(home.scene)?.has(scene.id)) {
+              problems.push(`${where}.choice[${j}].requires：物件 "${id}" 在這個選項之後才出現，玩家不可能先點到`);
+            }
+          }
+          if (req.length && !(opt.flags ?? []).some((f) => f.startsWith('hidden_'))) {
+            problems.push(`${where}.choice[${j}]：隱藏選項要設一個 hidden_ 開頭的旗標`);
+          }
           if (line.mode === 'hotspot' && (opt.x == null || opt.y == null)) {
             problems.push(`${where}.choice[${j}]：hotspot 模式需要 x、y`);
           }
@@ -167,3 +185,36 @@ export function conditionRefs(cond: string): { flags: string[]; seen: string[] }
     seen: grab(/\bseen\(\s*(["'`])(.*?)\1\s*\)/g),
   };
 }
+
+/**
+ * 場景之間的可達關係：from → 從 from 出發（不含 from 本身，除非繞得回來）能走到的場景。
+ * 依 next、選項的 goto 計算；"@ending" 視為可以走到所有結局場景。
+ */
+export function sceneReachability(script: Script): Map<string, Set<string>> {
+  const endingScenes = (script.endings ?? []).map((e) => e.scene);
+  const edges = new Map<string, string[]>();
+  const expand = (t: string | null | undefined) => (t == null || t === ENDING_TARGET ? endingScenes : [t]);
+  for (const scene of script.scenes) {
+    const out = new Set<string>();
+    if (!scene.id.startsWith('end_')) for (const t of expand(scene.next)) out.add(t);
+    for (const line of scene.lines) {
+      if (!isChoice(line)) continue;
+      for (const o of line.choice) if (o.goto) for (const t of expand(o.goto)) out.add(t);
+    }
+    edges.set(scene.id, [...out]);
+  }
+  const result = new Map<string, Set<string>>();
+  for (const scene of script.scenes) {
+    const seen = new Set<string>();
+    const stack = [...(edges.get(scene.id) ?? [])];
+    while (stack.length) {
+      const id = stack.pop()!;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      stack.push(...(edges.get(id) ?? []));
+    }
+    result.set(scene.id, seen);
+  }
+  return result;
+}
+

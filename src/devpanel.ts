@@ -170,7 +170,7 @@ export class DevPanel {
         mode: 'list',
         fx: [fx],
       };
-      v.showChoice(test, test.choice.map((opt, index) => ({ opt, index })), () => {
+      v.showChoice(test, test.choice.map((opt, index) => ({ opt, index, locked: false, missing: [] })), () => {
         v.clearChoice();
         v.stage.dataset.phase = e.phase;
       });

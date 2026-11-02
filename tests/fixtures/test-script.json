@@ -129,11 +129,26 @@
           { "text": "物件之後 A", "goto": "flat_a" },
           { "text": "物件之後 B", "goto": "flat_b" }
         ], "mode": "list" } ] },
+    { "id": "req_scene", "act": 1, "background": "test_room",
+      "objects": [
+        { "id": "o_key", "label": "鑰匙", "x": 0.75, "y": 0.3, "description": "一串鑰匙。", "truth": "那是老家的鑰匙。" },
+        { "id": "o_photo", "label": "照片", "x": 0.88, "y": 0.45, "description": "一張照片。", "truth": "照片裡是我們三個人。" }
+      ],
+      "lines": [
+        { "speaker": "narrator", "text": "隱藏選項之前。" },
+        { "prompt": "要怎麼辦？", "choice": [
+          { "text": "普通 A", "goto": "flat_a" },
+          { "text": "普通 B", "goto": "flat_b" },
+          { "text": "拿出鑰匙", "requires": "o_key", "flags": ["hidden_key"], "goto": "end_x" },
+          { "text": "鑰匙和照片", "requires": ["o_key", "o_photo"], "flags": ["hidden_both"], "goto": "end_x" }
+        ], "mode": "list" } ] },
     { "id": "act3", "act": 3, "background": "test_room", "lines": [
       { "speaker": "narrator", "text": "第三幕。" } ] },
     { "id": "flat_a", "act": 1, "background": "room_a", "lines": [ { "speaker": "narrator", "text": "A。" } ], "next": "@ending" },
     { "id": "flat_b", "act": 1, "background": "room_b", "lines": [ { "speaker": "narrator", "text": "B。" } ], "next": "@ending" },
-    { "id": "end_x", "act": 1, "background": "test_room", "lines": [ { "speaker": "narrator", "text": "結局 X。" } ] },
+    { "id": "end_x", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "narrator", "text": "結局 X。" },
+      { "speaker": "narrator", "text": "鑰匙的專屬內容。", "if": "has(\"hidden_key\")" } ] },
     { "id": "end_y", "act": 1, "background": "test_room", "lines": [ { "speaker": "narrator", "text": "結局 Y。" } ] },
     { "id": "end_z", "act": 1, "background": "test_room", "lines": [ { "speaker": "narrator", "text": "結局 Z。" } ] }
   ],
