@@ -135,7 +135,7 @@
 
 | 種類 | 路徑 | 建議 |
 | --- | --- | --- |
-| 背景 | `public/assets/bg/{background}.webp` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時會左右裁切，重要內容請放中間 |
+| 背景 | `public/assets/bg/{background}.webp` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時一次只看得到中間一段，玩家可以左右拖曳看整張圖 |
 | 立繪 | `public/assets/char/{角色id}_{expression}.webp` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.webp`、`daughter_smile.webp` |
 | 前景（手持物件） | `public/assets/fg/{name}.webp` | 透明背景，物件貼齊圖片下緣，寬約 900 |
 | 錯置物件 | `public/assets/fg/wrong_object.webp` 或 `wrongObject` 指定的名稱 | 透明背景，會被縮到畫面寬度約 14% 疊在背景上 |
