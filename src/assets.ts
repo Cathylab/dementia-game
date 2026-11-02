@@ -1,4 +1,6 @@
-// 圖片素材解析：先嘗試載入 public/assets 下的真實檔案，不存在時以 canvas 產生佔位圖。
+// 圖片素材解析：先嘗試載入 public/assets 下的真實檔案（.webp、.png、.jpg 依序），
+// 都不存在時以 canvas 產生佔位圖。
+import { IMAGE_EXTENSIONS } from './script';
 import { hash, seeded } from './util';
 
 export type ImageKind = 'bg' | 'char' | 'fg';
@@ -6,8 +8,8 @@ export type ImageKind = 'bg' | 'char' | 'fg';
 const BASE = `${import.meta.env.BASE_URL}assets`;
 const cache = new Map<string, Promise<string>>();
 
-export function assetPath(kind: ImageKind, name: string): string {
-  return `${BASE}/${kind}/${name}.png`;
+export function assetPath(kind: ImageKind, name: string, ext = 'png'): string {
+  return `${BASE}/${kind}/${name}.${ext}`;
 }
 
 /** 回傳可直接放進 <img src> 或 background-image 的網址。 */
@@ -15,20 +17,46 @@ export function resolveImage(kind: ImageKind, name: string): Promise<string> {
   const key = `${kind}/${name}`;
   let p = cache.get(key);
   if (!p) {
-    const url = assetPath(kind, name);
-    p = new Promise<string>((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(url);
-      img.onerror = () => resolve(placeholder(kind, name));
-      img.src = url;
-    });
+    p = (async () => {
+      for (const ext of IMAGE_EXTENSIONS) {
+        const url = assetPath(kind, name, ext);
+        if (await loads(url)) return url;
+      }
+      return placeholder(kind, name);
+    })();
     cache.set(key, p);
   }
   return p;
 }
 
+function loads(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
+
+const sizes = new Map<string, Promise<{ width: number; height: number }>>();
+
+/** 圖片的原始寬高（物件熱點要對齊背景圖時用）。 */
+export function imageSize(url: string): Promise<{ width: number; height: number }> {
+  let p = sizes.get(url);
+  if (!p) {
+    p = new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => resolve({ width: 16, height: 9 });
+      img.src = url;
+    });
+    sizes.set(url, p);
+  }
+  return p;
+}
+
 /**
- * 立繪：先找 {id}_{expression}.png，沒有就找 {id}_neutral.png，再沒有才用佔位圖
+ * 立繪：先找 {id}_{expression}，沒有就找 {id}_neutral，再沒有才用佔位圖
  * （佔位圖上寫的是原本要的表情，方便知道缺哪張）。
  */
 export async function resolveSprite(charId: string, expression: string): Promise<string> {

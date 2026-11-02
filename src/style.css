@@ -275,6 +275,8 @@ button {
   left: 0;
   right: 0;
   bottom: 0;
+  /* 只有按鈕本身接收點擊，空白處可以點到下面的物件熱點 */
+  pointer-events: none;
   display: flex;
   justify-content: flex-end;
   gap: 0.3em;
@@ -283,6 +285,7 @@ button {
 }
 
 .tool {
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   gap: 0.35em;
@@ -1155,14 +1158,54 @@ button {
 }
 
 .stage:not([data-phase='text']) .objects,
-.stage.ui-hidden .objects {
+.stage.ui-hidden .objects,
+.stage.fx-time-skip .objects {
   display: none;
+}
+
+/* 和 .scene-layers 同樣的晃動、和 .bg-pan 同樣的平移、和 .bg 同樣的位置與裁切，
+   所以熱點會一直貼在背景圖的同一個位置上 */
+.objects {
+  animation: eye-sway 17s ease-in-out infinite;
+}
+
+.objects-pan {
+  position: absolute;
+  inset: 0;
+  transform: translateX(var(--pan, 0%));
+  transition: transform 9s ease-in-out;
+}
+
+.objects-bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -10%;
+  width: 120%;
+  overflow: visible;
+  container-type: size;
+  --bg-aspect: 2.1333;
+}
+
+.stage.fx-look-around .objects-bg {
+  animation: look-around 13s ease-in-out infinite;
+}
+
+/* background-size: cover 的範圍：與背景圖顯示出來的大小一致 */
+.objects-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: max(100cqw, calc(100cqh * var(--bg-aspect)));
+  height: max(100cqh, calc(100cqw / var(--bg-aspect)));
 }
 
 .object-spot {
   position: absolute;
   translate: -50% -50%;
-  width: max(48px, calc(var(--r, 0.04) * 2 * 177.78cqmin));
+  /* 半徑相對背景圖寬度 */
+  width: max(48px, calc(var(--r, 0.04) * 200%));
   aspect-ratio: 1;
   padding: 0;
   border: 0;

@@ -90,7 +90,7 @@
 | `repeat_line` | 這句播完後，隔一兩句無預警再播一次 | 台詞 |
 | `choice_vanish` | 選項出現後約每三秒消失一個，剩下的重新排列（list 與 hotspot 都適用） | 選項 |
 | `flat_options` | 所有選項同樣灰色、同樣語氣（句尾統一成「。」），點任何一個都走第一個選項的 `goto`（被點的那個選項的 `effects`、`flags` 仍會套用） | 選項 |
-| `wrong_object` | 背景上疊一個不該出現的物件（預設 `fg/wrong_object.png`，可用 `wrongObject` 指定）；若場景有 foreground，改為把手持物件換成 `wrongObject`（預設 `{foreground}_wrong`）。持續到場景結束 | 台詞 |
+| `wrong_object` | 背景上疊一個不該出現的物件（預設 `fg/wrong_object`，可用 `wrongObject` 指定）；若場景有 foreground，改為把手持物件換成 `wrongObject`（預設 `{foreground}_wrong`）。持續到場景結束 | 台詞 |
 | `time_skip` | 眨眼後背景換成另一個場景，約 3.6 秒後再眨眼切回 | 台詞 |
 | `desaturate` | 從這句開始畫面飽和度降低（每次 30%），會累加，不會自己恢復（重新開始遊戲才重置） | 台詞 |
 | `focus_drift` | 景深對焦從角色慢慢飄到背景，角色變糊 | 台詞 |
@@ -131,15 +131,15 @@
 
 ## 素材檔名約定
 
-把 PNG 放進 `public/assets/` 底下對應資料夾，檔名對上就會自動取代佔位圖。找不到檔案時才用佔位圖，所以可以一張一張慢慢換。
+把圖片放進 `public/assets/` 底下對應資料夾，檔名對上就會自動取代佔位圖。副檔名依序找 `.webp`、`.png`、`.jpg`，**建議用 `.webp`**：同樣畫質，檔案小十倍以上，手機才載得快（背景建議 500 KB 以內）。找不到檔案時才用佔位圖，所以可以一張一張慢慢換。
 
 | 種類 | 路徑 | 建議 |
 | --- | --- | --- |
-| 背景 | `public/assets/bg/{background}.png` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時會左右裁切，重要內容請放中間 |
-| 立繪 | `public/assets/char/{角色id}_{expression}.png` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.png`、`daughter_smile.png` |
-| 前景（手持物件） | `public/assets/fg/{name}.png` | 透明背景，物件貼齊圖片下緣，寬約 900 |
-| 錯置物件 | `public/assets/fg/wrong_object.png` 或 `wrongObject` 指定的名稱 | 透明背景，會被縮到畫面寬度約 14% 疊在背景上 |
-| 換掉的手持物件 | `public/assets/fg/{foreground}_wrong.png` 或 `wrongObject` 指定的名稱 | 同前景 |
+| 背景 | `public/assets/bg/{background}.webp` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時會左右裁切，重要內容請放中間 |
+| 立繪 | `public/assets/char/{角色id}_{expression}.webp` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.webp`、`daughter_smile.webp` |
+| 前景（手持物件） | `public/assets/fg/{name}.webp` | 透明背景，物件貼齊圖片下緣，寬約 900 |
+| 錯置物件 | `public/assets/fg/wrong_object.webp` 或 `wrongObject` 指定的名稱 | 透明背景，會被縮到畫面寬度約 14% 疊在背景上 |
+| 換掉的手持物件 | `public/assets/fg/{foreground}_wrong.webp` 或 `wrongObject` 指定的名稱 | 同前景 |
 
 `background` 與 `expression` 的名稱就是腳本裡寫的字串，不必另外註冊。
 

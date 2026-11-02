@@ -200,18 +200,24 @@ export class Effects {
     }
   }
 
-  /** choice_vanish：約每三秒消失一個選項，剩下的重新排列。 */
+  /**
+   * choice_vanish：約每三秒消失一個選項，從第一個開始依序消失，剩下的重新排列。
+   * 灰掉的隱藏選項（requires 未滿足）不會消失，也至少留下一個可以按的選項。
+   */
   choiceVanish(container: HTMLElement, items: HTMLElement[], hotspot: boolean): void {
     container.classList.add('fx-choice-vanish');
+    // alive 保持腳本裡的原始順序；畫面上的排列另外打亂
     const alive = [...items];
     container.dataset.remaining = String(alive.length);
     clearInterval(this.vanishTimer);
     this.vanishTimer = window.setInterval(() => {
-      if (alive.length <= 1 || !container.isConnected) {
+      const pickable = alive.filter((el) => !el.classList.contains('locked'));
+      if (pickable.length <= 1 || !container.isConnected) {
         clearInterval(this.vanishTimer);
         return;
       }
-      const [gone] = alive.splice(Math.floor(Math.random() * alive.length), 1);
+      const gone = pickable[0];
+      alive.splice(alive.indexOf(gone), 1);
       gone.classList.add('vanishing');
       gone.setAttribute('aria-hidden', 'true');
       (gone as HTMLButtonElement).disabled = true;

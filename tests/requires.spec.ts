@@ -7,7 +7,7 @@ async function toChoice(page: import('@playwright/test').Page, click: string[] =
   await jumpTo(page, 'req_scene');
   await expect(currentText(page)).toHaveText('隱藏選項之前。');
   for (const id of click) {
-    await page.locator(`.object-spot[data-object="${id}"]`).click();
+    await page.locator(`.object-spot[data-object="${id}"]`).click({ force: true });
     await page.locator('.inspect').click();
   }
   await advance(page);
@@ -75,4 +75,21 @@ test.describe('隱藏選項 requires', () => {
     await locked.hover({ force: true });
     await expect(locked.locator('.label')).toHaveText(LOCKED_TEXT);
   });
+});
+
+test('choice_vanish 不會消掉灰掉的隱藏選項，並至少留下一個能按的選項', async ({ page }) => {
+  await openWithTestScript(page, undefined, {
+    mutate: (s) => {
+      (s.scenes.find((x) => x.id === 'req_scene')!.lines[1] as { fx?: string[] }).fx = ['choice_vanish'];
+    },
+  });
+  await jumpTo(page, 'req_scene');
+  await advance(page);
+  await expect(page.locator('.choices')).toHaveAttribute('data-remaining', '3', { timeout: 5000 });
+  await expect(page.locator('.choice[data-index="0"]')).toHaveCount(0, { timeout: 2000 });
+  // 等過下一輪，不會再消失：剩下的「普通 B」是唯一能按的
+  await page.waitForTimeout(1500);
+  await expect(page.locator('.choices')).toHaveAttribute('data-remaining', '3');
+  await expect(page.locator('.choice[data-index="1"]')).toBeEnabled();
+  await expect(page.locator('.choice.locked')).toHaveCount(2);
 });

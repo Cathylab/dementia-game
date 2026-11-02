@@ -67,7 +67,7 @@ test.describe('記憶對照：inline（融入結局）', () => {
   test('實際點物件後，記憶對照依點的順序出現', async ({ page }) => {
     await jumpTo(page, 'req_scene');
     for (const id of ['o_photo', 'o_key']) {
-      await page.locator(`.object-spot[data-object="${id}"]`).click();
+      await page.locator(`.object-spot[data-object="${id}"]`).click({ force: true });
       await page.locator('.inspect').click();
     }
     await jumpTo(page, 't_end_choice');

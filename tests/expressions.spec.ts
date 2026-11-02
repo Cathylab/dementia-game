@@ -67,10 +67,10 @@ test.describe('腳本檢查：expressions', () => {
   });
 
   test('缺立繪只列為警告', async () => {
-    const have = new Set(['assets/char/amin_neutral.png', 'assets/char/amin_smile.png', 'assets/char/amin_sad.png']);
+    const have = new Set(['assets/char/amin_neutral.png', 'assets/char/amin_smile.webp', 'assets/char/amin_sad.jpg']);
     const warnings = await spriteWarnings(testScript(), async (p) => have.has(p));
     expect(warnings).toHaveLength(2);
-    expect(warnings.join('\n')).toContain('amin_worried.png');
-    expect(warnings.join('\n')).toContain('amin_holding.png');
+    expect(warnings.join('\n')).toContain('amin_worried');
+    expect(warnings.join('\n')).toContain('amin_holding');
   });
 });

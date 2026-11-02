@@ -66,6 +66,8 @@ export interface TextLine {
   timeSkipTo?: string;
   /** 條件：不成立時整句跳過（v2）。 */
   if?: string;
+  /** 播到這句時換音樂：字串＝換成該曲；null＝停止；省略＝不變（v2）。 */
+  music?: string | null;
   /** 引擎內部用：記憶對照產生的台詞，附帶物件圖與當時的說明。腳本裡不要寫。 */
   memory?: { objectId: string; label: string; description: string; image?: string };
 }

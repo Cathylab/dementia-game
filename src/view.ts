@@ -1,4 +1,4 @@
-import { resolveImage, resolveSprite } from './assets';
+import { imageSize, resolveImage, resolveSprite } from './assets';
 import { Effects, fadeText, glitchSpans } from './fx';
 import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
@@ -75,7 +75,14 @@ export class AdvView implements View {
   readonly traitEl = el('span', { class: 'trait' });
   readonly textEl = el('div', { class: 'text' });
   readonly choices = el('div', { class: 'choices' });
+  /**
+   * 物件熱點的座標是「背景圖上的位置」：外層跟著畫面晃動，中層跟著視線平移，
+   * 內層與背景圖同樣的 1.2 倍寬與 cover 裁切，熱點放在最裡面（objectsImg）。
+   */
   readonly objectsLayer = el('div', { class: 'objects' });
+  readonly objectsPan = el('div', { class: 'objects-pan' });
+  readonly objectsBg = el('div', { class: 'objects-bg' });
+  readonly objectsImg = el('div', { class: 'objects-img' });
   readonly inspectEl = el('div', { class: 'inspect', role: 'dialog', 'aria-modal': 'true' });
   readonly memoryCard = el('div', { class: 'memory-card', 'aria-live': 'polite' });
   readonly memoryPage = el('div', { class: 'screen memory-page', role: 'dialog' });
@@ -140,12 +147,16 @@ export class AdvView implements View {
       this.stage.classList.toggle('menu-open');
     });
 
+    this.objectsBg.append(this.objectsImg);
+    this.objectsPan.append(this.objectsBg);
+    this.objectsLayer.append(this.objectsPan);
     this.stage.append(
       this.layers,
-      this.objectsLayer,
       el('div', { class: 'vignette' }),
       this.memoryCard,
       this.dialog,
+      // 熱點疊在台詞區之上：背景圖下方桌上的東西也點得到
+      this.objectsLayer,
       this.monologue,
       this.choices,
       this.toolbar,
@@ -474,7 +485,7 @@ export class AdvView implements View {
     this.monologue.classList.remove('show');
     this.endingScreen.classList.remove('open');
     this.inspectEl.classList.remove('open');
-    this.objectsLayer.replaceChildren();
+    this.objectsImg.replaceChildren();
     this.memoryCard.classList.remove('open');
     this.memoryPage.classList.remove('open');
     clearTimeout(this.pendingTimer);
@@ -519,12 +530,12 @@ export class AdvView implements View {
   protected applyScene(scene: Scene, bgUrl: string, fgUrl: string): void {
     this.stage.dataset.scene = scene.id;
     this.stage.dataset.act = String(scene.act ?? 1);
-    this.objectsLayer.replaceChildren();
+    this.objectsImg.replaceChildren();
     this.memoryCard.classList.remove('open');
     this.applyUi();
     this.setBackground(scene.background ?? '', bgUrl);
-    // 每個場景的視線起點略有不同，之後緩慢平移
-    this.panTo(Math.random() * 5 - 2.5);
+    // 每個場景的視線起點略有不同，之後緩慢平移；有可以點的物件時不偏移，避免邊緣的物件被移出畫面
+    this.panTo(scene.objects?.length ? 0 : Math.random() * 5 - 2.5);
     this.fg.hidden = !fgUrl;
     if (fgUrl) this.fg.src = fgUrl;
     this.fg.dataset.name = scene.foreground ?? '';
@@ -542,11 +553,19 @@ export class AdvView implements View {
   setBackground(name: string, url: string): void {
     this.bg.style.backgroundImage = url ? `url("${url}")` : '';
     this.bg.dataset.name = name;
+    // 熱點要和背景圖一樣 cover 裁切，所以需要背景圖的長寬比
+    if (url) {
+      void imageSize(url).then(({ width, height }) => {
+        if (this.bg.dataset.name === name) this.objectsBg.style.setProperty('--bg-aspect', String(width / height));
+      });
+    }
   }
 
-  /** 視線水平平移，單位為舞台寬度的百分比（背景有 1.2 倍寬，約可移動 ±8%）。 */
+  /** 視線水平平移，單位為舞台寬度的百分比（背景有 1.2 倍寬，約可移動 ±8%）。熱點跟著一起移動。 */
   panTo(percent: number): void {
-    this.bgPan.style.setProperty('--pan', `${Math.max(-8, Math.min(8, percent)).toFixed(2)}%`);
+    const pan = `${Math.max(-8, Math.min(8, percent)).toFixed(2)}%`;
+    this.bgPan.style.setProperty('--pan', pan);
+    this.objectsPan.style.setProperty('--pan', pan);
   }
 
   showText(line: TextLine, ctx: { repeated: boolean; character: Character | null; pose: CharPose | null }): void {
@@ -556,6 +575,7 @@ export class AdvView implements View {
     this.fx.clearLine();
     this.fx.applyGlobal();
     this.renderObjects();
+    if (line.music !== undefined) this.audio?.playMusic(line.music);
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
     this.showMemoryCard(line);
     if (line.speaker === 'player' && !line.memory) {
@@ -688,6 +708,7 @@ export class AdvView implements View {
         el('span', { class: 'label' }, [obj.label]),
       ]);
       b.classList.toggle('seen', this.engine.seen.includes(obj.id));
+      // 座標是背景圖上的位置（0–1），半徑相對背景圖寬度
       placeSpot(b, obj.x, obj.y, obj.r);
       bindPress(
         b,
@@ -696,7 +717,7 @@ export class AdvView implements View {
       );
       return b;
     });
-    this.objectsLayer.replaceChildren(...spots);
+    this.objectsImg.replaceChildren(...spots);
   }
 
   /** 物件說明：暫停遊戲，點一下關閉。 */
@@ -738,7 +759,7 @@ export class AdvView implements View {
   }
 
   showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
-    this.objectsLayer.replaceChildren();
+    this.objectsImg.replaceChildren();
     this.stage.dataset.phase = 'choice';
     this.stopSkip();
     this.fx.clearLine();
@@ -822,7 +843,7 @@ export class AdvView implements View {
     this.stopAuto();
     this.stopSkip();
     this.stage.dataset.phase = 'ending';
-    this.objectsLayer.replaceChildren();
+    this.objectsImg.replaceChildren();
     this.memoryCard.classList.remove('open');
     // page 模式：結局畫面之後多一頁記憶對照
     const withPage = settings.memoryReview === 'page' && this.engine.sceneHasMemoryReview;
