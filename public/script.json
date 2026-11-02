@@ -3,7 +3,8 @@
     "title": "兩碗粥",
     "durationMinutes": 3,
     "stats": { "trust": 0, "lucidity": 0 },
-    "statRange": { "min": -4, "max": 4 }
+    "statRange": { "min": -4, "max": 4 },
+    "settingsDefaults": { "hiddenHints": false, "memoryReview": "inline" }
   },
   "characters": [
     { "id": "daughter", "name": "小婷", "trait": "總是戴著紅色髮圈", "relation": "女兒" },
@@ -18,6 +19,18 @@
       "music": "calm_home",
       "foreground": null,
       "ui": {},
+      "objects": [
+        {
+          "id": "a1_calendar", "label": "月曆", "x": 0.18, "y": 0.3, "r": 0.045, "image": "calendar",
+          "description": "今天這格被我用紅筆圈起來了。是小婷的生日。",
+          "truth": "月曆停在三個月前，那個紅圈是去年畫的。"
+        },
+        {
+          "id": "a1_photo", "label": "相框", "x": 0.82, "y": 0.34, "r": 0.04, "appearAt": 1, "image": "photo_frame",
+          "description": "阿秀在相框裡笑。她等一下就會從廚房出來。",
+          "truth": "相框旁邊放著一束白色的花，已經有點乾了。"
+        }
+      ],
       "lines": [
         { "speaker": "narrator", "text": "早上。桌上有兩碗粥，還冒著熱氣。", "fx": [] },
         { "speaker": "player", "text": "兩碗。阿秀大概還在後面炒菜。", "fx": [] },
@@ -83,7 +96,8 @@
         {
           "choice": [
             { "text": "我知道妳在這裡。", "effects": { "trust": 1, "lucidity": 1 }, "flags": [], "goto": "a2_s02" },
-            { "text": "我要去學校。", "effects": { "lucidity": -1 }, "flags": ["school_gate"], "goto": "a2_s02" }
+            { "text": "我要去學校。", "effects": { "lucidity": -1 }, "flags": ["school_gate"], "goto": "a2_s02" },
+            { "text": "今天……是妳的生日吧？", "requires": "a1_calendar", "effects": { "trust": 0 }, "flags": ["hidden_birthday"], "goto": "a2_s02" }
           ],
           "mode": "list",
           "fx": []
@@ -100,6 +114,14 @@
       "foreground": null,
       "ui": { "log": "corrupt", "back": "wrong_scene", "skip": "disabled", "auto": "skips_lines" },
       "backTarget": "a1_s01",
+      "objects": [
+        {
+          "id": "a2_sign", "label": "招牌", "x": 0.7, "y": 0.22, "r": 0.05, "image": "pharmacy_sign",
+          "description": "這是回家的公車站。應該是。",
+          "truth": "那是藥局的招牌。我每個月都會去那裡拿藥。",
+          "fx": ["text_blur"]
+        }
+      ],
       "lines": [
         { "speaker": "narrator", "text": "天色暗了。我一個人站在路口。", "fx": [] },
         { "speaker": "player", "text": "小婷呢？我剛剛不是跟誰在一起？", "fx": [] },
@@ -176,6 +198,8 @@
         { "speaker": "narrator", "text": "早上。桌上有兩碗粥。", "fx": [] },
         { "speaker": "daughter", "expression": "smile", "gaze": "camera", "distance": "normal", "text": "爸，早。", "fx": [] },
         { "speaker": "player", "text": "我想不起她的名字。可是我記得那個紅色的髮圈。", "fx": [] },
+        { "speaker": "daughter", "text": "爸，你還記得今天是我生日。", "if": "has(\"hidden_birthday\")" },
+        { "memoryReview": { "speaker": "daughter", "intro": "她把桌上的東西一件一件拿給我看。" } },
         { "speaker": "narrator", "text": "那樣就夠了。我想。", "fx": [] }
       ]
     },
@@ -190,7 +214,9 @@
       "lines": [
         { "speaker": "narrator", "text": "我走了很久。每一條路都長得很像。", "fx": [] },
         { "speaker": "player", "text": "家在哪裡？家是一個地方，還是一個人？", "fx": [] },
-        { "speaker": "narrator", "text": "後來有人牽起我的手。我不知道是誰，但那隻手很暖。", "fx": [] }
+        { "speaker": "narrator", "text": "後來有人牽起我的手。我不知道是誰，但那隻手很暖。", "fx": [] },
+        { "speaker": "narrator", "text": "她手上拿著一個小蛋糕，蠟燭還沒點。", "if": "has(\"hidden_birthday\")" },
+        { "memoryReview": { "speaker": "narrator", "intro": "那天我口袋裡的東西，後來有人幫我收好了。" } }
       ]
     },
     {
@@ -205,6 +231,8 @@
         { "speaker": "narrator", "text": "早上。桌上有兩碗粥。", "fx": [] },
         { "speaker": "player", "text": "兩碗。阿秀大概還在後面炒菜。", "fx": [] },
         { "speaker": "narrator", "text": "對面的女人看著我，眼睛紅紅的。", "fx": ["desaturate"] },
+        { "speaker": "player", "text": "月曆上有一個紅圈。是誰的生日？", "if": "has(\"hidden_birthday\")" },
+        { "memoryReview": { "speaker": "daughter", "intro": "她沒有說話，只是把那些東西擺回原位。" } },
         { "speaker": "narrator", "text": "粥還是熱的。", "fx": [] }
       ]
     }
