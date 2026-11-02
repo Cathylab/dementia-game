@@ -2,6 +2,9 @@ import { ALL_FX, isChoice, isMemoryReview, isText, requiredObjects, type Ending,
 
 export const ENDING_TARGET = '@ending';
 
+/** 圖片檔依序嘗試的副檔名。 */
+export const IMAGE_EXTENSIONS = ['webp', 'png', 'jpg'];
+
 export async function loadScript(url: string): Promise<Script> {
   const res = await fetch(url, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`無法載入腳本 ${url}（HTTP ${res.status}）`);
@@ -73,7 +76,11 @@ export function validateScript(script: Script): string[] {
       if (!obj.label) problems.push(`${where}：缺少 label`);
       if (!obj.description) problems.push(`${where}：缺少 description`);
       if (typeof obj.x !== 'number' || typeof obj.y !== 'number') problems.push(`${where}：缺少 x、y`);
-      if (typeof obj.y === 'number' && obj.y > 0.62) problems.push(`${where}：y ${obj.y} 太低，會被下方台詞區蓋住而點不到（建議 0.62 以下）`);
+      // 座標是背景圖上的位置；背景比畫面寬 1.2 倍，左右各約 8% 平常看不到，最下面是功能列
+      if (typeof obj.x === 'number' && (obj.x < 0.1 || obj.x > 0.9)) {
+        problems.push(`${where}：x ${obj.x} 太靠背景圖左右邊緣，可能在畫面外（建議 0.1～0.9）`);
+      }
+      if (typeof obj.y === 'number' && obj.y > 0.92) problems.push(`${where}：y ${obj.y} 太低，會被下方功能列擋住（建議 0.92 以下）`);
       if ((obj.appearAt ?? 0) >= scene.lines.length) problems.push(`${where}：appearAt ${obj.appearAt} 超過本場景的句數`);
       for (const fx of obj.fx ?? []) {
         if (fx !== 'text_blur' && fx !== 'name_fade') problems.push(`${where}：物件說明只支援 text_blur、name_fade，不支援 "${fx}"`);
@@ -122,6 +129,8 @@ export function validateScript(script: Script): string[] {
         if (!['narrator', 'player'].includes(speaker) && !charIds.has(speaker)) {
           problems.push(`${where}.memoryReview：未知 speaker "${speaker}"`);
         }
+      } else if (line.music !== undefined && line.music !== null && typeof line.music !== 'string') {
+        problems.push(`${where}.music：必須是曲名字串或 null`);
       } else if (!['narrator', 'player'].includes(line.speaker) && !charIds.has(line.speaker)) {
         problems.push(`${where}：未知 speaker "${line.speaker}"`);
       } else if (line.expression != null) {
@@ -264,9 +273,11 @@ export function neededSprites(script: Script): { charId: string; expression: str
 export async function spriteWarnings(script: Script, exists: (path: string) => Promise<boolean>): Promise<string[]> {
   const warnings: string[] = [];
   for (const { charId, expression } of neededSprites(script)) {
-    const path = `assets/char/${charId}_${expression}.png`;
-    if (!(await exists(path))) {
-      warnings.push(expression === 'neutral' ? `找不到 ${path}（會用佔位圖）` : `找不到 ${path}（會改用 ${charId}_neutral.png 或佔位圖）`);
+    const base = `assets/char/${charId}_${expression}`;
+    let found = false;
+    for (const ext of IMAGE_EXTENSIONS) if (!found && (await exists(`${base}.${ext}`))) found = true;
+    if (!found) {
+      warnings.push(expression === 'neutral' ? `找不到 ${base}（.webp／.png／.jpg，會用佔位圖）` : `找不到 ${base}（.webp／.png／.jpg，會改用 ${charId}_neutral 或佔位圖）`);
     }
   }
   return warnings;

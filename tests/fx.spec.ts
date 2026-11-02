@@ -155,3 +155,26 @@ test('開發者面板可以手動觸發每一個效果', async ({ page }) => {
     await expectations[fx]();
   }
 });
+
+test('choice_vanish：從第一個選項開始依序消失', async ({ page }) => {
+  await jumpTo(page, 'ch_vanish');
+  await expect(page.locator('.choices')).toHaveAttribute('data-remaining', '3', { timeout: 5000 });
+  await expect(page.locator('.choice[data-index="0"]')).toHaveCount(0, { timeout: 2000 });
+  await expect(page.locator('.choices')).toHaveAttribute('data-remaining', '2', { timeout: 5000 });
+  await expect(page.locator('.choice[data-index="1"]')).toHaveCount(0, { timeout: 2000 });
+  await expect(page.locator('.choice[data-index="2"]')).toHaveCount(1);
+  await expect(page.locator('.choice[data-index="3"]')).toHaveCount(1);
+});
+
+test('台詞上的 music：播到這句時換曲，null 停止，省略不變', async ({ page }) => {
+  await jumpTo(page, 'music_scene');
+  const stage = page.locator('#stage');
+  await expect(stage).toHaveAttribute('data-music', 'scene_song');
+  await advance(page);
+  await expect(stage).toHaveAttribute('data-music', 'line_song');
+  await advance(page);
+  await expect(page.locator('.dialog .text')).toHaveText('沒寫 music 就不變。');
+  await expect(stage).toHaveAttribute('data-music', 'line_song');
+  await advance(page);
+  await expect(stage).toHaveAttribute('data-music', '');
+});

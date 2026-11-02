@@ -148,6 +148,11 @@
       { "speaker": "amin", "expression": "smile", "text": "表情微笑。" },
       { "speaker": "amin", "text": "沿用上一句。" },
       { "speaker": "amin", "expression": "holding", "text": "表情壓著。" } ] },
+    { "id": "music_scene", "act": 1, "background": "test_room", "music": "scene_song", "lines": [
+      { "speaker": "narrator", "text": "場景的音樂。" },
+      { "speaker": "narrator", "text": "換成那段旋律。", "music": "line_song" },
+      { "speaker": "narrator", "text": "沒寫 music 就不變。" },
+      { "speaker": "narrator", "text": "安靜下來。", "music": null } ] },
     { "id": "act3", "act": 3, "background": "test_room", "lines": [
       { "speaker": "narrator", "text": "第三幕。" } ] },
     { "id": "flat_a", "act": 1, "background": "room_a", "lines": [ { "speaker": "narrator", "text": "A。" } ], "next": "@ending" },
