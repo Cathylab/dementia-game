@@ -281,7 +281,7 @@ export class Engine {
       if (character) {
         const prev = this.poses[character.id] ?? DEFAULT_POSE;
         pose = {
-          expression: line.expression ?? prev.expression,
+          expression: this.expressionFor(character, line) ?? prev.expression,
           gaze: line.gaze ?? prev.gaze,
           distance: line.distance ?? prev.distance,
         };
@@ -295,6 +295,18 @@ export class Engine {
       this.view.showText(line, { repeated: !!forced?.repeated, character, pose });
     }
     this.view.stateChanged();
+  }
+
+  /**
+   * 這句的表情檔名：有 expression 用它；否則有 tone 查角色的 tones；
+   * 都沒有（或 tone 查不到）回傳 undefined，沿用上一句。
+   */
+  private expressionFor(character: Character, line: TextLine): string | undefined {
+    if (line.expression) return line.expression;
+    if (!line.tone) return undefined;
+    const mapped = character.tones?.[line.tone];
+    if (!mapped) console.warn('[engine] 角色沒有這個語氣，沿用上一句的表情', character.id, line.tone);
+    return mapped;
   }
 
   /** 記憶對照的資料：點過、有 truth 的物件，依第一次點的順序，最多 4 件。 */

@@ -124,6 +124,10 @@ export function validateScript(script: Script): string[] {
         }
       } else if (!['narrator', 'player'].includes(line.speaker) && !charIds.has(line.speaker)) {
         problems.push(`${where}：未知 speaker "${line.speaker}"`);
+      } else if (line.tone != null) {
+        const char = (script.characters ?? []).find((c) => c.id === line.speaker);
+        if (!char) problems.push(`${where}：tone 只能用在角色台詞（${line.speaker} 沒有立繪）`);
+        else if (!char.tones?.[line.tone]) problems.push(`${where}：角色 ${char.id} 的 tones 裡沒有語氣 "${line.tone}"`);
       }
     });
   }
@@ -234,5 +238,25 @@ export function sceneReachability(script: Script): Map<string, Set<string>> {
     result.set(scene.id, seen);
   }
   return result;
+}
+
+/** 角色用到的所有表情檔名（expression 與 tones 對應到的），供立繪檢查。 */
+export function toneExpressions(script: Script): { charId: string; tone: string; expression: string }[] {
+  return (script.characters ?? []).flatMap((c) =>
+    Object.entries(c.tones ?? {}).map(([tone, expression]) => ({ charId: c.id, tone, expression })),
+  );
+}
+
+/**
+ * 立繪檢查（警告，不是錯誤）：tones 指到的表情沒有對應的立繪檔。
+ * exists 由呼叫端提供（瀏覽器用載入圖片、Node 用讀檔），回傳該路徑的檔案是否存在。
+ */
+export async function spriteWarnings(script: Script, exists: (path: string) => Promise<boolean>): Promise<string[]> {
+  const warnings: string[] = [];
+  for (const { charId, tone, expression } of toneExpressions(script)) {
+    const path = `assets/char/${charId}_${expression}.png`;
+    if (!(await exists(path))) warnings.push(`角色 ${charId} 的語氣「${tone}」→ ${expression}：找不到 ${path}（會改用 ${charId}_neutral.png 或佔位圖）`);
+  }
+  return warnings;
 }
 

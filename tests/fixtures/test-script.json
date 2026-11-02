@@ -6,7 +6,8 @@
     "statRange": { "min": -2, "max": 2 }
   },
   "characters": [
-    { "id": "amin", "name": "阿明哥", "trait": "戴著藍色帽子", "relation": "鄰居" }
+    { "id": "amin", "name": "阿明哥", "trait": "戴著藍色帽子", "relation": "鄰居",
+      "tones": { "平靜": "neutral", "開心": "smile", "擔心": "worried", "壓著": "holding" } }
   ],
   "scenes": [
     {
@@ -143,6 +144,11 @@
           { "text": "拿出鑰匙", "requires": "o_key", "flags": ["hidden_key"], "goto": "end_x" },
           { "text": "鑰匙和照片", "requires": ["o_key", "o_photo"], "flags": ["hidden_both"], "goto": "end_x" }
         ], "mode": "list" } ] },
+    { "id": "tone_scene", "act": 1, "background": "test_room", "lines": [
+      { "speaker": "amin", "tone": "開心", "text": "語氣開心。" },
+      { "speaker": "amin", "tone": "擔心", "expression": "sad", "text": "expression 優先。" },
+      { "speaker": "amin", "text": "沿用上一句。" },
+      { "speaker": "amin", "tone": "壓著", "text": "語氣壓著。" } ] },
     { "id": "act3", "act": 3, "background": "test_room", "lines": [
       { "speaker": "narrator", "text": "第三幕。" } ] },
     { "id": "flat_a", "act": 1, "background": "room_a", "lines": [ { "speaker": "narrator", "text": "A。" } ], "next": "@ending" },

@@ -27,6 +27,17 @@ export function resolveImage(kind: ImageKind, name: string): Promise<string> {
   return p;
 }
 
+/**
+ * 立繪：先找 {id}_{expression}.png，沒有就找 {id}_neutral.png，再沒有才用佔位圖
+ * （佔位圖上寫的是原本要的表情，方便知道缺哪張）。
+ */
+export async function resolveSprite(charId: string, expression: string): Promise<string> {
+  const url = await resolveImage('char', `${charId}_${expression}`);
+  if (!isPlaceholder(url) || expression === 'neutral') return url;
+  const neutral = await resolveImage('char', `${charId}_neutral`);
+  return isPlaceholder(neutral) ? url : neutral;
+}
+
 /** 是否為程式產生的佔位圖（測試與開發者面板用）。 */
 export function isPlaceholder(url: string): boolean {
   return url.startsWith('data:');

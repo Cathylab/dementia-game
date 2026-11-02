@@ -243,6 +243,19 @@ npx playwright install chromium
 
 沒有點過任何有 `truth` 的物件時，inline 只播 `intro`；page 顯示「你沒有留下任何記憶。」
 
+#### 語氣 `tones` 與 `tone`
+
+角色可以列出「語氣 → 表情檔名」，台詞就能寫中文語氣，不用記檔名：
+
+```json
+{ "id": "daughter", "name": "佳穎", "tones": { "平靜": "neutral", "擔心": "worried", "哽咽": "tearful" } }
+{ "speaker": "daughter", "tone": "擔心", "text": "媽，妳已經問第三次了。" }
+```
+
+- 決定表情的順序：`expression` → `tone`（查 `tones`）→ 沿用該角色上一句。
+- 立繪找不到時，先改用 `{角色id}_neutral.png`，再沒有才用佔位圖。所以每個角色**先畫 neutral**，其他表情可以慢慢補。
+- 腳本檢查：`tone` 不在該角色的 `tones` 裡是錯誤；`tones` 指到的立繪檔還不存在只是警告（開發者面板的「立繪檢查」會列出缺哪幾張）。
+
 #### 預設設定 `meta.settingsDefaults`
 
 ```json
@@ -268,6 +281,8 @@ npx playwright install chromium
   - 有 `requires` 的 choice，沒有 `requires` 的選項少於兩個；隱藏選項沒有 `hidden_` 旗標
   - `memoryReview` 放在非結局場景、同一結局出現兩次、`speaker` 不存在
   - `meta.settingsDefaults` 的值不合法
+  - `tone` 不在該角色的 `tones` 裡，或寫在旁白、獨白上
+  - 另有「立繪檢查」：`tones` 指到的表情還沒有立繪檔（警告，不算錯誤）
 - `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合（包含每個物件點或不點），確認**每一個結局都有路線可以走到**；狀態太多時改用隨機抽樣五千次。
 
 ---
@@ -279,7 +294,7 @@ npx playwright install chromium
 | 種類 | 路徑 | 建議 |
 | --- | --- | --- |
 | 背景 | `public/assets/bg/{background}.png` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時會左右裁切，重要內容請放中間 |
-| 立繪 | `public/assets/char/{角色id}_{expression}.png` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.png`、`daughter_smile.png` |
+| 立繪 | `public/assets/char/{角色id}_{expression}.png` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.png`、`daughter_smile.png`。用 `tone` 的台詞，檔名取自角色 `tones` 對應的表情。缺圖時先改用 `{角色id}_neutral.png` |
 | 前景（手持物件） | `public/assets/fg/{name}.png` | 透明背景，物件貼齊圖片下緣，寬約 900 |
 | 錯置物件 | `public/assets/fg/wrong_object.png` 或 `wrongObject` 指定的名稱 | 透明背景，會被縮到畫面寬度約 14% 疊在背景上 |
 | 換掉的手持物件 | `public/assets/fg/{foreground}_wrong.png` 或 `wrongObject` 指定的名稱 | 同前景 |
