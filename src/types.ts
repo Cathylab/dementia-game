@@ -57,6 +57,8 @@ export interface SpriteFraming {
 export interface SettingsDefaults {
   hiddenHints?: boolean;
   memoryReview?: 'inline' | 'page';
+  /** 配音音量 0–1，預設 0.9（v3）。 */
+  voiceVolume?: number;
 }
 
 export interface Character {
@@ -85,6 +87,8 @@ export interface TextLine {
   if?: string;
   /** 播到這句時換音樂：字串＝換成該曲；null＝停止；省略＝不變（v2）。 */
   music?: string | null;
+  /** 配音編號：public/assets/voice/{voice}.mp3（或 .ogg）（v3）。 */
+  voice?: string;
   /** 引擎內部用：記憶對照產生的台詞，附帶物件圖與當時的說明。腳本裡不要寫。 */
   memory?: { objectId: string; label: string; description: string; image?: string };
 }
@@ -128,6 +132,8 @@ export interface ChoiceLine {
   fx?: FxTag[];
   /** 選項上方可選的提示文字。 */
   prompt?: string;
+  /** prompt 的配音編號（prompt 是角色說的話時才用）（v3）。 */
+  voice?: string;
   /** 條件：不成立時整組選項跳過（v2）。 */
   if?: string;
 }
@@ -161,6 +167,8 @@ export interface SceneObject {
   description: string;
   /** 真相，用於記憶對照。 */
   truth?: string;
+  /** 記憶對照時唸出 truth 的配音編號（v3）。 */
+  truthVoice?: string;
   /** 套在說明上的效果，只支援 text_blur、name_fade。 */
   fx?: FxTag[];
 }

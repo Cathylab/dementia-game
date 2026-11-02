@@ -29,6 +29,12 @@ export interface AudioLike {
   readonly musicName: string | null;
   /** 把電腦裡的音樂檔暫時當成某個曲名來播（開發者面板試聽用）。 */
   useFile(name: string, file: Blob): Promise<boolean>;
+  /** 播一句配音；播完、被停止或缺檔時完成。 */
+  playVoice(id: string): Promise<void>;
+  stopVoice(): void;
+  /** 這句配音有沒有音檔。 */
+  hasVoice(id: string): Promise<boolean>;
+  setVoiceVolume(v: number): void;
 }
 
 /** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
@@ -135,6 +141,8 @@ export class AdvView implements View {
   private autoTimer = 0;
   private skipTimer = 0;
   private monologueTimer = 0;
+  /** 目前這句配音播完（或沒有配音）時完成；自動模式與獨白等它。 */
+  private voiceDone: Promise<void> = Promise.resolve();
   private pendingType: (() => void) | null = null;
   private pendingTimer = 0;
   private monologueStay = 0;
@@ -322,10 +330,25 @@ export class AdvView implements View {
     if (!this.auto) return;
     const token = this.engine.token;
     const len = this.textEl.textContent?.length ?? 0;
-    this.autoTimer = window.setTimeout(() => {
-      if (!this.auto || token !== this.engine.token || this.overlayOpen()) return;
-      this.autoAdvance();
-    }, T(1200 + len * 70));
+    // 有配音時：聲音和文字都結束後，再加原本的停頓
+    void this.voiceDone.then(() => {
+      if (!this.auto || token !== this.engine.token) return;
+      clearTimeout(this.autoTimer);
+      this.autoTimer = window.setTimeout(() => {
+        if (!this.auto || token !== this.engine.token || this.overlayOpen()) return;
+        this.autoAdvance();
+      }, T(1200 + len * 70));
+    });
+  }
+
+  /** 播這句的配音（快轉中不播）。沒有配音就讓上一句的聲音淡出。 */
+  private startVoice(id: string | undefined): void {
+    if (!id || this.skip || !this.audio) {
+      this.audio?.stopVoice();
+      this.voiceDone = Promise.resolve();
+      return;
+    }
+    this.voiceDone = this.audio.playVoice(id);
   }
 
   /** 自動播放時前進一句。ui.auto = "skips_lines" 時偶爾直接跳過一句。 */
@@ -358,6 +381,7 @@ export class AdvView implements View {
 
   startSkip(): void {
     this.skip = true;
+    this.audio?.stopVoice();
     this.buttons.get('skip')?.classList.add('active');
     this.stage.classList.add('skip-on');
     const tick = () => {
@@ -413,6 +437,7 @@ export class AdvView implements View {
     }
     return entries.map((e) => {
       const row = this.logRow(e.name, e.text, e.speaker, !!e.choice);
+      if (e.voice) row.append(this.voiceButton(e.voice));
       if (corrupt && e.name) {
         const name = row.querySelector<HTMLElement>('.log-name')!;
         name.classList.add('fx-name-fade');
@@ -420,6 +445,19 @@ export class AdvView implements View {
       }
       return { node: row };
     });
+  }
+
+  /** 小喇叭：點了重播那一句配音。音檔還沒有的句子不顯示喇叭。 */
+  voiceButton(id: string): HTMLButtonElement {
+    const b = el('button', { class: 'voice-replay', type: 'button', 'aria-label': '重播配音', title: '重播配音', 'data-voice': id });
+    b.hidden = true;
+    void this.audio?.hasVoice(id).then((has) => (b.hidden = !has));
+    b.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      this.audio?.unlock();
+      void this.audio?.playVoice(id);
+    });
+    return b;
   }
 
   protected logRow(name: string, text: string, speaker: string, choice: boolean): HTMLElement {
@@ -452,6 +490,11 @@ export class AdvView implements View {
       setSetting('volume', Number(vol.value));
       this.onVolume(settings.volume);
     };
+    const voice = el('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(settings.voiceVolume), name: 'voiceVolume' });
+    voice.oninput = () => {
+      setSetting('voiceVolume', Number(voice.value));
+      this.audio?.setVoiceVolume(settings.voiceVolume);
+    };
     const hints = el('input', { type: 'checkbox', name: 'hiddenHints', class: 'toggle' });
     hints.checked = settings.hiddenHints;
     hints.onchange = () => {
@@ -475,7 +518,8 @@ export class AdvView implements View {
       close,
       el('div', { class: 'settings-body' }, [
         el('label', { class: 'setting' }, [el('span', {}, ['文字速度']), speed, speedOut]),
-        el('label', { class: 'setting' }, [el('span', {}, ['音量']), vol]),
+        el('label', { class: 'setting' }, [el('span', {}, ['音樂音量']), vol]),
+        el('label', { class: 'setting' }, [el('span', {}, ['配音音量']), voice]),
         el('label', { class: 'setting setting-toggle' }, [el('span', {}, ['隱藏選項提示']), hints]),
         el('div', { class: 'setting setting-choice', role: 'radiogroup', 'aria-label': '記憶對照' }, [
           el('span', {}, ['記憶對照']),
@@ -556,6 +600,7 @@ export class AdvView implements View {
   showTitle(): void {
     this.stopAuto();
     this.stopSkip();
+    this.audio?.stopVoice();
     this.closeOverlays();
     this.typer.stop();
     clearTimeout(this.monologueTimer);
@@ -594,6 +639,7 @@ export class AdvView implements View {
 
   async enterScene(scene: Scene, _opts: { restoring: boolean }): Promise<void> {
     this.typer.stop();
+    this.audio?.stopVoice();
     this.fx.clearScene();
     const bgUrl = scene.background ? await resolveImage('bg', scene.background) : '';
     const fgUrl = scene.foreground ? await resolveImage('fg', scene.foreground) : '';
@@ -740,6 +786,7 @@ export class AdvView implements View {
     if (line.music !== undefined) this.audio?.playMusic(line.music);
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
     this.showMemoryCard(line);
+    if (!line.memory) this.startVoice(line.voice);
     if (line.speaker === 'player' && !line.memory) {
       this.showMonologue(line, ctx.repeated);
       return;
@@ -753,6 +800,7 @@ export class AdvView implements View {
     this.dialog.dataset.speaker = line.speaker;
     const type = () => {
       this.pendingType = null;
+      if (line.memory) this.startVoice(line.voice);
       const spans = this.typer.start(line.text, {
         cps: settings.textSpeed,
         degradation: this.engine.degradation,
@@ -814,7 +862,9 @@ export class AdvView implements View {
     this.monologue.classList.remove('fading');
     const token = this.engine.token;
     const stay = this.monologueStay;
-    this.monologueTimer = window.setTimeout(() => {
+    this.monologueTimer = window.setTimeout(async () => {
+      if (token !== this.engine.token) return;
+      await this.voiceDone;
       if (token !== this.engine.token) return;
       this.monologue.classList.add('fading');
       this.monologueTimer = window.setTimeout(() => {
@@ -927,6 +977,8 @@ export class AdvView implements View {
     this.objectsBg.replaceChildren();
     this.stage.dataset.phase = 'choice';
     this.stopSkip();
+    // prompt 有配音就播；沒有的話，前一句的聲音讓它播完
+    if (line.voice) this.startVoice(line.voice);
     this.fx.clearLine();
     this.monologue.classList.remove('show');
     if (line.mode === 'hotspot') {
@@ -1050,7 +1102,7 @@ export class AdvView implements View {
                   el('span', { class: 'memory-label' }, [o.label]),
                   el('span', { class: 'memory-desc' }, [o.description]),
                 ]),
-                el('td', { class: 'memory-truth' }, [o.truth ?? '']),
+                el('td', { class: 'memory-truth' }, [o.truth ?? '', ...(o.truthVoice ? [this.voiceButton(o.truthVoice)] : [])]),
               ]),
             ),
           ),

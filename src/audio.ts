@@ -4,6 +4,9 @@ import { clamp, rand, seeded } from './util';
 import type { AudioLike } from './view';
 
 const MUSIC_BASE = `${import.meta.env.BASE_URL}assets/music`;
+const VOICE_BASE = `${import.meta.env.BASE_URL}assets/voice`;
+/** 配音依序找的副檔名。 */
+export const VOICE_EXTENSIONS = ['mp3', 'ogg'];
 const EXTENSIONS = ['ogg', 'mp3'];
 
 type Mode = 'file' | 'synth';
@@ -283,6 +286,14 @@ export class AudioEngine implements AudioLike {
   private master!: GainNode;
   private current: Track | null = null;
   private currentName: string | null = null;
+  private voiceBus!: BiquadFilterNode;
+  private voiceMuffleGain!: GainNode;
+  private voiceMaster!: GainNode;
+  private voice: { src: AudioBufferSourceNode; gain: GainNode; done: () => void } | null = null;
+  private voiceSeq = 0;
+  private voiceVolume = 0.9;
+  private manifest: Promise<Set<string> | null> | null = null;
+  private readonly voiceBuffers = new Map<string, Promise<AudioBuffer | null>>();
   private requestSeq = 0;
   private degradation = 0;
   private muffled = false;
@@ -308,6 +319,15 @@ export class AudioEngine implements AudioLike {
       this.master = ctx.createGain();
       this.master.gain.value = this.volume;
       this.bus.connect(this.muffleGain).connect(this.master).connect(ctx.destination);
+      // 配音另走一條：不受音樂音量與退化影響，只跟著 muffle 一起悶
+      this.voiceBus = ctx.createBiquadFilter();
+      this.voiceBus.type = 'lowpass';
+      this.voiceBus.frequency.value = this.muffled ? 650 : 20000;
+      this.voiceMuffleGain = ctx.createGain();
+      this.voiceMuffleGain.gain.value = this.muffled ? 0.4 : 1;
+      this.voiceMaster = ctx.createGain();
+      this.voiceMaster.gain.value = this.voiceVolume;
+      this.voiceBus.connect(this.voiceMuffleGain).connect(this.voiceMaster).connect(ctx.destination);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
@@ -326,6 +346,130 @@ export class AudioEngine implements AudioLike {
     const t = this.ctx.currentTime;
     this.bus.frequency.setTargetAtTime(on ? 650 : 20000, t, on ? 0.25 : 0.6);
     this.muffleGain.gain.setTargetAtTime(on ? 0.4 : 1, t, 0.3);
+    this.voiceBus.frequency.setTargetAtTime(on ? 650 : 20000, t, on ? 0.25 : 0.6);
+    this.voiceMuffleGain.gain.setTargetAtTime(on ? 0.4 : 1, t, 0.3);
+  }
+
+  // ───────── 配音（v3） ─────────
+
+  setVoiceVolume(v: number): void {
+    this.voiceVolume = v;
+    if (this.ctx) this.voiceMaster.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    if (v === 0) this.stopVoice();
+  }
+
+  /**
+   * 播一句配音。回傳的 Promise 在播完、被停止、找不到檔案或配音音量為 0 時完成（不會失敗）。
+   * 新的一句會先把正在播的那句在 0.1 秒內淡出。
+   */
+  playVoice(id: string): Promise<void> {
+    this.stopVoice();
+    const seq = ++this.voiceSeq;
+    if (!this.ctx || this.voiceVolume === 0) return Promise.resolve();
+    const ctx = this.ctx;
+    this.statusEl.dataset.voice = id;
+    this.statusEl.dataset.voiceState = 'loading';
+    return this.loadVoice(id).then(
+      (buffer) =>
+        new Promise<void>((resolve) => {
+          if (seq !== this.voiceSeq || !buffer) {
+            if (seq === this.voiceSeq) this.statusEl.dataset.voiceState = 'missing';
+            resolve();
+            return;
+          }
+          const src = ctx.createBufferSource();
+          src.buffer = buffer;
+          const gain = ctx.createGain();
+          src.connect(gain).connect(this.voiceBus);
+          const done = () => {
+            if (this.voice?.src === src) {
+              this.voice = null;
+              this.statusEl.dataset.voiceState = 'ended';
+            }
+            resolve();
+          };
+          src.onended = done;
+          this.voice = { src, gain, done };
+          this.statusEl.dataset.voiceState = 'playing';
+          src.start();
+        }),
+    );
+  }
+
+  /** 停止正在播的配音（0.1 秒淡出，不硬切）。 */
+  stopVoice(): void {
+    this.voiceSeq++;
+    const v = this.voice;
+    if (!v || !this.ctx) return;
+    this.voice = null;
+    const t = this.ctx.currentTime;
+    v.gain.gain.setValueAtTime(v.gain.gain.value, t);
+    v.gain.gain.linearRampToValueAtTime(0, t + 0.1);
+    try {
+      v.src.stop(t + 0.11);
+    } catch {
+      /* 已停止 */
+    }
+    this.statusEl.dataset.voiceState = 'stopped';
+    v.done();
+  }
+
+  get voicePlaying(): boolean {
+    return !!this.voice;
+  }
+
+  /** 這句配音有沒有音檔（依 manifest 判斷，不會產生 404）。 */
+  async hasVoice(id: string): Promise<boolean> {
+    return (await this.voiceFile(id)) !== null;
+  }
+
+  /**
+   * 找音檔：建置時會產生 assets/voice/manifest.json（列出實際存在的檔案），
+   * 有它就只請求存在的檔案，缺檔時完全不發請求，主控台不會出現 404。
+   * 沒有 manifest 時才逐一嘗試 .mp3、.ogg。
+   */
+  private async voiceFile(id: string): Promise<string | null> {
+    const manifest = await this.voiceManifest();
+    if (manifest) {
+      const ext = VOICE_EXTENSIONS.find((e) => manifest.has(`${id}.${e}`));
+      return ext ? `${VOICE_BASE}/${id}.${ext}` : null;
+    }
+    for (const ext of VOICE_EXTENSIONS) {
+      const url = `${VOICE_BASE}/${id}.${ext}`;
+      try {
+        const res = await fetch(url, { method: 'HEAD' });
+        if (res.ok && !(res.headers.get('content-type') ?? '').includes('text/html')) return url;
+      } catch {
+        /* 試下一個 */
+      }
+    }
+    return null;
+  }
+
+  private voiceManifest(): Promise<Set<string> | null> {
+    this.manifest ??= fetch(`${VOICE_BASE}/manifest.json`, { cache: 'no-cache' })
+      .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('json') ? r.json() : null))
+      .then((list: unknown) => (Array.isArray(list) ? new Set(list.map(String)) : null))
+      .catch(() => null);
+    return this.manifest;
+  }
+
+  private loadVoice(id: string): Promise<AudioBuffer | null> {
+    let p = this.voiceBuffers.get(id);
+    if (!p) {
+      p = this.voiceFile(id).then(async (url) => {
+        if (!url || !this.ctx) return null;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          return await this.ctx.decodeAudioData(await res.arrayBuffer());
+        } catch {
+          return null;
+        }
+      });
+      this.voiceBuffers.set(id, p);
+    }
+    return p;
   }
 
   setDegradation(d: number): void {

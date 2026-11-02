@@ -10,6 +10,8 @@ import {
   type SpriteFraming,
 } from './types';
 
+import { voiceEntries, voiceIdLooksRight } from './voice';
+
 export const ENDING_TARGET = '@ending';
 
 /** 圖片檔依序嘗試的副檔名。 */
@@ -45,6 +47,10 @@ export function validateScript(script: Script): string[] {
     }
     if (defaults.memoryReview !== undefined && !['inline', 'page'].includes(defaults.memoryReview)) {
       problems.push('meta.settingsDefaults.memoryReview 必須是 "inline" 或 "page"');
+    }
+    const vv = defaults.voiceVolume;
+    if (vv !== undefined && !(typeof vv === 'number' && vv >= 0 && vv <= 1)) {
+      problems.push('meta.settingsDefaults.voiceVolume 必須是 0 到 1 的數字');
     }
   }
   // 呈現設定
@@ -110,6 +116,7 @@ export function validateScript(script: Script): string[] {
       for (const fx of obj.fx ?? []) {
         if (fx !== 'text_blur' && fx !== 'name_fade') problems.push(`${where}：物件說明只支援 text_blur、name_fade，不支援 "${fx}"`);
       }
+      if (obj.truthVoice && !obj.truth) problems.push(`${where}：有 truthVoice 但沒有 truth`);
     });
     if (scene.ui?.back === 'wrong_scene') checkTarget(`${scene.id}.backTarget`, scene.backTarget);
     scene.lines.forEach((line, i) => {
@@ -119,6 +126,7 @@ export function validateScript(script: Script): string[] {
       }
       checkCond(`${where}.if`, line.if);
       if (isChoice(line)) {
+        if (line.voice && !line.prompt) problems.push(`${where}：choice 有 voice 但沒有 prompt`);
         if (line.choice.length && line.choice.every((o) => o.if != null)) {
           problems.push(`${where}：所有選項都有 if，可能全部不出現`);
         }
@@ -165,6 +173,18 @@ export function validateScript(script: Script): string[] {
         }
       }
     });
+  }
+  // 配音（v3）：編號不可重複；格式不對只是警告。缺音檔不是錯誤，這裡不讀檔。
+  const speakers = new Set(['narrator', 'player', ...charIds]);
+  const voiceAt = new Map<string, string>();
+  for (const v of voiceEntries(script)) {
+    const first = voiceAt.get(v.id);
+    if (first) problems.push(`${v.where}：配音編號 "${v.id}" 重複（${first} 也用了）`);
+    else voiceAt.set(v.id, v.where);
+    if (!voiceIdLooksRight(v, speakers)) {
+      const expect = v.kind === 'truth' ? `mr_${v.objectId}_{speaker}` : `${v.scene}_{兩位序號}_${v.kind === 'line' ? v.speaker : '{speaker}'}`;
+      problems.push(`（警告）${v.where}：配音編號 "${v.id}" 不符合 ${expect} 的格式`);
+    }
   }
   for (const e of script.endings ?? []) {
     if (!sceneIds.has(e.scene)) problems.push(`結局 ${e.id}：找不到場景 "${e.scene}"`);

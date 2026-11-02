@@ -33,6 +33,8 @@ export interface LogEntry {
   choice?: boolean;
   /** 點物件留下的紀錄，例如「（看了手機）」。 */
   object?: boolean;
+  /** 這句的配音編號（紀錄裡顯示重播喇叭）。 */
+  voice?: string;
 }
 
 /** 每句台詞顯示前存一份，用於「回上一句」。 */
@@ -291,7 +293,7 @@ export class Engine {
       if (!forced && line.fx?.includes('repeat_line')) {
         this.repeats.push({ line, remaining: Math.random() < 0.5 ? 1 : 2 });
       }
-      this.log.push({ speaker: line.speaker, name: this.speakerName(line.speaker), text: line.text });
+      this.log.push({ speaker: line.speaker, name: this.speakerName(line.speaker), text: line.text, voice: line.voice });
       this.view.showText(line, { repeated: !!forced?.repeated, character, pose });
     }
     this.view.stateChanged();
@@ -315,6 +317,7 @@ export class Engine {
       lines.push({
         speaker,
         text: obj.truth!,
+        voice: obj.truthVoice,
         memory: { objectId: obj.id, label: obj.label, description: obj.description, image: obj.image },
       });
     }

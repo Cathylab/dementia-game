@@ -29,6 +29,7 @@
     "vite-plugin-script-save.ts",
     "src/types.ts",
     "src/script.ts",
-    "src/editable.ts"
+    "src/editable.ts",
+    "vite-plugin-voice-manifest.ts"
   ]
 }

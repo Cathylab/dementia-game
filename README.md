@@ -279,6 +279,16 @@ npx playwright install chromium
 
 字串＝換成該曲、`null`＝停止、省略＝不變。
 
+### v3：配音
+
+完整規格見 [`docs/script-format-v3-voice.md`](docs/script-format-v3-voice.md)。
+
+- 台詞的 `voice`、choice 的 `voice`（唸 `prompt`）、物件的 `truthVoice`（記憶對照時唸 `truth`）對應 `public/assets/voice/{編號}.mp3`，找不到再找 `.ogg`。
+- **缺檔不是錯誤**：安靜播過，主控台也不會有錯誤。音檔可以分批補。
+- 聲音不退化，只有 `muffle` 會讓它變悶。設定畫面有獨立的「配音音量」（`settingsDefaults.voiceVolume`，預設 0.9；0 等於關閉）。
+- 自動模式會等聲音播完；快轉不播；回上一句會重播；對話紀錄裡有音檔的句子可以點喇叭重播。
+- **配音總表**：網址加 `?voice=1`（或開發者面板的「配音總表」）。列出所有配音句與音檔有無、依角色統計、篩選、試聽、整場試聽，並可匯出缺檔清單 `voice-lines.json` 給語音生成工具。
+
 ### 檢查腳本
 
 - 開發者面板最下方的「腳本檢查」會列出找不到的場景、未知的 speaker 或效果、條件語法錯誤等問題（也會印在瀏覽器主控台）。v2 另外檢查：
@@ -293,6 +303,7 @@ npx playwright install chromium
   - `meta.settingsDefaults` 的值不合法
   - 台詞的 `expression` 不在該角色的 `expressions` 清單裡
   - 另有「立繪檢查」：需要的立繪檔還不存在（警告，不算錯誤）
+  - 配音編號重複、choice 有 `voice` 卻沒有 `prompt`、`truthVoice` 掛在沒有 `truth` 的物件上；編號格式不對（警告）
 - `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合（包含每個物件點或不點），確認**每一個結局都有路線可以走到**；狀態太多時改用隨機抽樣五千次。
 
 ---
@@ -325,7 +336,7 @@ npx playwright install chromium
 
 ## 操作
 
-設定畫面有：文字速度、音量、隱藏選項提示、記憶對照（融入結局／結局後獨立一頁）。
+設定畫面有：文字速度、音樂音量、配音音量、隱藏選項提示、記憶對照（融入結局／結局後獨立一頁）。
 
 | 動作 | 電腦 | 手機 |
 | --- | --- | --- |
@@ -395,6 +406,7 @@ npx playwright install chromium
 docs/
   script-format-v1.md  v1 腳本格式（與本 README「如何換腳本」相同）
   script-format-v2.md  v2 腳本格式（給劇本 AI 與引擎 AI）
+  script-format-v3-voice.md  v3 配音
 public/
   script.json          故事腳本（換這個）
   assets/bg|char|fg|music/   素材（放真實檔案後取代佔位）
@@ -409,8 +421,11 @@ src/
   assets.ts            圖片載入與佔位圖
   devpanel.ts          開發者面板
   editor.ts            文字編輯器
+  voice.ts             列出所有配音句、檢查編號格式
+  voicedesk.ts         開發者頁面「配音總表」（?voice=1）
   editable.ts          可編輯欄位、結構比對、JSON 排版（瀏覽器與開發伺服器共用）
 vite-plugin-script-save.ts   開發模式下把編輯結果寫回 script.json
+vite-plugin-voice-manifest.ts   產生 assets/voice/manifest.json（實際存在的配音檔清單）
   style.css            全部樣式
 tests/
   script.spec.ts       腳本檢查與結局可達性

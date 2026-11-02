@@ -164,6 +164,7 @@ export class DevPanel {
       this.section(
         '文字編輯',
         el('div', { class: 'dev-row' }, [
+          this.button('配音總表', () => window.open('?voice=1', '_blank'), { 'data-dev': 'voice-desk' }),
           this.button('打開文字編輯', () => {
             this.toggle(false);
             this.openEditor?.();

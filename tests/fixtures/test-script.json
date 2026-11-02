@@ -14,8 +14,8 @@
       "id": "t_start", "act": 1, "title": "開始", "background": "test_room", "music": "test_music", "foreground": null,
       "lines": [
         { "speaker": "narrator", "text": "旁白第一句。" },
-        { "speaker": "amin", "expression": "neutral", "text": "角色第一句。" },
-        { "speaker": "player", "text": "獨白第一句。" },
+        { "speaker": "amin", "expression": "neutral", "text": "角色第一句。", "voice": "t_start_01_amin" },
+        { "speaker": "player", "text": "獨白第一句。", "voice": "t_start_02_player" },
         { "speaker": "narrator", "text": "旁白第二句。" }
       ],
       "next": "t_end_choice"
@@ -114,7 +114,7 @@
     { "id": "obj_scene", "act": 1, "background": "test_room",
       "objects": [
         { "id": "o_phone", "label": "手機", "x": 0.75, "y": 0.3, "r": 0.04, "image": "phone_on_table",
-          "description": "女兒傳來新做的指甲。", "truth": "照片下面還有一句：媽，十點喔。" },
+          "description": "女兒傳來新做的指甲。", "truth": "照片下面還有一句：媽，十點喔。", "truthVoice": "mr_o_phone_amin" },
         { "id": "o_glasses", "label": "眼鏡", "x": 0.88, "y": 0.45, "r": 0.04,
           "description": "誰的眼鏡放在這裡。", "fx": ["name_fade"] },
         { "id": "o_cup", "label": "杯子", "x": 0.62, "y": 0.5, "r": 0.04, "appearAt": 2,
@@ -138,7 +138,7 @@
       ],
       "lines": [
         { "speaker": "narrator", "text": "隱藏選項之前。" },
-        { "prompt": "要怎麼辦？", "choice": [
+        { "prompt": "要怎麼辦？", "voice": "req_scene_01_amin", "choice": [
           { "text": "普通 A", "goto": "flat_a" },
           { "text": "普通 B", "goto": "flat_b" },
           { "text": "拿出鑰匙", "requires": "o_key", "flags": ["hidden_key"], "goto": "end_x" },
