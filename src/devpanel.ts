@@ -1,6 +1,6 @@
 // 開發者面板：按 ` 鍵（或 F8）開關，網址加 ?dev=1 則一開始就打開。
 import type { Engine } from './engine';
-import { pickEnding, spriteWarnings, toneExpressions, validateScript } from './script';
+import { neededSprites, pickEnding, spriteWarnings, validateScript } from './script';
 import { ALL_FX, isText, type ChoiceLine, type Distance, type FxTag, type Gaze } from './types';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
@@ -167,7 +167,7 @@ export class DevPanel {
     });
   }
 
-  /** tones 指到的表情有沒有對應的立繪檔（只是警告，缺圖會改用 neutral 或佔位圖）。 */
+  /** 需要的表情有沒有對應的立繪檔（只是警告，缺圖會改用 neutral 或佔位圖）。 */
   private async checkSprites(): Promise<void> {
     const exists = (path: string) =>
       new Promise<boolean>((resolve) => {
@@ -177,13 +177,14 @@ export class DevPanel {
         img.src = `${import.meta.env.BASE_URL}${path}`;
       });
     const warnings = await spriteWarnings(this.engine.script, exists);
-    const total = toneExpressions(this.engine.script).length;
+    const total = neededSprites(this.engine.script).length;
     this.spriteList.replaceChildren(
-      total === 0
-        ? el('p', { class: 'dev-ok' }, ['腳本沒有使用 tones'])
-        : warnings.length
-          ? el('ul', { class: 'dev-warnings' }, warnings.map((w) => el('li', {}, [w])))
-          : el('p', { class: 'dev-ok' }, [`tones 用到的 ${total} 張立繪都有檔案`]),
+      warnings.length
+        ? el('div', {}, [
+            el('p', {}, [`需要 ${total} 張立繪，缺 ${warnings.length} 張：`]),
+            el('ul', { class: 'dev-warnings' }, warnings.map((w) => el('li', {}, [w]))),
+          ])
+        : el('p', { class: 'dev-ok' }, [`需要的 ${total} 張立繪都有檔案`]),
     );
   }
 

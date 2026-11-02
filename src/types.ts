@@ -49,8 +49,8 @@ export interface Character {
   name: string;
   trait?: string;
   relation?: string;
-  /** 語氣 → 表情檔名，例如 { "擔心": "worried" }。台詞寫 tone 時用來查立繪。 */
-  tones?: Record<string, string>;
+  /** 這個角色有哪些表情（立繪檔名 {id}_{表情}.png）。列了之後，台詞的 expression 必須在清單裡。 */
+  expressions?: string[];
 }
 
 export interface TextLine {
@@ -59,8 +59,6 @@ export interface TextLine {
   expression?: string;
   gaze?: Gaze;
   distance?: Distance;
-  /** 語氣：查 characters[speaker].tones 換成表情檔名。同時有 expression 時以 expression 為準。 */
-  tone?: string;
   fx?: FxTag[];
   /** wrong_object 用：要疊上（或替換成）的物件檔名。省略時見 README。 */
   wrongObject?: string;

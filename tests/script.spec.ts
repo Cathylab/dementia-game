@@ -23,7 +23,7 @@ test.describe('腳本檢查（任何腳本都適用）', () => {
   });
 });
 
-test('立繪檢查：tones 指到的表情缺圖時只提醒、不算失敗', async () => {
+test('立繪檢查：缺圖時只提醒、不算失敗', async () => {
   const exists = (p: string) => access(new URL(`../public/${p}`, import.meta.url)).then(() => true, () => false);
   const warnings = await spriteWarnings(demo, exists);
   for (const w of warnings) test.info().annotations.push({ type: 'warning', description: w });
