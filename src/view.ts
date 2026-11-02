@@ -1,4 +1,4 @@
-import { resolveImage } from './assets';
+import { resolveImage, resolveSprite } from './assets';
 import { Effects, fadeText, glitchSpans } from './fx';
 import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
@@ -650,7 +650,7 @@ export class AdvView implements View {
 
   /** 立繪：依 gaze 翻轉或偏移、依 distance 縮放與上下位置（實際數值見 style.css）。 */
   async showSprite(character: Character, pose: CharPose): Promise<void> {
-    const url = await resolveImage('char', `${character.id}_${pose.expression}`);
+    const url = await resolveSprite(character.id, pose.expression);
     this.sprite.src = url;
     this.sprite.hidden = false;
     this.sprite.dataset.char = character.id;

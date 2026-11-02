@@ -1,4 +1,4 @@
-import { ALL_FX, isChoice, isMemoryReview, requiredObjects, type Ending, type Script } from './types';
+import { ALL_FX, isChoice, isMemoryReview, isText, requiredObjects, type Ending, type Script } from './types';
 
 export const ENDING_TARGET = '@ending';
 
@@ -124,6 +124,11 @@ export function validateScript(script: Script): string[] {
         }
       } else if (!['narrator', 'player'].includes(line.speaker) && !charIds.has(line.speaker)) {
         problems.push(`${where}：未知 speaker "${line.speaker}"`);
+      } else if (line.expression != null) {
+        const list = (script.characters ?? []).find((c) => c.id === line.speaker)?.expressions;
+        if (list && !list.includes(line.expression)) {
+          problems.push(`${where}：表情 "${line.expression}" 不在角色 ${line.speaker} 的 expressions 清單裡`);
+        }
       }
     });
   }
@@ -236,3 +241,33 @@ export function sceneReachability(script: Script): Map<string, Set<string>> {
   return result;
 }
 
+/**
+ * 每個角色需要的立繪：有 expressions 清單就用清單，沒有就收集台詞裡實際用到的 expression
+ * （角色第一句沒寫表情時用 neutral，所以 neutral 一律算進去）。
+ */
+export function neededSprites(script: Script): { charId: string; expression: string }[] {
+  const out: { charId: string; expression: string }[] = [];
+  for (const c of script.characters ?? []) {
+    const used = new Set<string>(c.expressions ?? ['neutral']);
+    if (!c.expressions) {
+      for (const s of script.scenes) for (const l of s.lines) if (isText(l) && l.speaker === c.id && l.expression) used.add(l.expression);
+    }
+    for (const expression of used) out.push({ charId: c.id, expression });
+  }
+  return out;
+}
+
+/**
+ * 立繪檢查（警告，不是錯誤）：需要的表情還沒有立繪檔。
+ * exists 由呼叫端提供（瀏覽器用載入圖片、Node 用讀檔），回傳該路徑的檔案是否存在。
+ */
+export async function spriteWarnings(script: Script, exists: (path: string) => Promise<boolean>): Promise<string[]> {
+  const warnings: string[] = [];
+  for (const { charId, expression } of neededSprites(script)) {
+    const path = `assets/char/${charId}_${expression}.png`;
+    if (!(await exists(path))) {
+      warnings.push(expression === 'neutral' ? `找不到 ${path}（會用佔位圖）` : `找不到 ${path}（會改用 ${charId}_neutral.png 或佔位圖）`);
+    }
+  }
+  return warnings;
+}

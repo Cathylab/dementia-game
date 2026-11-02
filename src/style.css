@@ -1639,3 +1639,9 @@ button {
   outline: none;
   border-color: #8fd3ff;
 }
+
+.dev-warnings {
+  margin: 0;
+  padding-left: 1.2em;
+  color: #ffd98a;
+}

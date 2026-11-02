@@ -49,6 +49,8 @@ export interface Character {
   name: string;
   trait?: string;
   relation?: string;
+  /** 這個角色有哪些表情（立繪檔名 {id}_{表情}.png）。列了之後，台詞的 expression 必須在清單裡。 */
+  expressions?: string[];
 }
 
 export interface TextLine {

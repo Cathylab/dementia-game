@@ -21,6 +21,7 @@
 | 4 | 結局的專屬內容 | 不需要新欄位，用 `if` |
 | 5 | 記憶對照 | 物件的 `truth`、台詞類型 `memoryReview` |
 | 6 | 預設設定 | `meta.settingsDefaults` |
+| 7 | 角色的表情清單 | 角色的 `expressions` |
 
 ---
 
@@ -212,6 +213,27 @@
 
 ---
 
+## 7. 表情清單：`expressions`
+
+立繪表情仍然只用 v1 的 `expression` 指定（**沒有另外的語氣欄位**）。v2 讓每個角色可以列出自己有哪些表情，用來檢查拼錯，也當作畫立繪的清單。
+
+```json
+// characters[] 可以多一個 expressions
+{ "id": "daughter", "name": "佳穎", "trait": "指甲塗淡粉紅", "relation": "女兒",
+  "expressions": ["neutral", "smile", "worried", "holding", "tearful"] }
+
+// 台詞照舊寫 expression
+{ "speaker": "daughter", "expression": "worried", "gaze": "camera", "distance": "near", "text": "媽，妳已經問第三次了。" }
+```
+
+### 規則
+
+1. 有 `expression` → 用它；省略則沿用該角色上一句（v1 行為不變）。
+2. 角色列了 `expressions` 時，台詞的 `expression` 必須在清單裡，否則是腳本錯誤；沒列清單的角色不檢查。
+3. 立繪檔 `{id}_{expression}.png` 不存在 → 改用 `{id}_neutral.png` → 再沒有才用佔位圖。所以每個角色**先畫 `neutral`**。
+
+---
+
 ## 腳本檢查要新增的項目（給引擎 AI）
 
 `validateScript` 要能抓出以下問題：
@@ -224,6 +246,8 @@
 6. 物件 id 重複。
 7. `memoryReview` 出現在非結局場景，或同一結局出現兩次。
 8. 一組 choice 的所有選項都有 `if`（有可能全部不出現）。
+9. 台詞的 `expression` 不在該角色的 `expressions` 清單裡（角色有列清單時）。
+10. 需要的立繪檔不存在（**警告，不是錯誤**）。
 
 結局可達性測試也要更新：窮舉時，把「每個物件點或不點」也算進組合裡；組合太多時改成隨機抽樣數千次。
 
@@ -311,6 +335,17 @@
 - 值不合法時（例如 `memoryReview: "popup"`）忽略，改用內建預設，腳本檢查會列出錯誤。
 - 選項顯示中切換「隱藏選項提示」，灰掉的選項文字立即更新。
 - 「記憶對照」的切換從下一次播到記憶對照（或結局畫面）時生效。
+
+### 7. `expressions`
+
+- 曾經考慮過另外加一個「語氣 `tone` → 表情」的對照欄位，但它和 `expression` 功能重複，最後決定不做：表情只用 `expression` 指定，用 `expressions` 清單來抓拼錯。
+- `expressions` 只是檢查用的清單，不影響播放；沒列也能正常播放。
+- **立繪檢查（第 10 條）**需要讀檔，所以和其他規則分開，只是警告：
+  - 「需要的立繪」：角色有列 `expressions` 就是清單裡的每一張；沒列就是台詞裡實際用到的表情。兩種情況都一律包含 `neutral`（角色第一句沒寫表情時用它，也是缺圖時的備用）。
+  - 開發者面板最下方「立繪檢查（警告）」列出還缺哪幾張。
+  - `npm test` 會把缺圖列成警告訊息，但不會讓測試失敗。
+- 改用 `{id}_neutral.png` 時，開發者面板的「表情」仍顯示原本要的表情；若連 neutral 都沒有，佔位圖上寫的是原本要的表情檔名，方便知道缺哪張。
+- `expressions` 是結構欄位，文字編輯模式不能改。
 
 ### 文字編輯模式
 

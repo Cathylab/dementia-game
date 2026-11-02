@@ -1,6 +1,6 @@
 // 開發者面板：按 ` 鍵（或 F8）開關，網址加 ?dev=1 則一開始就打開。
 import type { Engine } from './engine';
-import { pickEnding, validateScript } from './script';
+import { neededSprites, pickEnding, spriteWarnings, validateScript } from './script';
 import { ALL_FX, isText, type ChoiceLine, type Distance, type FxTag, type Gaze } from './types';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
@@ -19,6 +19,7 @@ export class DevPanel {
   private readonly gazeSelect = el('select', { name: 'dev-gaze' });
   private readonly distSelect = el('select', { name: 'dev-distance' });
   private lastScene = '';
+  private readonly spriteList = el('div', { class: 'dev-sprites' }, ['檢查中…']);
 
   constructor(
     private readonly engine: Engine,
@@ -152,7 +153,9 @@ export class DevPanel {
         ]),
       ),
       this.section('腳本檢查', problemList),
+      this.section('立繪檢查（警告）', this.spriteList),
     );
+    void this.checkSprites();
     this.root.addEventListener('click', (ev) => ev.stopPropagation());
     // 面板內的按鍵不要傳到遊戲（例如空白鍵推進台詞），但開關鍵照樣有效
     this.root.addEventListener('keydown', (ev) => {
@@ -162,6 +165,27 @@ export class DevPanel {
         this.toggle(false);
       }
     });
+  }
+
+  /** 需要的表情有沒有對應的立繪檔（只是警告，缺圖會改用 neutral 或佔位圖）。 */
+  private async checkSprites(): Promise<void> {
+    const exists = (path: string) =>
+      new Promise<boolean>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = `${import.meta.env.BASE_URL}${path}`;
+      });
+    const warnings = await spriteWarnings(this.engine.script, exists);
+    const total = neededSprites(this.engine.script).length;
+    this.spriteList.replaceChildren(
+      warnings.length
+        ? el('div', {}, [
+            el('p', {}, [`需要 ${total} 張立繪，缺 ${warnings.length} 張：`]),
+            el('ul', { class: 'dev-warnings' }, warnings.map((w) => el('li', {}, [w]))),
+          ])
+        : el('p', { class: 'dev-ok' }, [`需要的 ${total} 張立繪都有檔案`]),
+    );
   }
 
   /** 手動觸發效果：作用在目前這一句；選項類效果若畫面上沒有選項，會叫出一組測試選項。 */

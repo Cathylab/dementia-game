@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
+import { access } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
-import { validateScript } from '../src/script';
+import { spriteWarnings, validateScript } from '../src/script';
 import type { Script } from '../src/types';
 import { reachableEndings } from './simulate';
 
@@ -21,3 +22,11 @@ test.describe('腳本檢查（任何腳本都適用）', () => {
     expect(validateScript(fixture)).toEqual([]);
   });
 });
+
+test('立繪檢查：缺圖時只提醒、不算失敗', async () => {
+  const exists = (p: string) => access(new URL(`../public/${p}`, import.meta.url)).then(() => true, () => false);
+  const warnings = await spriteWarnings(demo, exists);
+  for (const w of warnings) test.info().annotations.push({ type: 'warning', description: w });
+  if (warnings.length) console.log(`立繪檢查：${warnings.length} 個警告\n${warnings.join('\n')}`);
+});
+
