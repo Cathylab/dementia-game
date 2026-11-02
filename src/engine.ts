@@ -1,6 +1,10 @@
-import { ENDING_TARGET, pickEnding } from './script';
+import { ENDING_TARGET, evalCondition, pickEnding, type CondContext } from './script';
+import { settings } from './settings';
 import {
   isChoice,
+  isMemoryReview,
+  isText,
+  requiredObjects,
   type Character,
   type ChoiceLine,
   type ChoiceOption,
@@ -8,7 +12,9 @@ import {
   type Ending,
   type Gaze,
   type Line,
+  type MemoryReviewLine,
   type Scene,
+  type SceneObject,
   type Script,
   type TextLine,
 } from './types';
@@ -25,6 +31,8 @@ export interface LogEntry {
   name: string;
   text: string;
   choice?: boolean;
+  /** 點物件留下的紀錄，例如「（看了手機）」。 */
+  object?: boolean;
 }
 
 /** 每句台詞顯示前存一份，用於「回上一句」。 */
@@ -37,6 +45,17 @@ export interface Snapshot {
   lastChar: string | null;
   desat: number;
   logLength: number;
+  seen: string[];
+}
+
+/** 實際顯示給玩家的一個選項。index 是它在腳本 choice 陣列裡的位置。 */
+export interface ShownOption {
+  opt: ChoiceOption;
+  index: number;
+  /** requires 還沒滿足：出現但灰掉、不能按。 */
+  locked: boolean;
+  /** 還沒點過的物件 id。 */
+  missing: string[];
 }
 
 interface PendingRepeat {
@@ -44,7 +63,7 @@ interface PendingRepeat {
   remaining: number;
 }
 
-export type Phase = 'title' | 'busy' | 'text' | 'choice' | 'ending';
+export type Phase = 'title' | 'busy' | 'text' | 'choice' | 'inspect' | 'ending';
 
 /** 引擎只處理流程與狀態；畫面、聲音、效果由 View 實作。 */
 export interface View {
@@ -55,9 +74,11 @@ export interface View {
   showText(line: TextLine, ctx: { repeated: boolean; character: Character | null; pose: CharPose | null }): void;
   /** 若仍在打字則直接顯示完整句子並回傳 true。 */
   completeText(): boolean;
-  showChoice(line: ChoiceLine, onPick: (opt: ChoiceOption, index: number) => void): void;
+  showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, index: number) => void): void;
   clearChoice(): void;
   showEnding(ending: Ending | null): void;
+  /** 顯示物件說明；玩家關閉時須呼叫 engine.closeInspect()。 */
+  showInspect(obj: SceneObject): void;
   /** 狀態改變（數值、場景、旗標等）時通知，供開發者面板更新。 */
   stateChanged(): void;
 }
@@ -78,27 +99,39 @@ export class Engine {
   lastChar: string | null = null;
   /** desaturate 疊加量（0–1），不會自己恢復。 */
   desat = 0;
+  /** 點過的物件 id，依第一次點的順序。 */
+  seen: string[] = [];
   history: Snapshot[] = [];
   log: LogEntry[] = [];
   repeats: PendingRepeat[] = [];
+  /** 記憶對照展開後還沒播的台詞。 */
+  virtual: TextLine[] = [];
   /** 自增序號：每次換句或換場景都會變，非同步流程據此判斷是否已過期。 */
   token = 0;
   textFinished = false;
+  /** 目前顯示中的選項。 */
+  shown: ShownOption[] = [];
   ending: Ending | null = null;
   /** 開發者面板手動覆寫的退化係數；null 表示依幕自動決定。 */
   degradationOverride: number | null = null;
 
   private readonly scenes = new Map<string, Scene>();
   private readonly chars = new Map<string, Character>();
+  private readonly objects = new Map<string, SceneObject>();
 
   constructor(script: Script) {
     this.script = script;
     for (const s of script.scenes) this.scenes.set(s.id, s);
+    for (const s of script.scenes) for (const o of s.objects ?? []) this.objects.set(o.id, o);
     for (const c of script.characters ?? []) this.chars.set(c.id, c);
   }
 
   getScene(id: string): Scene | undefined {
     return this.scenes.get(id);
+  }
+
+  getObject(id: string): SceneObject | undefined {
+    return this.objects.get(id);
   }
 
   getChar(id: string | null): Character | null {
@@ -112,6 +145,16 @@ export class Engine {
     return clamp((act - 1) / 2, 0, 1);
   }
 
+  /** 判定 if／結局條件用的狀態。 */
+  get condContext(): CondContext {
+    return { stats: this.stats, flags: this.flags, seen: this.seen };
+  }
+
+  /** 判定一段 if；省略時成立。 */
+  test(cond: string | undefined): boolean {
+    return evalCondition(cond, this.condContext);
+  }
+
   get currentLine(): Line | undefined {
     return this.scene?.lines[this.index];
   }
@@ -122,17 +165,18 @@ export class Engine {
   }
 
   /** 開新遊戲。 */
-  async start(sceneId?: string): Promise<void> {
+  async start(sceneId?: string, index = 0): Promise<void> {
     this.stats = { ...(this.script.meta.stats ?? {}) };
     this.flags = [];
     this.poses = {};
     this.lastChar = null;
     this.desat = 0;
+    this.seen = [];
     this.history = [];
     this.log = [];
     this.repeats = [];
     this.ending = null;
-    await this.gotoScene(sceneId ?? this.script.scenes[0].id);
+    await this.gotoScene(sceneId ?? this.script.scenes[0].id, { index });
   }
 
   toTitle(): void {
@@ -144,7 +188,7 @@ export class Engine {
 
   async gotoScene(id: string, opts: { restoring?: boolean; index?: number } = {}): Promise<void> {
     if (id === ENDING_TARGET) {
-      const ending = pickEnding(this.script, this.stats, this.flags);
+      const ending = pickEnding(this.script, this.condContext);
       if (!ending) return this.finish();
       this.ending = ending;
       id = ending.scene;
@@ -159,6 +203,7 @@ export class Engine {
     this.view.clearChoice();
     this.scene = scene;
     this.repeats = [];
+    this.virtual = [];
     if (!opts.restoring) this.lastChar = null;
     await this.view.enterScene(scene, { restoring: !!opts.restoring });
     if (token !== this.token) return;
@@ -175,29 +220,60 @@ export class Engine {
       lastChar: this.lastChar,
       desat: this.desat,
       logLength: this.log.length,
+      seen: [...this.seen],
     };
   }
 
-  private playLine(index: number, repeatOf?: TextLine): void {
+  /**
+   * 播放第 index 句。forced 表示改播指定的台詞（repeat_line 的重播、記憶對照產生的台詞），
+   * 這時不判定 if，也不往下推進句數。
+   */
+  private playLine(index: number, forced?: { line: TextLine; repeated: boolean }): void {
     this.index = index;
-    if (!repeatOf && index >= this.scene.lines.length) {
+    if (!forced && index >= this.scene.lines.length) {
       this.endScene();
       return;
     }
-    const line = repeatOf ?? this.scene.lines[index];
-    // 選項出現前，先把還沒重播的 repeat_line 補播完。
-    if (!repeatOf && isChoice(line) && this.repeats.length) {
-      const due = this.repeats.shift()!;
-      this.playLine(index, due.line);
+    const line = forced?.line ?? this.scene.lines[index];
+    // if 不成立：整句跳過，不顯示、不寫入紀錄、不觸發效果、不留回上一句的快照
+    if (!forced && !this.test(line.if)) {
+      this.playLine(index + 1);
       return;
+    }
+    if (!forced && isMemoryReview(line)) {
+      this.virtual = this.expandMemoryReview(line);
+      if (this.virtual.length === 0) this.playLine(index + 1);
+      else this.playLine(index, { line: this.virtual.shift()!, repeated: false });
+      return;
+    }
+    let shown: ShownOption[] = [];
+    if (!forced && isChoice(line)) {
+      shown = line.choice
+        .map((opt, i) => {
+          const missing = requiredObjects(opt).filter((id) => !this.seen.includes(id));
+          return { opt, index: i, locked: missing.length > 0, missing };
+        })
+        .filter((o) => this.test(o.opt.if));
+      if (shown.length === 0) {
+        console.warn('[engine] 這組選項全部不成立，直接播下一句', this.scene.id, index);
+        this.playLine(index + 1);
+        return;
+      }
+      // 選項出現前，先把還沒重播的 repeat_line 補播完。
+      if (this.repeats.length) {
+        const due = this.repeats.shift()!;
+        this.playLine(index, { line: due.line, repeated: true });
+        return;
+      }
     }
     this.history.push(this.snapshot());
     this.token++;
     this.view.clearChoice();
     if (isChoice(line)) {
       this.phase = 'choice';
-      this.view.showChoice(line, (opt) => this.choose(line, opt));
-    } else {
+      this.shown = shown;
+      this.view.showChoice(line, shown, (opt) => this.choose(line, opt));
+    } else if (isText(line)) {
       this.phase = 'text';
       this.textFinished = false;
       const character = this.getChar(line.speaker);
@@ -212,12 +288,65 @@ export class Engine {
         this.poses[character.id] = pose;
         this.lastChar = character.id;
       }
-      if (!repeatOf && line.fx?.includes('repeat_line')) {
+      if (!forced && line.fx?.includes('repeat_line')) {
         this.repeats.push({ line, remaining: Math.random() < 0.5 ? 1 : 2 });
       }
       this.log.push({ speaker: line.speaker, name: this.speakerName(line.speaker), text: line.text });
-      this.view.showText(line, { repeated: !!repeatOf, character, pose });
+      this.view.showText(line, { repeated: !!forced?.repeated, character, pose });
     }
+    this.view.stateChanged();
+  }
+
+  /** 記憶對照的資料：點過、有 truth 的物件，依第一次點的順序，最多 4 件。 */
+  get memoryItems(): SceneObject[] {
+    return this.seen
+      .map((id) => this.objects.get(id))
+      .filter((o): o is SceneObject => !!o?.truth)
+      .slice(0, 4);
+  }
+
+  /** inline 模式：把記憶對照展開成一串台詞（intro 旁白＋每件物件由 speaker 說出 truth）。page 模式不展開。 */
+  private expandMemoryReview(line: MemoryReviewLine): TextLine[] {
+    if (settings.memoryReview === 'page') return [];
+    const { speaker, intro } = line.memoryReview;
+    const lines: TextLine[] = [];
+    if (intro) lines.push({ speaker: 'narrator', text: intro });
+    for (const obj of this.memoryItems) {
+      lines.push({
+        speaker,
+        text: obj.truth!,
+        memory: { objectId: obj.id, label: obj.label, description: obj.description, image: obj.image },
+      });
+    }
+    return lines;
+  }
+
+  /** 這個結局場景有沒有記憶對照（page 模式用來決定要不要多一頁）。 */
+  get sceneHasMemoryReview(): boolean {
+    return !!this.scene?.lines.some(isMemoryReview);
+  }
+
+  /** 目前這一句可以點的物件（只在台詞播放中）。 */
+  get availableObjects(): SceneObject[] {
+    if (this.phase !== 'text') return [];
+    return (this.scene.objects ?? []).filter((o) => (o.appearAt ?? 0) <= this.index);
+  }
+
+  /** 點物件：暫停遊戲、顯示說明、記為 seen（只記第一次的順序）。不推進劇情。 */
+  inspect(id: string): boolean {
+    const obj = this.availableObjects.find((o) => o.id === id);
+    if (!obj) return false;
+    if (!this.seen.includes(id)) this.seen.push(id);
+    this.log.push({ speaker: 'object', name: '', text: `（看了${obj.label}）`, object: true });
+    this.phase = 'inspect';
+    this.view.showInspect(obj);
+    this.view.stateChanged();
+    return true;
+  }
+
+  /** 關閉物件說明，回到原本那句台詞。 */
+  closeInspect(): void {
+    if (this.phase === 'inspect') this.phase = 'text';
     this.view.stateChanged();
   }
 
@@ -236,10 +365,14 @@ export class Engine {
   /** 前進到下一句（略過打字判定）。 */
   next(): void {
     if (this.phase !== 'text') return;
+    if (this.virtual.length) {
+      this.playLine(this.index, { line: this.virtual.shift()!, repeated: false });
+      return;
+    }
     const due = this.repeats.findIndex((r) => r.remaining <= 0);
     if (due >= 0) {
       const [r] = this.repeats.splice(due, 1);
-      this.playLine(this.index, r.line);
+      this.playLine(this.index, { line: r.line, repeated: true });
       return;
     }
     for (const r of this.repeats) r.remaining--;
@@ -248,8 +381,10 @@ export class Engine {
 
   private choose(line: ChoiceLine, opt: ChoiceOption): void {
     if (this.phase !== 'choice') return;
+    if (this.shown.find((o) => o.opt === opt)?.locked) return;
+    // flat_options：走「第一個實際出現的選項」的 goto
     const flat = line.fx?.includes('flat_options');
-    const target = flat ? line.choice[0].goto : opt.goto;
+    const target = flat ? (this.shown[0]?.opt ?? line.choice[0]).goto : opt.goto;
     const range = this.script.meta.statRange ?? { min: -Infinity, max: Infinity };
     for (const [k, v] of Object.entries(opt.effects ?? {})) {
       this.stats[k] = clamp((this.stats[k] ?? 0) + v, range.min, range.max);
@@ -266,7 +401,7 @@ export class Engine {
   private endScene(): void {
     if (this.repeats.length) {
       const r = this.repeats.shift()!;
-      this.playLine(this.scene.lines.length - 1, r.line);
+      this.playLine(this.scene.lines.length - 1, { line: r.line, repeated: true });
       return;
     }
     if (this.scene.id.startsWith('end_')) {
@@ -302,8 +437,10 @@ export class Engine {
     this.poses = structuredClone(snap.poses);
     this.lastChar = snap.lastChar;
     this.desat = snap.desat;
+    this.seen = [...snap.seen];
     this.log.length = snap.logLength;
     this.repeats = [];
+    this.virtual = [];
     if (snap.sceneId !== this.scene.id) {
       await this.gotoScene(snap.sceneId, { restoring: true, index: snap.index });
     } else {

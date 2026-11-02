@@ -25,7 +25,10 @@
   "include": [
     "tests",
     "playwright.config.ts",
+    "vite.config.ts",
+    "vite-plugin-script-save.ts",
     "src/types.ts",
-    "src/script.ts"
+    "src/script.ts",
+    "src/editable.ts"
   ]
 }

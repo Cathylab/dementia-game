@@ -165,10 +165,110 @@ npx playwright install chromium
 | `settings` 設定 | `normal`、`disabled`、`hidden` |
 | `title` 回標題 | `normal`、`disabled`、`hidden` |
 
+### v2 新功能
+
+完整規格見 [`docs/script-format-v2.md`](docs/script-format-v2.md)（給劇本 AI 與引擎 AI 共用的文件，最後一節是引擎對文件沒寫到的情況所做的決定）。v1 腳本不用修改也能照常執行。
+
+#### 條件 `if`
+
+台詞、整組 choice、單一選項都可以加 `if`，值是 JavaScript 布林表達式：
+
+```json
+{ "speaker": "husband", "text": "這件是佳穎幫妳選的。", "if": "has(\"daughter_picked_qipao\") && trust >= 1" }
+```
+
+| 可以用的名稱 | 意思 |
+| --- | --- |
+| 數值名稱 | `meta.stats` 裡的數值，例如 `lucidity >= 1` |
+| `has("旗標")` | 是否記下過這個旗標 |
+| `seen("物件id")` | 是否點過這個物件 |
+| `flags` | v1 的旗標陣列，例如 `flags.includes("x")` |
+
+- 台詞的 `if` 不成立：整句跳過，不顯示、不寫入對話紀錄、不觸發效果。「回上一句」也會跳過它。
+- 選項的 `if` 不成立：這個選項不出現。整組都不成立時直接播下一句。
+- 條件在播到那一句（或選項出現）的那一刻才判定。
+- `has()`、`seen()` 也能用在 `endings[].condition`。
+
+#### 可以點的物件 `objects`
+
+掛在場景上。物件在畫面上是淡淡的圓圈，點了跳出一張說明卡（有圖、名稱、說明），不推進劇情、不算選擇，點過記為 `seen`。
+
+```json
+"objects": [
+  { "id": "a1_phone", "label": "手機", "x": 0.66, "y": 0.4, "r": 0.04, "appearAt": 2,
+    "image": "phone_on_table", "description": "佳穎傳來新做的指甲。", "truth": "照片下面還有一句：媽，十點喔。", "fx": [] }
+]
+```
+
+| 欄位 | 必填 | 說明 |
+| --- | --- | --- |
+| `id` | 是 | 整份腳本唯一 |
+| `label` | 是 | 物件名稱 |
+| `x`、`y`、`r` | 是 | 位置與半徑（0–1），規則同 hotspot。`y` 請在 0.62 以下，否則會被台詞區蓋住 |
+| `appearAt` | 否 | 從本場景第幾句（0 起算）開始可以點，持續到場景結束 |
+| `image` | 否 | 說明卡上的圖，`public/assets/fg/{image}.png`，找不到時用佔位圖 |
+| `description` | 是 | 說明卡文字 |
+| `truth` | 否 | 真相，給記憶對照用 |
+| `fx` | 否 | 只支援 `text_blur`、`name_fade`（名稱變成「那個東西」） |
+
+- 只有台詞播放時可以點；選項出現時熱點隱藏。說明卡打開時遊戲暫停，再點一下回到原本那句。
+- 熱點隨退化係數越來越淡，第三幕幾乎看不出來。
+- 每點一次，對話紀錄寫一列「（看了手機）」；`seen` 只記第一次，並保留順序。
+
+#### 隱藏選項 `requires`
+
+掛在選項上，值是一個物件 id 或 id 陣列（全部點過才解鎖）：
+
+```json
+{ "text": "先看一下手機裡的照片。", "requires": "a1_phone", "effects": { "lucidity": 1 }, "flags": ["hidden_phone_photo"] }
+```
+
+- `if` 不成立：選項完全不出現。`requires` 不成立：選項**出現但灰掉、不能按**。
+- 灰掉時顯示「你好像記得什麼，但想不起來。」；設定裡打開「隱藏選項提示」時，改成顯示還沒點過的物件名稱，例如「手機？、照片？」。
+- 有 `requires` 的 choice 至少要有兩個沒有 `requires` 的選項；隱藏選項要設一個 `hidden_` 開頭的旗標。
+- 結局裡的專屬內容不需要新欄位，用 `"if": "has(\"hidden_phone_photo\")"` 即可。
+
+#### 記憶對照
+
+資料來源：玩家點過、而且有 `truth` 的物件，依第一次點的順序，最多 4 件。在結局場景（`end_` 開頭）裡放一行：
+
+```json
+{ "memoryReview": { "speaker": "daughter", "intro": "佳穎收拾母親的包包，一件一件拿出來。" } }
+```
+
+| 設定 | 呈現方式 |
+| --- | --- |
+| 融入結局（`inline`，預設） | 播到這一行時，先由旁白說 `intro`；接著每件物件依序：畫面上方出現物件圖與劃掉的當時說明，再由 `speaker` 說出 `truth` |
+| 結局後獨立一頁（`page`） | 這一行直接跳過；結局畫面按「繼續」後多一頁對照表，左欄當時的說明、右欄真相，可以捲動、可以略過 |
+
+沒有點過任何有 `truth` 的物件時，inline 只播 `intro`；page 顯示「你沒有留下任何記憶。」
+
+#### 預設設定 `meta.settingsDefaults`
+
+```json
+"meta": { "title": "婚禮前一個月", "stats": { "trust": 0 }, "settingsDefaults": { "hiddenHints": false, "memoryReview": "inline" } }
+```
+
+| 設定 | 值 | 預設 | 設定畫面 |
+| --- | --- | --- | --- |
+| `hiddenHints` | `true`、`false` | `false` | 隱藏選項提示 |
+| `memoryReview` | `"inline"`、`"page"` | `"inline"` | 記憶對照：融入結局／結局後獨立一頁 |
+
+玩家在設定裡動過的項目會存在瀏覽器裡，以玩家為準；沒動過的項目跟著腳本預設值。
+
 ### 檢查腳本
 
-- 開發者面板最下方的「腳本檢查」會列出找不到的場景、未知的 speaker 或效果、條件語法錯誤等問題（也會印在瀏覽器主控台）。
-- `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合，確認**每一個結局都有路線可以走到**。
+- 開發者面板最下方的「腳本檢查」會列出找不到的場景、未知的 speaker 或效果、條件語法錯誤等問題（也會印在瀏覽器主控台）。v2 另外檢查：
+  - `if` 語法錯誤
+  - `has("x")` 用到沒有任何選項會設定的旗標
+  - `seen("x")` 用到不存在的物件
+  - 一組 choice 的所有選項都有 `if`
+  - 物件 id 重複、缺少必填欄位、說明套了不支援的效果、位置太低會被台詞區蓋住
+  - `requires` 指向不存在的物件，或物件在這個選項之後才出現（玩家不可能先點到）
+  - 有 `requires` 的 choice，沒有 `requires` 的選項少於兩個；隱藏選項沒有 `hidden_` 旗標
+  - `memoryReview` 放在非結局場景、同一結局出現兩次、`speaker` 不存在
+  - `meta.settingsDefaults` 的值不合法
+- `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合（包含每個物件點或不點），確認**每一個結局都有路線可以走到**；狀態太多時改用隨機抽樣五千次。
 - `tests/script.spec.ts` 裡的「示範腳本規格」一組只是驗證目前的示範腳本；換成正式腳本後可以整組刪掉。
 
 ---
@@ -201,6 +301,8 @@ npx playwright install chromium
 
 ## 操作
 
+設定畫面有：文字速度、音量、隱藏選項提示、記憶對照（融入結局／結局後獨立一頁）。
+
 | 動作 | 電腦 | 手機 |
 | --- | --- | --- |
 | 下一句／打字中顯示全文 | 點畫面、空白鍵、Enter | 點畫面 |
@@ -219,9 +321,23 @@ npx playwright install chromium
 
 面板內容：目前場景、句數、退化係數、去飽和量、旗標、數值（可用 ± 調整）與「目前會走向哪個結局」；跳到任一場景；手動觸發十一個效果（選項類效果在沒有選項時會叫出一組測試選項）；調整退化係數（取消「依幕自動」即可手動）；切換目前角色的 gaze 與 distance；從頭開始；腳本檢查結果。
 
+面板裡也有「打開文字編輯」（見下方「文字編輯」）。
+
 其他網址參數：`?timescale=0.2` 讓所有動畫與等待變成 0.2 倍時間（測試用）。主控台裡可以用 `__vn.engine`、`__vn.view` 直接操作。
 
 ---
+
+## 文字編輯
+
+不用碰 JSON 也能改台詞。打開方式：開發者面板的「打開文字編輯」，或網址加 `?edit=1`。
+
+- 可以改：台詞、選項提示、選項文字、物件名稱／說明／真相、結局標題、記憶對照的 `intro`。
+- 不能改：`if`、`requires`、`effects`、`flags`、`goto`、座標等結構欄位（`if`、`requires` 會唯讀顯示在旁邊）。
+- 修改立即套用到遊戲；每句旁邊的「▶ 試播」可以從那一句開始播。
+- 「復原」「重做」按鈕，或 Ctrl+Z、Ctrl+Shift+Z、Ctrl+Y。
+- **儲存**（或 Ctrl+S）：
+  - 本機 `npm run dev`：直接寫回 `public/script.json`（會重新排版）。若磁碟上的檔案結構在別處被改過，會拒絕寫入。
+  - 線上版：下載修改後的 `script.json`，再用它取代 `public/script.json`。
 
 ## 部署
 
@@ -238,6 +354,8 @@ npx playwright install chromium
 ## 專案結構
 
 ```
+docs/
+  script-format-v2.md  v2 腳本格式（給劇本 AI 與引擎 AI）
 public/
   script.json          故事腳本（換這個）
   assets/bg|char|fg|music/   素材（放真實檔案後取代佔位）
@@ -251,11 +369,17 @@ src/
   audio.ts             音樂播放、合成音、走音、muffle
   assets.ts            圖片載入與佔位圖
   devpanel.ts          開發者面板
+  editor.ts            文字編輯器
+  editable.ts          可編輯欄位、結構比對、JSON 排版（瀏覽器與開發伺服器共用）
+vite-plugin-script-save.ts   開發模式下把編輯結果寫回 script.json
   style.css            全部樣式
 tests/
   script.spec.ts       腳本檢查與結局可達性
   play.spec.ts         用示範腳本實際走到每個結局
   fx.spec.ts           每個效果對應的 class／DOM 變化
   ui.spec.ts           介面、ui 覆寫、第一視角元素、音樂、手機版
+  validate.spec.ts     v2 腳本檢查規則
+  if / objects / requires / settings / memory .spec.ts   v2 各項功能
+  editable / editor / editor-dev .spec.ts                文字編輯（含真的開發伺服器寫回測試）
   fixtures/test-script.json  測試專用腳本（測試時攔截取代 script.json）
 ```

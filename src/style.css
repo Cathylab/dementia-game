@@ -1142,3 +1142,499 @@ button {
   margin: 0;
   color: #9fe0a0;
 }
+
+/* ───────────── 可以點的物件（v2） ───────────── */
+
+.objects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 退化越重越看不出來（由程式設定） */
+  --obj-alpha: 0.85;
+}
+
+.stage:not([data-phase='text']) .objects,
+.stage.ui-hidden .objects {
+  display: none;
+}
+
+.object-spot {
+  position: absolute;
+  translate: -50% -50%;
+  width: max(48px, calc(var(--r, 0.04) * 2 * 177.78cqmin));
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.object-spot .glow {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 250, 235, 0.7);
+  background: radial-gradient(circle, rgba(255, 250, 235, 0.35) 0%, rgba(255, 250, 235, 0) 70%);
+  opacity: var(--obj-alpha);
+  animation: object-breathe 3.2s ease-in-out infinite;
+}
+
+.object-spot.seen .glow {
+  border-style: dashed;
+  animation: none;
+  opacity: calc(var(--obj-alpha) * 0.6);
+}
+
+.object-spot .label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  translate: -50% 0;
+  padding: 0.25em 0.7em;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.72);
+  font-size: clamp(14px, 2.6cqh, 20px);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.object-spot:hover .label,
+.object-spot:focus-visible .label,
+.object-spot.show-label .label {
+  opacity: 1;
+}
+
+.object-spot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@keyframes object-breathe {
+  50% {
+    transform: scale(1.12);
+    opacity: calc(var(--obj-alpha) * 0.6);
+  }
+}
+
+.inspect {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 4%;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+
+.inspect.open {
+  display: flex;
+  animation: fade-in 0.35s ease both;
+}
+
+.inspect-card {
+  max-width: min(640px, 92%);
+  max-height: 92%;
+  overflow: auto;
+  padding: 1.2em 1.6em 1em;
+  border-radius: 14px;
+  background: var(--panel);
+  font-size: var(--text-size);
+  line-height: 1.7;
+  text-align: center;
+}
+
+.inspect-image {
+  display: block;
+  max-width: 100%;
+  max-height: 34cqh;
+  margin: 0 auto 0.6em;
+  object-fit: contain;
+}
+
+.inspect-label {
+  margin: 0 0 0.3em;
+  font-size: 0.85em;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+}
+
+.inspect-card.fx-name-fade .inspect-label {
+  letter-spacing: 0.25em;
+  color: var(--ink-dim);
+}
+
+.inspect-desc {
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.inspect-desc .ch {
+  white-space: pre-wrap;
+}
+
+.inspect-desc .ch.glitch-missing {
+  opacity: 0;
+}
+
+.inspect-card.fx-text-blur .inspect-desc {
+  animation: text-unsteady 2.4s ease-in-out infinite;
+}
+
+.inspect-hint {
+  margin: 0.8em 0 0;
+  font-size: 0.6em;
+  color: var(--ink-dim);
+}
+
+.log-row.object .log-text {
+  color: var(--ink-dim);
+  font-size: 0.9em;
+}
+
+/* ───────────── 隱藏選項（requires 未滿足，v2） ───────────── */
+
+.choice.locked,
+.choice.locked:hover {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(20, 20, 20, 0.5);
+  color: rgba(244, 239, 230, 0.42);
+  font-style: italic;
+  cursor: not-allowed;
+}
+
+.hotspot.locked {
+  cursor: not-allowed;
+}
+
+.hotspot.locked .glow {
+  background: radial-gradient(circle, rgba(200, 200, 200, 0.35) 0%, rgba(160, 160, 160, 0) 70%);
+  animation: none;
+}
+
+.settings-body {
+  overflow-y: auto;
+}
+
+.setting-toggle input.toggle {
+  justify-self: start;
+  width: 28px;
+  height: 28px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.setting-choice {
+  grid-template-columns: 6em 1fr;
+}
+
+.radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 1.4em;
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.radio input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+
+/* ───────────── 記憶對照（v2） ───────────── */
+
+.memory-card {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  translate: -50% 0;
+  width: min(520px, 86%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+  padding: 0.8em 1.2em;
+  border-radius: 14px;
+  background: rgba(14, 12, 10, 0.92);
+  font-size: calc(var(--text-size) * 0.85);
+  text-align: center;
+  pointer-events: none;
+}
+
+.memory-card.open {
+  display: flex;
+  animation: fade-in 0.9s ease both;
+}
+
+.memory-image {
+  max-width: 100%;
+  max-height: 26cqh;
+  object-fit: contain;
+}
+
+.memory-label {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.8em;
+  letter-spacing: 0.15em;
+}
+
+.memory-desc {
+  margin: 0;
+  color: rgba(244, 239, 230, 0.45);
+  font-family: var(--font-mono);
+  text-decoration: line-through;
+  text-decoration-color: rgba(244, 239, 230, 0.55);
+}
+
+.memory-page {
+  justify-content: flex-start;
+  gap: 0.6em;
+  padding: 4% 6%;
+  background: radial-gradient(ellipse at center, #1c1915 0%, #000 85%);
+  font-size: clamp(15px, 3cqh, 22px);
+}
+
+.memory-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+}
+
+.memory-skip {
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  min-width: 72px;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.memory-scroll {
+  flex: 1;
+  width: 100%;
+  max-width: 900px;
+  overflow-y: auto;
+}
+
+.memory-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.memory-table th {
+  padding: 0.4em 0.8em;
+  color: var(--ink-dim);
+  font-weight: 400;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.memory-table td {
+  width: 50%;
+  padding: 0.8em;
+  vertical-align: top;
+  line-height: 1.7;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.memory-table .memory-label {
+  display: block;
+  margin-bottom: 0.2em;
+}
+
+.memory-truth {
+  color: var(--ink);
+}
+
+.memory-empty {
+  margin: 3em 0;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+}
+
+@media (orientation: portrait) {
+  .memory-table thead {
+    display: none;
+  }
+  .memory-table tr,
+  .memory-table td {
+    display: block;
+    width: 100%;
+  }
+  .memory-table .memory-before {
+    padding-bottom: 0.2em;
+    border-bottom: 0;
+  }
+}
+
+/* ───────────── 文字編輯（v2） ───────────── */
+
+.editor {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  background: #121417;
+  color: #e8e4dc;
+  font: 15px/1.6 var(--font-body);
+}
+
+.editor.open {
+  display: flex;
+}
+
+.editor-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #2a2e35;
+  background: #181b20;
+}
+
+.editor-header h2 {
+  margin: 0;
+  font-size: 17px;
+  color: #8fd3ff;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.editor button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #3a404a;
+  border-radius: 8px;
+  background: #22262d;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.editor button:hover:not(:disabled) {
+  border-color: #8fd3ff;
+}
+
+.editor button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.editor button.primary {
+  border-color: #3d7aa3;
+  background: #1d3b52;
+}
+
+.editor.dirty button.primary {
+  background: #2a5878;
+}
+
+.editor-filter {
+  grid-column: 1 / -1;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #3a404a;
+  border-radius: 8px;
+  background: #0e1013;
+  color: inherit;
+  font: inherit;
+}
+
+.editor-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #9aa3ad;
+  font-size: 14px;
+}
+
+.editor.dirty .editor-status {
+  color: #ffcf7a;
+}
+
+.editor-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px 48px;
+}
+
+.editor-scene h3 {
+  position: sticky;
+  top: 0;
+  margin: 16px 0 6px;
+  padding: 6px 0;
+  background: #121417;
+  color: #f2c98a;
+  font-size: 15px;
+}
+
+.editor-field {
+  margin: 0 0 10px;
+}
+
+.editor-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-bottom: 2px;
+  color: #9aa3ad;
+  font-size: 13px;
+}
+
+.editor-note {
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #22262d;
+  color: #b6c3cf;
+  font-size: 12px;
+}
+
+.editor .editor-play {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.editor textarea {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #2f343c;
+  border-radius: 8px;
+  background: #1a1d22;
+  color: #f4efe6;
+  font: 16px/1.6 var(--font-body);
+  resize: vertical;
+  overflow: hidden;
+}
+
+.editor textarea:focus {
+  outline: none;
+  border-color: #8fd3ff;
+}

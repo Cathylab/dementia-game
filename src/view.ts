@@ -1,10 +1,10 @@
 import { resolveImage } from './assets';
-import { Effects } from './fx';
-import type { CharPose, Engine, View } from './engine';
+import { Effects, fadeText, glitchSpans } from './fx';
+import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
-import { saveSettings, settings } from './settings';
+import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
-import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, TextLine, UiKey } from './types';
+import type { Character, ChoiceLine, ChoiceOption, Ending, Scene, SceneObject, TextLine, UiKey } from './types';
 import { el, shuffle, sleep, T } from './util';
 
 /** 聲音模組需提供的介面（見 audio.ts）。 */
@@ -14,6 +14,38 @@ export interface AudioLike {
   setVolume(v: number): void;
   playMusic(name: string | null | undefined): void;
   unlock(): void;
+}
+
+/** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
+function placeSpot(b: HTMLElement, x = 0.5, y = 0.5, r = 0.04): void {
+  b.style.left = `${x * 100}%`;
+  b.style.top = `${y * 100}%`;
+  b.style.setProperty('--r', String(r));
+}
+
+/** 點一下執行 onTap；長按（手機）執行 onLongPress，且不觸發 onTap。 */
+function bindPress(b: HTMLElement, onTap: () => void, onLongPress: () => void): void {
+  let pressTimer = 0;
+  let longPressed = false;
+  b.addEventListener('pointerdown', () => {
+    longPressed = false;
+    pressTimer = window.setTimeout(() => {
+      longPressed = true;
+      onLongPress();
+    }, 450);
+  });
+  const cancel = () => clearTimeout(pressTimer);
+  b.addEventListener('pointerup', cancel);
+  b.addEventListener('pointerleave', cancel);
+  b.addEventListener('contextmenu', (e) => e.preventDefault());
+  b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (longPressed) {
+      longPressed = false;
+      return;
+    }
+    onTap();
+  });
 }
 
 const TOOLBAR: { key: UiKey; label: string }[] = [
@@ -43,6 +75,10 @@ export class AdvView implements View {
   readonly traitEl = el('span', { class: 'trait' });
   readonly textEl = el('div', { class: 'text' });
   readonly choices = el('div', { class: 'choices' });
+  readonly objectsLayer = el('div', { class: 'objects' });
+  readonly inspectEl = el('div', { class: 'inspect', role: 'dialog', 'aria-modal': 'true' });
+  readonly memoryCard = el('div', { class: 'memory-card', 'aria-live': 'polite' });
+  readonly memoryPage = el('div', { class: 'screen memory-page', role: 'dialog' });
   readonly monologueText = el('p', { class: 'monologue-text' });
   readonly monologue = el('div', { class: 'monologue', 'aria-live': 'polite' }, [this.monologueText]);
   readonly toolbar = el('nav', { class: 'toolbar', 'aria-label': '功能列' });
@@ -62,6 +98,10 @@ export class AdvView implements View {
   private autoTimer = 0;
   private skipTimer = 0;
   private monologueTimer = 0;
+  private pendingType: (() => void) | null = null;
+  private pendingTimer = 0;
+  private monologueStay = 0;
+  private inspectTimer = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -102,21 +142,29 @@ export class AdvView implements View {
 
     this.stage.append(
       this.layers,
+      this.objectsLayer,
       el('div', { class: 'vignette' }),
+      this.memoryCard,
       this.dialog,
       this.monologue,
       this.choices,
       this.toolbar,
       this.menuToggle,
+      this.inspectEl,
       this.blinkEl,
       this.logOverlay,
       this.settingsOverlay,
       this.endingScreen,
+      this.memoryPage,
       this.titleScreen,
     );
     this.root.replaceChildren(this.stage);
 
     this.stage.addEventListener('click', () => this.onStageClick());
+    this.inspectEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeInspect();
+    });
     window.addEventListener('keydown', (e) => this.onKey(e));
   }
 
@@ -135,7 +183,14 @@ export class AdvView implements View {
   }
 
   private onKey(e: KeyboardEvent): void {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+    if (this.inspectOpen()) {
+      if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        this.closeInspect();
+      }
+      return;
+    }
     if (e.key === 'Escape') {
       this.closeOverlays();
       this.stage.classList.remove('ui-hidden', 'menu-open');
@@ -153,7 +208,11 @@ export class AdvView implements View {
   }
 
   overlayOpen(): boolean {
-    return this.logOverlay.classList.contains('open') || this.settingsOverlay.classList.contains('open');
+    return this.logOverlay.classList.contains('open') || this.settingsOverlay.classList.contains('open') || this.inspectOpen();
+  }
+
+  inspectOpen(): boolean {
+    return this.inspectEl.classList.contains('open');
   }
 
   closeOverlays(): void {
@@ -318,7 +377,13 @@ export class AdvView implements View {
   }
 
   protected logRow(name: string, text: string, speaker: string, choice: boolean): HTMLElement {
-    const cls = choice ? 'log-row choice' : speaker === 'player' ? 'log-row monologue' : 'log-row';
+    const cls = choice
+      ? 'log-row choice'
+      : speaker === 'object'
+        ? 'log-row object'
+        : speaker === 'player'
+          ? 'log-row monologue'
+          : 'log-row';
     return el('li', { class: cls }, [el('span', { class: 'log-name' }, [name]), el('span', { class: 'log-text' }, [text])]);
   }
 
@@ -334,14 +399,24 @@ export class AdvView implements View {
     const vol = el('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(settings.volume), name: 'volume' });
     const speedOut = el('output', {}, [this.speedLabel(settings.textSpeed)]);
     speed.oninput = () => {
-      settings.textSpeed = Number(speed.value);
+      setSetting('textSpeed', Number(speed.value));
       speedOut.textContent = this.speedLabel(settings.textSpeed);
-      saveSettings();
     };
     vol.oninput = () => {
-      settings.volume = Number(vol.value);
-      saveSettings();
+      setSetting('volume', Number(vol.value));
       this.onVolume(settings.volume);
+    };
+    const hints = el('input', { type: 'checkbox', name: 'hiddenHints', class: 'toggle' });
+    hints.checked = settings.hiddenHints;
+    hints.onchange = () => {
+      setSetting('hiddenHints', hints.checked);
+      this.choices.querySelectorAll<HTMLElement>('.locked').forEach((b) => this.updateLockedLabel(b));
+    };
+    const review = (value: MemoryReviewMode, text: string) => {
+      const radio = el('input', { type: 'radio', name: 'memoryReview', value });
+      radio.checked = settings.memoryReview === value;
+      radio.onchange = () => radio.checked && setSetting('memoryReview', value);
+      return el('label', { class: 'radio' }, [radio, text]);
     };
     const close = el('button', { class: 'overlay-close', type: 'button', 'aria-label': '關閉' });
     close.innerHTML = ICONS.close;
@@ -352,8 +427,15 @@ export class AdvView implements View {
     this.settingsOverlay.replaceChildren(
       el('h2', {}, ['設定']),
       close,
-      el('label', { class: 'setting' }, [el('span', {}, ['文字速度']), speed, speedOut]),
-      el('label', { class: 'setting' }, [el('span', {}, ['音量']), vol]),
+      el('div', { class: 'settings-body' }, [
+        el('label', { class: 'setting' }, [el('span', {}, ['文字速度']), speed, speedOut]),
+        el('label', { class: 'setting' }, [el('span', {}, ['音量']), vol]),
+        el('label', { class: 'setting setting-toggle' }, [el('span', {}, ['隱藏選項提示']), hints]),
+        el('div', { class: 'setting setting-choice', role: 'radiogroup', 'aria-label': '記憶對照' }, [
+          el('span', {}, ['記憶對照']),
+          el('div', { class: 'radios' }, [review('inline', '融入結局'), review('page', '結局後獨立一頁')]),
+        ]),
+      ]),
     );
     this.settingsOverlay.onclick = (ev) => ev.stopPropagation();
     this.settingsOverlay.classList.add('open');
@@ -391,6 +473,12 @@ export class AdvView implements View {
     clearTimeout(this.monologueTimer);
     this.monologue.classList.remove('show');
     this.endingScreen.classList.remove('open');
+    this.inspectEl.classList.remove('open');
+    this.objectsLayer.replaceChildren();
+    this.memoryCard.classList.remove('open');
+    this.memoryPage.classList.remove('open');
+    clearTimeout(this.pendingTimer);
+    this.pendingType = null;
     this.audio?.setMuffle(false);
     this.audio?.playMusic(null);
     const meta = this.engine.script.meta;
@@ -431,6 +519,8 @@ export class AdvView implements View {
   protected applyScene(scene: Scene, bgUrl: string, fgUrl: string): void {
     this.stage.dataset.scene = scene.id;
     this.stage.dataset.act = String(scene.act ?? 1);
+    this.objectsLayer.replaceChildren();
+    this.memoryCard.classList.remove('open');
     this.applyUi();
     this.setBackground(scene.background ?? '', bgUrl);
     // 每個場景的視線起點略有不同，之後緩慢平移
@@ -465,8 +555,10 @@ export class AdvView implements View {
     this.stage.dataset.phase = 'text';
     this.fx.clearLine();
     this.fx.applyGlobal();
+    this.renderObjects();
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
-    if (line.speaker === 'player') {
+    this.showMemoryCard(line);
+    if (line.speaker === 'player' && !line.memory) {
       this.showMonologue(line, ctx.repeated);
       return;
     }
@@ -477,12 +569,44 @@ export class AdvView implements View {
     this.traitEl.textContent = '';
     this.nameBox.classList.toggle('hidden', !this.nameEl.textContent);
     this.dialog.dataset.speaker = line.speaker;
-    const spans = this.typer.start(line.text, {
-      cps: settings.textSpeed,
-      degradation: this.engine.degradation,
-      onDone: () => this.textFinished(),
-    });
-    this.fx.applyLine(line, spans, ctx.repeated);
+    const type = () => {
+      this.pendingType = null;
+      const spans = this.typer.start(line.text, {
+        cps: settings.textSpeed,
+        degradation: this.engine.degradation,
+        onDone: () => this.textFinished(),
+      });
+      this.fx.applyLine(line, spans, ctx.repeated);
+    };
+    clearTimeout(this.pendingTimer);
+    if (line.memory) {
+      // 記憶對照：先讓物件圖與當時的說明出現，再由角色說出真相
+      this.textEl.replaceChildren();
+      this.pendingType = type;
+      this.pendingTimer = window.setTimeout(type, T(1100));
+    } else {
+      this.pendingType = null;
+      type();
+    }
+  }
+
+  /** 記憶對照的物件卡：物件圖＋劃掉的當時說明。非記憶對照的台詞會把它收起來。 */
+  private showMemoryCard(line: TextLine): void {
+    const m = line.memory;
+    this.memoryCard.classList.toggle('open', !!m);
+    if (!m) return;
+    const card: HTMLElement[] = [];
+    if (m.image) {
+      const img = el('img', { class: 'memory-image', alt: '', 'data-name': m.image });
+      void resolveImage('fg', m.image).then((url) => (img.src = url));
+      card.push(img);
+    }
+    card.push(el('p', { class: 'memory-label' }, [m.label]), el('p', { class: 'memory-desc' }, [m.description]));
+    this.memoryCard.replaceChildren(...card);
+    this.memoryCard.dataset.object = m.objectId;
+    this.memoryCard.classList.remove('open');
+    void this.memoryCard.offsetWidth; // 重新觸發淡入
+    this.memoryCard.classList.add('open');
   }
 
   /** 內心獨白：不顯示人名框，換字體在畫面中央偏上淡入，停留後淡出並自動前進。 */
@@ -498,8 +622,16 @@ export class AdvView implements View {
     this.monologue.classList.toggle('fx-repeat', repeated);
     this.fx.applyLine(line, spans, repeated);
     this.engine.textDone();
+    this.monologueStay = settings.textSpeed >= 100 ? 1200 : 2200 + [...line.text].length * 110;
+    this.startMonologueTimer();
+  }
+
+  /** 獨白停留 → 淡出 → 自動前進。看物件說明時會暫停，關閉後重新計時。 */
+  private startMonologueTimer(): void {
+    clearTimeout(this.monologueTimer);
+    this.monologue.classList.remove('fading');
     const token = this.engine.token;
-    const stay = settings.textSpeed >= 100 ? 1200 : 2200 + [...line.text].length * 110;
+    const stay = this.monologueStay;
     this.monologueTimer = window.setTimeout(() => {
       if (token !== this.engine.token) return;
       this.monologue.classList.add('fading');
@@ -535,27 +667,97 @@ export class AdvView implements View {
   }
 
   completeText(): boolean {
+    if (this.pendingType) {
+      clearTimeout(this.pendingTimer);
+      this.pendingType();
+      this.typer.complete();
+      return true;
+    }
     return this.typer.complete();
   }
 
-  showChoice(line: ChoiceLine, onPick: (opt: ChoiceOption, i: number) => void): void {
+  // ───────────────────────── 可以點的物件 ─────────────────────────
+
+  /** 依目前句數畫出可以點的物件。熱點明顯程度隨退化係數降低。 */
+  renderObjects(): void {
+    const d = this.engine.degradation;
+    this.objectsLayer.style.setProperty('--obj-alpha', (0.85 - 0.72 * d).toFixed(2));
+    const spots = this.engine.availableObjects.map((obj) => {
+      const b = el('button', { class: 'object-spot', type: 'button', 'data-object': obj.id, 'aria-label': obj.label }, [
+        el('span', { class: 'glow', 'aria-hidden': 'true' }),
+        el('span', { class: 'label' }, [obj.label]),
+      ]);
+      b.classList.toggle('seen', this.engine.seen.includes(obj.id));
+      placeSpot(b, obj.x, obj.y, obj.r);
+      bindPress(
+        b,
+        () => this.engine.inspect(obj.id),
+        () => b.classList.add('show-label'),
+      );
+      return b;
+    });
+    this.objectsLayer.replaceChildren(...spots);
+  }
+
+  /** 物件說明：暫停遊戲，點一下關閉。 */
+  showInspect(obj: SceneObject): void {
+    clearTimeout(this.monologueTimer);
+    clearTimeout(this.autoTimer);
+    clearInterval(this.inspectTimer);
+    this.stopSkip();
+    this.stage.dataset.phase = 'inspect';
+    const label = el('h3', { class: 'inspect-label' }, [obj.label]);
+    const spans = [...obj.description].map((ch) => el('span', { class: 'ch on' }, [ch]));
+    const desc = el('p', { class: 'inspect-desc' }, spans);
+    const card = el('div', { class: 'inspect-card' });
+    if (obj.image) {
+      const img = el('img', { class: 'inspect-image', alt: '', 'data-name': obj.image });
+      void resolveImage('fg', obj.image).then((url) => (img.src = url));
+      card.append(img);
+    }
+    card.append(label, desc, el('p', { class: 'inspect-hint' }, ['點一下關閉']));
+    const fx = obj.fx ?? [];
+    card.classList.toggle('fx-text-blur', fx.includes('text_blur'));
+    card.classList.toggle('fx-name-fade', fx.includes('name_fade'));
+    if (fx.includes('text_blur')) glitchSpans(spans);
+    if (fx.includes('name_fade')) this.inspectTimer = fadeText(label, '那個東西');
+    this.inspectEl.replaceChildren(card);
+    this.inspectEl.dataset.object = obj.id;
+    this.inspectEl.classList.add('open');
+  }
+
+  closeInspect(): void {
+    if (!this.inspectOpen()) return;
+    clearInterval(this.inspectTimer);
+    this.inspectEl.classList.remove('open');
+    this.stage.dataset.phase = 'text';
+    this.engine.closeInspect();
+    this.renderObjects();
+    if (this.stage.classList.contains('monologue-on')) this.startMonologueTimer();
+    if (this.auto && this.engine.textFinished) this.scheduleAuto();
+  }
+
+  showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
+    this.objectsLayer.replaceChildren();
     this.stage.dataset.phase = 'choice';
     this.stopSkip();
     this.fx.clearLine();
     this.monologue.classList.remove('show');
     if (line.mode === 'hotspot') {
-      this.showHotspots(line, onPick);
+      this.showHotspots(line, options, onPick);
       return;
     }
     const prompt = line.prompt ? [el('p', { class: 'choice-prompt' }, [line.prompt])] : [];
-    const buttons = line.choice.map((opt, i) => {
-      const b = el('button', { class: 'choice', type: 'button', 'data-index': String(i) }, [
+    const buttons = options.map((o) => {
+      const { opt, index } = o;
+      const b = el('button', { class: 'choice', type: 'button', 'data-index': String(index) }, [
         el('span', { class: 'label' }, [opt.text]),
       ]);
       b.addEventListener('click', (e) => {
         e.stopPropagation();
-        onPick(opt, i);
+        onPick(opt, index);
       });
+      this.markLocked(b, o);
       return b;
     });
     this.choices.replaceChildren(...prompt, ...buttons);
@@ -565,38 +767,23 @@ export class AdvView implements View {
   }
 
   /** 熱點選項：畫面上的發光圓點；滑鼠移上或長按顯示文字，點擊選擇。 */
-  private showHotspots(line: ChoiceLine, onPick: (opt: ChoiceOption, i: number) => void): void {
-    const spots = line.choice.map((opt, i) => {
-      const b = el('button', { class: 'hotspot', type: 'button', 'data-index': String(i), 'aria-label': opt.text }, [
+  private showHotspots(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
+    const spots: HTMLButtonElement[] = options.map((o) => {
+      const { opt, index } = o;
+      const b = el('button', { class: 'hotspot', type: 'button', 'data-index': String(index), 'aria-label': opt.text }, [
         el('span', { class: 'glow', 'aria-hidden': 'true' }),
         el('span', { class: 'label' }, [opt.text]),
       ]);
-      b.style.left = `${(opt.x ?? 0.5) * 100}%`;
-      b.style.top = `${(opt.y ?? 0.5) * 100}%`;
-      b.style.setProperty('--r', String(opt.r ?? 0.04));
-      let pressTimer = 0;
-      let longPressed = false;
-      b.addEventListener('pointerdown', () => {
-        longPressed = false;
-        pressTimer = window.setTimeout(() => {
-          longPressed = true;
+      this.markLocked(b, o);
+      placeSpot(b, opt.x, opt.y, opt.r);
+      bindPress(
+        b,
+        () => onPick(opt, index),
+        () => {
           spots.forEach((s) => s.classList.remove('show-label'));
           b.classList.add('show-label');
-        }, 450);
-      });
-      const cancel = () => clearTimeout(pressTimer);
-      b.addEventListener('pointerup', cancel);
-      b.addEventListener('pointerleave', cancel);
-      b.addEventListener('contextmenu', (e) => e.preventDefault());
-      b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (longPressed) {
-          // 長按只顯示文字，不選擇
-          longPressed = false;
-          return;
-        }
-        onPick(opt, i);
-      });
+        },
+      );
       return b;
     });
     const prompt = line.prompt ? [el('p', { class: 'hotspot-prompt' }, [line.prompt])] : [];
@@ -604,6 +791,25 @@ export class AdvView implements View {
     this.choices.className = 'choices open hotspots';
     this.choices.dataset.mode = 'hotspot';
     this.fx.applyChoice(line, this.choices, spots);
+  }
+
+  /** requires 沒滿足的選項：灰掉、不能按，文字換成提示。 */
+  private markLocked(b: HTMLButtonElement, o: ShownOption): void {
+    if (!o.locked) return;
+    b.disabled = true;
+    b.classList.add('locked');
+    b.dataset.missing = o.missing.join(' ');
+    this.updateLockedLabel(b);
+  }
+
+  /** 依「隱藏選項提示」設定決定灰掉的選項顯示什麼。設定改變時也會呼叫。 */
+  updateLockedLabel(b: HTMLElement): void {
+    const missing = (b.dataset.missing ?? '').split(' ').filter(Boolean);
+    const text = settings.hiddenHints
+      ? missing.map((id) => `${this.engine.getObject(id)?.label ?? id}？`).join('、')
+      : '你好像記得什麼，但想不起來。';
+    b.querySelector('.label')!.textContent = text;
+    b.setAttribute('aria-label', text);
   }
 
   clearChoice(): void {
@@ -616,10 +822,15 @@ export class AdvView implements View {
     this.stopAuto();
     this.stopSkip();
     this.stage.dataset.phase = 'ending';
-    const again = el('button', { class: 'start-button', type: 'button' }, ['回到標題']);
+    this.objectsLayer.replaceChildren();
+    this.memoryCard.classList.remove('open');
+    // page 模式：結局畫面之後多一頁記憶對照
+    const withPage = settings.memoryReview === 'page' && this.engine.sceneHasMemoryReview;
+    const again = el('button', { class: 'start-button', type: 'button' }, [withPage ? '繼續' : '回到標題']);
     again.onclick = (e) => {
       e.stopPropagation();
-      this.engine.toTitle();
+      if (withPage) this.showMemoryPage();
+      else this.engine.toTitle();
     };
     this.endingScreen.dataset.endingId = ending?.id ?? '';
     this.endingScreen.replaceChildren(
@@ -628,6 +839,46 @@ export class AdvView implements View {
       again,
     );
     this.endingScreen.classList.add('open');
+  }
+
+  /** 記憶對照的獨立一頁：左欄當時的說明、右欄真相，可以捲動、可以略過。 */
+  showMemoryPage(): void {
+    const toTitle = (e: Event) => {
+      e.stopPropagation();
+      this.engine.toTitle();
+    };
+    const skip = el('button', { class: 'memory-skip', type: 'button' }, ['略過']);
+    skip.onclick = toTitle;
+    const done = el('button', { class: 'start-button', type: 'button' }, ['回到標題']);
+    done.onclick = toTitle;
+    const items = this.engine.memoryItems;
+    const body = items.length
+      ? el('table', { class: 'memory-table' }, [
+          el('thead', {}, [el('tr', {}, [el('th', {}, ['當時記得的']), el('th', {}, ['真正的樣子'])])]),
+          el(
+            'tbody',
+            {},
+            items.map((o) =>
+              el('tr', { 'data-object': o.id }, [
+                el('td', { class: 'memory-before' }, [
+                  el('span', { class: 'memory-label' }, [o.label]),
+                  el('span', { class: 'memory-desc' }, [o.description]),
+                ]),
+                el('td', { class: 'memory-truth' }, [o.truth ?? '']),
+              ]),
+            ),
+          ),
+        ])
+      : el('p', { class: 'memory-empty' }, ['你沒有留下任何記憶。']);
+    this.memoryPage.replaceChildren(
+      el('h2', { class: 'memory-title' }, ['記憶對照']),
+      skip,
+      el('div', { class: 'memory-scroll' }, [body]),
+      done,
+    );
+    this.memoryPage.onclick = (e) => e.stopPropagation();
+    this.endingScreen.classList.remove('open');
+    this.memoryPage.classList.add('open');
   }
 
   /** 狀態變化時的回呼（開發者面板用）。 */

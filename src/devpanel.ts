@@ -1,7 +1,7 @@
 // 開發者面板：按 ` 鍵（或 F8）開關，網址加 ?dev=1 則一開始就打開。
 import type { Engine } from './engine';
 import { pickEnding, validateScript } from './script';
-import { ALL_FX, isChoice, type ChoiceLine, type Distance, type FxTag, type Gaze } from './types';
+import { ALL_FX, isText, type ChoiceLine, type Distance, type FxTag, type Gaze } from './types';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -23,6 +23,8 @@ export class DevPanel {
   constructor(
     private readonly engine: Engine,
     private readonly view: AdvView,
+    /** 打開文字編輯器。 */
+    private readonly openEditor?: () => void,
   ) {
     this.build();
     document.body.append(this.root);
@@ -140,6 +142,15 @@ export class DevPanel {
           this.button('回標題', () => e.toTitle()),
         ]),
       ),
+      this.section(
+        '文字編輯',
+        el('div', { class: 'dev-row' }, [
+          this.button('打開文字編輯', () => {
+            this.toggle(false);
+            this.openEditor?.();
+          }, { 'data-dev': 'editor' }),
+        ]),
+      ),
       this.section('腳本檢查', problemList),
     );
     this.root.addEventListener('click', (ev) => ev.stopPropagation());
@@ -170,22 +181,22 @@ export class DevPanel {
         mode: 'list',
         fx: [fx],
       };
-      v.showChoice(test, () => {
+      v.showChoice(test, test.choice.map((opt, index) => ({ opt, index, locked: false, missing: [] })), () => {
         v.clearChoice();
         v.stage.dataset.phase = e.phase;
       });
       return;
     }
-    if (fx === 'repeat_line' && line && !isChoice(line)) {
+    if (fx === 'repeat_line' && line && isText(line)) {
       e.repeats.push({ line, remaining: 1 });
     }
-    v.fx.trigger(fx, { line: line && !isChoice(line) ? line : undefined });
+    v.fx.trigger(fx, { line: line && isText(line) ? line : undefined });
   }
 
   refresh(): void {
     if (!this.isOpen) return;
     const e = this.engine;
-    const ending = pickEnding(e.script, e.stats, e.flags);
+    const ending = pickEnding(e.script, e.condContext);
     const rows: [string, string][] = [
       ['場景', e.scene ? `${e.scene.id}（第 ${e.scene.act ?? 1} 幕）` : '—'],
       ['句', e.scene ? `${e.index + 1} / ${e.scene.lines.length}` : '—'],
@@ -193,6 +204,7 @@ export class DevPanel {
       ['退化', `${e.degradation.toFixed(2)}${e.degradationOverride == null ? '（自動）' : '（手動）'}`],
       ['去飽和', e.desat.toFixed(2)],
       ['旗標', e.flags.length ? e.flags.join(', ') : '（無）'],
+      ['看過', e.seen.length ? e.seen.join(', ') : '（無）'],
       ['目前會走向', ending ? `${ending.id}｜${ending.title}` : '—'],
     ];
     this.status.replaceChildren(...rows.flatMap(([k, v]) => [el('dt', {}, [k]), el('dd', {}, [v])]));
