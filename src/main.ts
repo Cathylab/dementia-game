@@ -1,6 +1,7 @@
 import './style.css';
 import { AudioEngine } from './audio';
 import { DevPanel } from './devpanel';
+import { TextEditor } from './editor';
 import { Engine } from './engine';
 import { loadScript } from './script';
 import { applyScriptDefaults, settings } from './settings';
@@ -16,10 +17,11 @@ async function boot() {
     const view = new AdvView(app, engine);
     view.audio = new AudioEngine(settings.volume, view.stage);
     engine.view = view;
-    const dev = new DevPanel(engine, view);
+    const editor = new TextEditor(engine, view);
+    const dev = new DevPanel(engine, view, () => editor.open());
     view.onStateChange = () => dev.refresh();
     // 給測試與主控台除錯用
-    (window as unknown as { __vn: unknown }).__vn = { engine, view, dev };
+    (window as unknown as { __vn: unknown }).__vn = { engine, view, dev, editor };
     engine.toTitle();
   } catch (err) {
     app.textContent = `載入失敗：${(err as Error).message}`;

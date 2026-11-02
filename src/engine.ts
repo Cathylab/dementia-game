@@ -165,7 +165,7 @@ export class Engine {
   }
 
   /** 開新遊戲。 */
-  async start(sceneId?: string): Promise<void> {
+  async start(sceneId?: string, index = 0): Promise<void> {
     this.stats = { ...(this.script.meta.stats ?? {}) };
     this.flags = [];
     this.poses = {};
@@ -176,7 +176,7 @@ export class Engine {
     this.log = [];
     this.repeats = [];
     this.ending = null;
-    await this.gotoScene(sceneId ?? this.script.scenes[0].id);
+    await this.gotoScene(sceneId ?? this.script.scenes[0].id, { index });
   }
 
   toTitle(): void {

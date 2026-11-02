@@ -321,9 +321,23 @@ npx playwright install chromium
 
 面板內容：目前場景、句數、退化係數、去飽和量、旗標、數值（可用 ± 調整）與「目前會走向哪個結局」；跳到任一場景；手動觸發十一個效果（選項類效果在沒有選項時會叫出一組測試選項）；調整退化係數（取消「依幕自動」即可手動）；切換目前角色的 gaze 與 distance；從頭開始；腳本檢查結果。
 
+面板裡也有「打開文字編輯」（見下方「文字編輯」）。
+
 其他網址參數：`?timescale=0.2` 讓所有動畫與等待變成 0.2 倍時間（測試用）。主控台裡可以用 `__vn.engine`、`__vn.view` 直接操作。
 
 ---
+
+## 文字編輯
+
+不用碰 JSON 也能改台詞。打開方式：開發者面板的「打開文字編輯」，或網址加 `?edit=1`。
+
+- 可以改：台詞、選項提示、選項文字、物件名稱／說明／真相、結局標題、記憶對照的 `intro`。
+- 不能改：`if`、`requires`、`effects`、`flags`、`goto`、座標等結構欄位（`if`、`requires` 會唯讀顯示在旁邊）。
+- 修改立即套用到遊戲；每句旁邊的「▶ 試播」可以從那一句開始播。
+- 「復原」「重做」按鈕，或 Ctrl+Z、Ctrl+Shift+Z、Ctrl+Y。
+- **儲存**（或 Ctrl+S）：
+  - 本機 `npm run dev`：直接寫回 `public/script.json`（會重新排版）。若磁碟上的檔案結構在別處被改過，會拒絕寫入。
+  - 線上版：下載修改後的 `script.json`，再用它取代 `public/script.json`。
 
 ## 部署
 
@@ -340,6 +354,8 @@ npx playwright install chromium
 ## 專案結構
 
 ```
+docs/
+  script-format-v2.md  v2 腳本格式（給劇本 AI 與引擎 AI）
 public/
   script.json          故事腳本（換這個）
   assets/bg|char|fg|music/   素材（放真實檔案後取代佔位）
@@ -353,11 +369,17 @@ src/
   audio.ts             音樂播放、合成音、走音、muffle
   assets.ts            圖片載入與佔位圖
   devpanel.ts          開發者面板
+  editor.ts            文字編輯器
+  editable.ts          可編輯欄位、結構比對、JSON 排版（瀏覽器與開發伺服器共用）
+vite-plugin-script-save.ts   開發模式下把編輯結果寫回 script.json
   style.css            全部樣式
 tests/
   script.spec.ts       腳本檢查與結局可達性
   play.spec.ts         用示範腳本實際走到每個結局
   fx.spec.ts           每個效果對應的 class／DOM 變化
   ui.spec.ts           介面、ui 覆寫、第一視角元素、音樂、手機版
+  validate.spec.ts     v2 腳本檢查規則
+  if / objects / requires / settings / memory .spec.ts   v2 各項功能
+  editable / editor / editor-dev .spec.ts                文字編輯（含真的開發伺服器寫回測試）
   fixtures/test-script.json  測試專用腳本（測試時攔截取代 script.json）
 ```

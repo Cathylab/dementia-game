@@ -47,6 +47,10 @@ export async function jumpTo(page: Page, sceneId: string): Promise<void> {
 
 /** 點一下畫面（推進台詞）。 */
 export async function advance(page: Page): Promise<void> {
+  // 轉場中的點擊會被忽略，先等到台詞真的在播
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __vn: { engine: { phase: string } } }).__vn.engine.phase), { timeout: 5000 })
+    .toBe('text');
   // 點在台詞區：它疊在物件與背景上方，不會誤點到物件
   const box = (await page.locator('#stage').boundingBox())!;
   await page.locator('#stage').click({ position: { x: box.width * 0.15, y: box.height * 0.86 } });

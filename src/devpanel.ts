@@ -23,6 +23,8 @@ export class DevPanel {
   constructor(
     private readonly engine: Engine,
     private readonly view: AdvView,
+    /** 打開文字編輯器。 */
+    private readonly openEditor?: () => void,
   ) {
     this.build();
     document.body.append(this.root);
@@ -138,6 +140,15 @@ export class DevPanel {
             void e.start();
           }, { 'data-dev': 'reset' }),
           this.button('回標題', () => e.toTitle()),
+        ]),
+      ),
+      this.section(
+        '文字編輯',
+        el('div', { class: 'dev-row' }, [
+          this.button('打開文字編輯', () => {
+            this.toggle(false);
+            this.openEditor?.();
+          }, { 'data-dev': 'editor' }),
         ]),
       ),
       this.section('腳本檢查', problemList),

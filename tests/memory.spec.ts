@@ -116,6 +116,7 @@ test.describe('記憶對照：page（結局後獨立一頁）', () => {
     await jumpTo(page, 't_end_choice');
     await page.locator('.choice[data-index="0"]').click();
     await expect(page.locator('#stage')).toHaveAttribute('data-scene', 'end_x');
+    await expect(currentText(page)).toHaveText('結局 X。');
     await advance(page);
     await expect(page.locator('.ending-screen .start-button')).toHaveText('回到標題');
   });
