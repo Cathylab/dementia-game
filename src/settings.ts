@@ -11,10 +11,12 @@ export interface Settings {
   hiddenHints: boolean;
   /** 記憶對照：融入結局或結局後獨立一頁（v2）。 */
   memoryReview: MemoryReviewMode;
+  /** 配音音量 0–1；0 等於關閉配音（v3）。 */
+  voiceVolume: number;
 }
 
 const KEY = 'dementia-vn-settings';
-const BUILTIN: Settings = { textSpeed: 30, volume: 0.7, hiddenHints: false, memoryReview: 'inline' };
+const BUILTIN: Settings = { textSpeed: 30, volume: 0.7, hiddenHints: false, memoryReview: 'inline', voiceVolume: 0.9 };
 
 /** 玩家自己改過的設定（存在瀏覽器裡）。沒改過的項目才會套用腳本的預設值。 */
 const stored: Partial<Settings> = readStored();
@@ -39,6 +41,8 @@ export function applyScriptDefaults(defaults: SettingsDefaults | undefined): voi
   if ((defaults.memoryReview === 'inline' || defaults.memoryReview === 'page') && stored.memoryReview === undefined) {
     settings.memoryReview = defaults.memoryReview;
   }
+  const v = defaults.voiceVolume;
+  if (typeof v === 'number' && v >= 0 && v <= 1 && stored.voiceVolume === undefined) settings.voiceVolume = v;
 }
 
 /** 玩家在設定畫面改了某一項：立即生效並記住。 */

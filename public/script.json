@@ -37,7 +37,8 @@
           "appearAt": 0,
           "image": "notes_fridge",
           "description": "繳電費、改作文、十點陪佳穎試婚紗。一件一件寫下來，做完就撕掉。教書三十年的習慣。",
-          "truth": "電費爸上個月就繳了。那張便利貼，她每天早上重新寫一張，貼回原來的位置。"
+          "truth": "電費爸上個月就繳了。那張便利貼，她每天早上重新寫一張，貼回原來的位置。",
+          "truthVoice": "mr_a1_notes_daughter"
         },
         {
           "id": "a1_glasses",
@@ -48,7 +49,8 @@
           "appearAt": 2,
           "image": "glasses_neck",
           "description": "國華的老花眼鏡。戴上又拿下，一早上好幾次。叫他去配新的，他都說還看得到。",
-          "truth": "爸那天沒在看報。他戴上眼鏡，是在看媽貼的便利貼有沒有寫錯。"
+          "truth": "爸那天沒在看報。他戴上眼鏡，是在看媽貼的便利貼有沒有寫錯。",
+          "truthVoice": "mr_a1_glasses_daughter"
         },
         {
           "id": "a1_phone",
@@ -59,7 +61,8 @@
           "appearAt": 5,
           "image": "phone_chat",
           "description": "佳穎傳來新做的指甲，淡粉紅色。這孩子從小就愛漂亮，連顏色都要先問我。",
-          "truth": "照片上面還有好幾則：媽，今天禮拜二。媽，記得吃藥。她每天只看最新的那一則。"
+          "truth": "照片上面還有好幾則：媽，今天禮拜二。媽，記得吃藥。她每天只看最新的那一則。",
+          "truthVoice": "mr_a1_phone_daughter"
         }
       ],
       "lines": [
@@ -96,7 +99,8 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "幾點要出門？"
+          "text": "幾點要出門？",
+          "voice": "a1_s01_01_husband"
         },
         { "speaker": "player", "text": "十點。冰箱上有寫。" }
       ],
@@ -119,7 +123,8 @@
           "appearAt": 1,
           "image": "fridge_residue",
           "description": "這裡本來貼著一張，寫十點的那張。我記得是我昨天貼的，貼得很正。",
-          "truth": "那張便利貼在她外套口袋裡。出門前她自己撕下來帶著，怕忘記。"
+          "truth": "那張便利貼在她外套口袋裡。出門前她自己撕下來帶著，怕忘記。",
+          "truthVoice": "mr_a1_residue_daughter"
         },
         {
           "id": "a1_medicine",
@@ -130,7 +135,8 @@
           "appearAt": 3,
           "image": "medicine_bag",
           "description": "醫生開的藥，摺好放在包包最裡面，翻東西的時候才不會被佳穎看到。一天一顆，早上吃。",
-          "truth": "藥袋的日期是上個月。三十顆的藥，還剩二十一顆。她以為自己每天都有吃。"
+          "truth": "藥袋的日期是上個月。三十顆的藥，還剩二十一顆。她以為自己每天都有吃。",
+          "truthVoice": "mr_a1_medicine_daughter"
         }
       ],
       "lines": [
@@ -144,7 +150,8 @@
           "expression": "smile",
           "gaze": "camera",
           "distance": "far",
-          "text": "媽，好了沒？十點喔。"
+          "text": "媽，好了沒？十點喔。",
+          "voice": "a1_s02_01_daughter"
         },
         { "speaker": "narrator", "text": "佳穎已經在門口換好鞋，鑰匙在手指上轉圈。" },
         { "speaker": "narrator", "text": "國華從報紙後面抬起頭，看了她一眼，沒有說話。" },
@@ -163,6 +170,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "便利貼？……我幫妳找。",
+          "voice": "a1_s02_02_daughter",
           "if": "has(\"c03_ask\")"
         },
         { "speaker": "narrator", "text": "佳穎的表情緊了一下。她把鑰匙放下，蹲下來看沙發底下。", "if": "has(\"c03_ask\")" },
@@ -178,9 +186,17 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "路上小心。晚上我煮。"
+          "text": "路上小心。晚上我煮。",
+          "voice": "a1_s02_03_husband"
         },
-        { "speaker": "daughter", "expression": "smile", "gaze": "away", "distance": "far", "text": "媽，走了。" }
+        {
+          "speaker": "daughter",
+          "expression": "smile",
+          "gaze": "away",
+          "distance": "far",
+          "text": "媽，走了。",
+          "voice": "a1_s02_04_daughter"
+        }
       ],
       "next": "a1_s03"
     },
@@ -202,7 +218,8 @@
           "appearAt": 1,
           "image": "car_charm",
           "description": "後照鏡上的平安符，媽去廟裡幫我求的。佳穎出生那年我掛在車上，一直沒拿下來。",
-          "truth": "平安符是媽去年自己去求的，求的是我的婚事。她說是外婆給的，我沒有糾正。"
+          "truth": "平安符是媽去年自己去求的，求的是我的婚事。她說是外婆給的，我沒有糾正。",
+          "truthVoice": "mr_a1_charm_daughter"
         }
       ],
       "lines": [
@@ -215,7 +232,8 @@
           "expression": "neutral",
           "gaze": "away",
           "distance": "normal",
-          "text": "主桌我想讓舅舅坐，妳覺得呢？喜餅訂了六十盒，桌數大概二十二桌……"
+          "text": "主桌我想讓舅舅坐，妳覺得呢？喜餅訂了六十盒，桌數大概二十二桌……",
+          "voice": "a1_s03_01_daughter"
         },
         { "speaker": "narrator", "text": "淑芬在包包裡找便利貼，想把桌數寫下來。找到了筆，沒找到便利貼。" },
         {
@@ -223,11 +241,13 @@
           "expression": "smile",
           "gaze": "camera",
           "distance": "normal",
-          "text": "啊，對了。媽，妳那天要穿的旗袍還沒決定。"
+          "text": "啊，對了。媽，妳那天要穿的旗袍還沒決定。",
+          "voice": "a1_s03_02_daughter"
         },
         { "speaker": "narrator", "text": "衣櫃裡有紅的、有墨綠的，都是很多年前做的。" },
         {
           "prompt": "佳穎：「媽，妳要穿哪一件？」",
+          "voice": "a1_s03_03_daughter",
           "choice": [
             { "text": "穿紅色那件。", "effects": {}, "flags": ["c04_red"] },
             { "text": "妳幫我選。", "effects": {}, "flags": ["daughter_picked_qipao"] }
@@ -241,6 +261,7 @@
           "gaze": "away",
           "distance": "normal",
           "text": "好，紅色喜氣。",
+          "voice": "a1_s03_04_daughter",
           "if": "has(\"c04_red\")"
         },
         {
@@ -249,6 +270,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "真的？那我回家拿出來看。妳不要後悔喔。",
+          "voice": "a1_s03_05_daughter",
           "if": "has(\"daughter_picked_qipao\")"
         },
         { "speaker": "narrator", "text": "電台換了一首歌。佳穎跟著哼，手指在方向盤上打拍子。" }
@@ -273,7 +295,8 @@
           "appearAt": 6,
           "image": "veil_mirror",
           "description": "頭紗。我結婚那天，是媽在後面幫我別的，別了很久。她說新娘不能回頭。",
-          "truth": "外婆別頭紗的事，媽在店裡說了三次。第三次，店員看了我一眼，我搖頭說沒關係。"
+          "truth": "外婆別頭紗的事，媽在店裡說了三次。第三次，店員看了我一眼，我搖頭說沒關係。",
+          "truthVoice": "mr_a1_veil_daughter"
         }
       ],
       "lines": [
@@ -283,7 +306,8 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "媽媽這邊坐，這邊看最清楚。"
+          "text": "媽媽這邊坐，這邊看最清楚。",
+          "voice": "a1_s04_01_clerk"
         },
         { "speaker": "narrator", "text": "店員把椅子搬到鏡子正前方，倒了一杯水。" },
         { "speaker": "narrator", "text": "佳穎換上第一件白紗。裙襬很長，店員跟在後面幫她拉。" },
@@ -292,14 +316,23 @@
           "expression": "smile",
           "gaze": "camera",
           "distance": "normal",
-          "text": "媽，妳看。"
+          "text": "媽，妳看。",
+          "voice": "a1_s04_02_daughter"
         },
         { "speaker": "narrator", "text": "她在鏡子前轉了一圈，臉有點紅。" },
         { "speaker": "narrator", "text": "淑芬想起自己當年也站在差不多的鏡子前。母親在後面替她整理頭紗，整理了很久。" },
         { "speaker": "narrator", "text": "過了一會兒，佳穎進去換第二件。這件比較簡單，露出肩膀。" },
-        { "speaker": "daughter", "expression": "smile", "gaze": "camera", "distance": "near", "text": "這件呢？" },
+        {
+          "speaker": "daughter",
+          "expression": "smile",
+          "gaze": "camera",
+          "distance": "near",
+          "text": "這件呢？",
+          "voice": "a1_s04_03_daughter"
+        },
         {
           "prompt": "佳穎：「媽，好看嗎？」",
+          "voice": "a1_s04_04_daughter",
           "choice": [
             { "text": "很美，跟我當年一樣。", "effects": { "trust": 1, "lucidity": -1 }, "flags": ["c05_beautiful"] },
             { "text": "這件妳剛剛是不是穿過了？", "effects": { "trust": 0, "lucidity": 1 }, "flags": ["c05_asked"] }
@@ -314,6 +347,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "沒有啊。剛剛是第一件，這件是第二件。",
+          "voice": "a1_s04_05_daughter",
           "if": "has(\"c05_asked\")"
         },
         { "speaker": "narrator", "text": "淑芬低頭看手上的便利貼。上面只寫了十點。", "if": "has(\"c05_asked\")" },
@@ -322,7 +356,8 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "媽媽覺得哪一件比較好？"
+          "text": "媽媽覺得哪一件比較好？",
+          "voice": "a1_s04_06_clerk"
         },
         {
           "prompt": "店員看著她。",
@@ -343,6 +378,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "那就第二件！",
+          "voice": "a1_s04_07_daughter",
           "if": "has(\"c06_yours\")"
         }
       ],
@@ -365,7 +401,8 @@
           "appearAt": 5,
           "image": "album_phone",
           "description": "店裡的相簿。佳穎翻得很快，一頁都沒停。她小時候看書也這樣，我說過她囫圇吞棗。",
-          "truth": "相簿我沒在看。我在傳訊息給爸：媽又問第三次了，你能不能過來。"
+          "truth": "相簿我沒在看。我在傳訊息給爸：媽又問第三次了，你能不能過來。",
+          "truthVoice": "mr_a1_album_daughter"
         }
       ],
       "lines": [
@@ -378,7 +415,8 @@
           "expression": "worried",
           "gaze": "camera",
           "distance": "near",
-          "text": "媽，妳已經問第三次了。他今天要上班，我們早上就說過了。"
+          "text": "媽，妳已經問第三次了。他今天要上班，我們早上就說過了。",
+          "voice": "a1_s05_01_daughter"
         },
         { "speaker": "narrator", "text": "店員低頭整理裙襬。店裡安靜得只剩冷氣的聲音。" },
         { "speaker": "narrator", "text": "她看著手上的茶杯。茶已經涼了。" },
@@ -402,6 +440,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "那我們早點回家，妳休息一下。",
+          "voice": "a1_s05_02_daughter",
           "if": "has(\"c07_tired\")"
         },
         { "speaker": "narrator", "text": "佳穎把相簿合起來，跟店員說下次再來。", "if": "has(\"c07_tired\")" },
@@ -432,7 +471,8 @@
           "appearAt": 2,
           "image": "glasses_fridge",
           "description": "我的眼鏡，怎麼會在冰箱裡？一定是昨天拿牛奶的時候放的。鏡片都起霧了，得擦一擦。",
-          "truth": "那是爸的眼鏡。標籤是試婚紗那天回家後貼的。這不是第一次，只是這次他站了很久。"
+          "truth": "那是爸的眼鏡。標籤是試婚紗那天回家後貼的。這不是第一次，只是這次他站了很久。",
+          "truthVoice": "mr_a2_glasses_daughter"
         },
         {
           "id": "a2_notes",
@@ -443,7 +483,8 @@
           "appearAt": 5,
           "image": "notes_fridge2",
           "description": "繳電費、改作文、十點陪佳穎試婚紗。今天十點，要記得。",
-          "truth": "試婚紗那張，爸撕過好幾次，她又寫回去。後來他不撕了，在旁邊貼了一張：去過了。"
+          "truth": "試婚紗那張，爸撕過好幾次，她又寫回去。後來他不撕了，在旁邊貼了一張：去過了。",
+          "truthVoice": "mr_a2_notes_daughter"
         }
       ],
       "lines": [
@@ -461,7 +502,8 @@
           "expression": "neutral",
           "gaze": "away",
           "distance": "normal",
-          "text": "……在這裡。"
+          "text": "……在這裡。",
+          "voice": "a2_s06_01_husband"
         },
         { "speaker": "narrator", "text": "淑芬看著那副眼鏡。昨晚做過什麼：洗碗、看新聞、寫便利貼。" },
         { "speaker": "player", "text": "中間有一段。中間是什麼？" },
@@ -480,6 +522,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "沒關係。冰冰的，戴起來很涼。",
+          "voice": "a2_s06_02_husband",
           "if": "has(\"c08_admit\")"
         },
         { "speaker": "narrator", "text": "他把眼鏡擦乾，戴上，看了一眼冰箱門，又拿下來。", "if": "has(\"c08_admit\")" },
@@ -489,7 +532,8 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "今天我載妳去學校？"
+          "text": "今天我載妳去學校？",
+          "voice": "a2_s06_03_husband"
         },
         {
           "prompt": "國華拿著車鑰匙。",
@@ -506,6 +550,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "好。",
+          "voice": "a2_s06_04_husband",
           "if": "has(\"walked_alone\")"
         },
         { "speaker": "narrator", "text": "等她出門後，他也拿了鑰匙。", "if": "has(\"walked_alone\")" }
@@ -530,7 +575,8 @@
           "appearAt": 1,
           "image": "rollbook",
           "description": "點名簿。教了三十年，從來不用看簿子。今天先拿著，比較安心。",
-          "truth": "每個名字旁邊都有鉛筆字：靠窗、養狗、綁辮子。她把學生都寫成了便利貼。"
+          "truth": "每個名字旁邊都有鉛筆字：靠窗、養狗、綁辮子。她把學生都寫成了便利貼。",
+          "truthVoice": "mr_a2_rollbook_daughter"
         }
       ],
       "lines": [
@@ -544,6 +590,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "老師？",
+          "voice": "a2_s07_01_student",
           "fx": ["name_fade"]
         },
         { "speaker": "player", "text": "名字在嘴邊。" },
@@ -563,7 +610,8 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "老師，妳上禮拜說今天要考聽寫。"
+          "text": "老師，妳上禮拜說今天要考聽寫。",
+          "voice": "a2_s07_02_student"
         },
         {
           "prompt": "小宇舉著手。",
@@ -598,7 +646,8 @@
           "appearAt": 2,
           "image": "essay",
           "description": "小宇的作文，寫他家的狗來福。字越寫越潦草，我得叫他重抄一次。",
-          "truth": "小宇的字沒有變。那本她已經改過一次，紅字疊著紅字，兩次評語一模一樣。"
+          "truth": "小宇的字沒有變。那本她已經改過一次，紅字疊著紅字，兩次評語一模一樣。",
+          "truthVoice": "mr_a2_essay_daughter"
         }
       ],
       "lines": [
@@ -670,6 +719,7 @@
           "gaze": "away",
           "distance": "normal",
           "text": "好。",
+          "voice": "a2_s09_01_husband",
           "if": "has(\"c13_discard\")"
         },
         { "speaker": "narrator", "text": "國華把便利貼收進抽屜。沒有丟。他把抽屜關上，手放在上面一會兒。", "if": "has(\"c13_discard\")" },
@@ -680,6 +730,7 @@
           "gaze": "camera",
           "distance": "near",
           "text": "字很漂亮。每一張都是。",
+          "voice": "a2_s09_02_husband",
           "if": "has(\"c13_afraid\")"
         },
         { "speaker": "narrator", "text": "電視在播氣象。明天會下雨。" }
@@ -704,7 +755,8 @@
           "appearAt": 2,
           "image": "invitation",
           "description": "退休歡送會的邀請卡，紅底燙金，校長親自送來的。燙金的字在反光，我再看一次。",
-          "truth": "卡片背面，校長事先用原子筆寫了：下禮拜五中午，我請人去接您。他什麼都沒問。"
+          "truth": "卡片背面，校長事先用原子筆寫了：下禮拜五中午，我請人去接您。他什麼都沒問。",
+          "truthVoice": "mr_a2_invitation_daughter"
         }
       ],
       "lines": [
@@ -716,14 +768,16 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "張老師，下禮拜五。全校老師都會到，還有幾個畢業的學生要回來。"
+          "text": "張老師，下禮拜五。全校老師都會到，還有幾個畢業的學生要回來。",
+          "voice": "a2_s10_01_principal"
         },
         {
           "speaker": "principal",
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "到時候要不要上台說幾句？"
+          "text": "到時候要不要上台說幾句？",
+          "voice": "a2_s10_02_principal"
         },
         { "speaker": "narrator", "text": "她接過卡片。燙金的字在反光。" },
         { "speaker": "narrator", "text": "這個校長剛來的時候，是她帶他認識全校的老師。那是七年前的事，她記得很清楚。" },
@@ -732,10 +786,12 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "normal",
-          "text": "張老師，這些年辛苦了。"
+          "text": "張老師，這些年辛苦了。",
+          "voice": "a2_s10_03_principal"
         },
         {
           "prompt": "校長：「張老師，最近還好嗎？」",
+          "voice": "a2_s10_04_principal",
           "choice": [
             { "text": "很好，下禮拜就退休了。", "effects": { "trust": 1, "lucidity": -1 }, "flags": ["c14_fine"] },
             { "text": "我想跟您說一件事。", "effects": { "trust": -1, "lucidity": 1 }, "flags": ["c14_tell"] },
@@ -754,6 +810,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "好，好。退休了要常回來。",
+          "voice": "a2_s10_05_principal",
           "fx": ["repeat_line"],
           "if": "has(\"c14_fine\")"
         },
@@ -765,6 +822,7 @@
           "gaze": "camera",
           "distance": "near",
           "text": "張老師，謝謝妳告訴我。歡送會的事，我們再看。",
+          "voice": "a2_s10_06_principal",
           "if": "has(\"c14_tell\")"
         },
         { "speaker": "narrator", "text": "晚上，國華知道了。他在廚房站了很久，水一直開著。", "if": "has(\"c14_tell\")" },
@@ -774,6 +832,7 @@
           "gaze": "camera",
           "distance": "normal",
           "text": "……好。我會交代。",
+          "voice": "a2_s10_07_principal",
           "if": "has(\"hidden_rollbook\")"
         },
         { "speaker": "narrator", "text": "她沒有解釋那些字是什麼。校長也沒有問。", "if": "has(\"hidden_rollbook\")" },
@@ -806,6 +865,7 @@
           "gaze": "away",
           "distance": "normal",
           "text": "我。的。家。人。",
+          "voice": "a2_s11_01_student",
           "fx": ["name_fade"],
           "if": "has(\"forgot_student_name\")"
         },
@@ -815,6 +875,7 @@
           "gaze": "away",
           "distance": "normal",
           "text": "我。的。家。人。",
+          "voice": "a2_s11_02_student",
           "if": "!has(\"forgot_student_name\")"
         },
         { "speaker": "narrator", "text": "他一個字一個字，替她唸完。" },
@@ -842,6 +903,7 @@
           "image": "letter",
           "description": "寫給未來的我。寫好了，先收起來。",
           "truth": "信的日期，她寫成了自己結婚那一年。她寫完，摺好，沒有再看一次。",
+          "truthVoice": "mr_a3_letter_daughter",
           "fx": ["text_blur"]
         }
       ],
@@ -870,7 +932,8 @@
           "expression": "neutral",
           "gaze": "away",
           "distance": "normal",
-          "text": "要不要先睡？明天再寫。"
+          "text": "要不要先睡？明天再寫。",
+          "voice": "a3_s12_01_husband"
         },
         { "speaker": "player", "text": "再一下。" },
         { "speaker": "narrator", "text": "電視的光在牆上動。她寫到第四行。", "fx": ["focus_drift"] }
@@ -922,7 +985,8 @@
           "image": "qipao_collar",
           "description": "這件……誰的？",
           "fx": ["text_blur"],
-          "truth": "鏡子裡那個人，她說是新娘的姊姊，很年輕。那是她自己。"
+          "truth": "鏡子裡那個人，她說是新娘的姊姊，很年輕。那是她自己。",
+          "truthVoice": "mr_a4_qipao_daughter"
         },
         {
           "id": "a4_notes",
@@ -945,6 +1009,7 @@
           "image": "speech_zhuyin",
           "description": "講□。我□的。",
           "truth": "講稿上每個字旁邊，爸都用鉛筆標了注音。那是她教小朋友的方法，他練了一個禮拜。",
+          "truthVoice": "mr_a4_speech_daughter",
           "fx": ["text_blur"]
         }
       ],
@@ -958,7 +1023,8 @@
           "expression": "suit",
           "gaze": "camera",
           "distance": "near",
-          "text": "講稿在包包的夾層。等一下主持人會叫妳。"
+          "text": "講稿在包包的夾層。等一下主持人會叫妳。",
+          "voice": "a4_s14_01_husband"
         },
         { "speaker": "narrator", "text": "她點頭。把包包抱在胸前，抱得很緊。" },
         { "speaker": "narrator", "text": "包包很重。國華把一朵花別在她的衣襟上。" },
@@ -968,6 +1034,7 @@
           "gaze": "camera",
           "distance": "near",
           "text": "這件是佳穎幫妳選的。很好看。",
+          "voice": "a4_s14_02_husband",
           "if": "has(\"daughter_picked_qipao\")"
         },
         {
@@ -976,10 +1043,12 @@
           "gaze": "camera",
           "distance": "near",
           "text": "那時候妳堅持自己走，我在後面跟了一路。",
+          "voice": "a4_s14_03_husband",
           "if": "has(\"walked_alone\")"
         },
         {
           "prompt": "國華：「要不要我幫妳唸講稿？」",
+          "voice": "a4_s14_04_husband",
           "choice": [
             { "text": "我自己來。", "effects": { "trust": 0, "lucidity": 1 }, "flags": ["c16_self"] },
             { "text": "你幫我唸。", "effects": { "trust": 1, "lucidity": -1 }, "flags": ["c16_help"] },
@@ -1002,6 +1071,7 @@
           "gaze": "camera",
           "distance": "near",
           "text": "妳記得。",
+          "voice": "a4_s14_05_husband",
           "if": "has(\"hidden_glasses\")"
         },
         { "speaker": "narrator", "text": "他從西裝內袋拿出另一份講稿。他抄的。一人一份。", "if": "has(\"hidden_glasses\")" },
@@ -1030,10 +1100,12 @@
           "expression": "smile",
           "gaze": "away",
           "distance": "near",
-          "text": "媽，幫我扣項鍊好嗎？"
+          "text": "媽，幫我扣項鍊好嗎？",
+          "voice": "a4_s15_01_bride"
         },
         {
           "prompt": "新娘：「媽，幫我扣項鍊好嗎？」",
+          "voice": "a4_s15_02_bride",
           "choice": [
             { "text": "好，媽來。", "effects": { "trust": 0, "lucidity": -1 }, "flags": ["c17_self"] },
             { "text": "讓爸爸幫妳。", "effects": { "trust": 1, "lucidity": 1 }, "flags": ["c17_dad"] },
@@ -1092,6 +1164,7 @@
           "gaze": "camera",
           "distance": "near",
           "text": "妳那時候說太淡，我沒換。",
+          "voice": "a4_s16_01_bride",
           "if": "has(\"nail_too_pale\")"
         },
         { "speaker": "narrator", "text": "樂隊換了一首。那段旋律。她的嘴唇動了一下。", "if": "has(\"hummed_song\")" },
@@ -1103,6 +1176,7 @@
           "gaze": "camera",
           "distance": "near",
           "text": "媽，妳還好嗎？",
+          "voice": "a4_s16_02_bride",
           "fx": ["name_fade"]
         },
         {
@@ -1148,10 +1222,12 @@
           "expression": "neutral",
           "gaze": "camera",
           "distance": "far",
-          "text": "請新娘媽媽上台。"
+          "text": "請新娘媽媽上台。",
+          "voice": "a4_s17_01_host"
         },
         {
           "prompt": "主持人：「請新娘媽媽上台。」",
+          "voice": "a4_s17_02_host",
           "choice": [
             { "text": "好。", "effects": {}, "flags": [] },
             { "text": "嗯。", "effects": {}, "flags": [] },
@@ -1231,7 +1307,14 @@
         { "speaker": "narrator", "text": "打開。抬頭是五個字。她不認得。", "fx": ["text_blur"] },
         { "speaker": "narrator", "text": "國華走上台。他拿過那封信，沒有唸出聲。" },
         { "speaker": "narrator", "text": "他把信摺好，放進自己西裝的口袋。" },
-        { "speaker": "husband", "expression": "suit", "gaze": "camera", "distance": "near", "text": "我幫妳留著。" },
+        {
+          "speaker": "husband",
+          "expression": "suit",
+          "gaze": "camera",
+          "distance": "near",
+          "text": "我幫妳留著。",
+          "voice": "end_b_01_husband"
+        },
         { "speaker": "narrator", "text": "她點頭。她不知道他留著什麼。" },
         { "speaker": "narrator", "text": "他牽她下台。台下有人拍手，拍得很輕。" },
         { "speaker": "narrator", "text": "新娘站在台邊。她伸手摸了一下母親的衣領。" },
@@ -1277,7 +1360,14 @@
         { "speaker": "narrator", "text": "台下的人看著她。沒有人說話。" },
         { "speaker": "narrator", "text": "國華走上來，牽起她的手。" },
         { "speaker": "player", "text": "今天是我結婚嗎？" },
-        { "speaker": "husband", "expression": "suit", "gaze": "camera", "distance": "near", "text": "嗯。" },
+        {
+          "speaker": "husband",
+          "expression": "suit",
+          "gaze": "camera",
+          "distance": "near",
+          "text": "嗯。",
+          "voice": "end_c_01_husband"
+        },
         { "speaker": "narrator", "text": "她跟著他下台。那隻手，她認得。" },
         { "speaker": "narrator", "text": "新娘站在台邊，眼睛紅紅的。她對母親笑。" },
         { "speaker": "narrator", "text": "晚上，佳穎在她包包裡找到那封信。" },
