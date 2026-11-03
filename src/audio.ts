@@ -294,6 +294,8 @@ export class AudioEngine implements AudioLike {
   private voiceVolume = 0.9;
   private manifest: Promise<Set<string> | null> | null = null;
   private readonly voiceBuffers = new Map<string, Promise<AudioBuffer | null>>();
+  /** 開發者面板上傳的配音（只在這次開啟的頁面有效）。 */
+  private readonly uploadedVoices = new Set<string>();
   private requestSeq = 0;
   private degradation = 0;
   private muffled = false;
@@ -420,7 +422,7 @@ export class AudioEngine implements AudioLike {
 
   /** 這句配音有沒有音檔（依 manifest 判斷，不會產生 404）。 */
   async hasVoice(id: string): Promise<boolean> {
-    return (await this.voiceFile(id)) !== null;
+    return this.uploadedVoices.has(id) || (await this.voiceFile(id)) !== null;
   }
 
   /**
@@ -501,6 +503,23 @@ export class AudioEngine implements AudioLike {
       this.playMusic(name);
     }
     return true;
+  }
+
+  /**
+   * 開發者面板上傳：把電腦裡的音檔暫時當成某句配音（只在這次開啟的頁面有效）。
+   * 回傳 false 表示瀏覽器無法解碼這個檔案。
+   */
+  async useVoiceFile(id: string, file: Blob): Promise<boolean> {
+    this.unlock();
+    if (!this.ctx) return false;
+    try {
+      const buffer = await this.ctx.decodeAudioData(await file.arrayBuffer());
+      this.voiceBuffers.set(id, Promise.resolve(buffer));
+      this.uploadedVoices.add(id);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** 字串＝播放該曲；null＝停止；undefined＝沿用目前的曲子。 */
