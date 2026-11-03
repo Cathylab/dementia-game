@@ -1,13 +1,15 @@
 // 音樂：優先播放 public/assets/music/{name}.ogg（或 .mp3），檔案不存在時改用 Web Audio 合成的環境音。
 // 走音機制（音高漂移、節奏不穩、偶爾靜音、音量不穩、濾波）同時套用在兩種來源上，強度由退化係數決定。
 import { clamp, rand, seeded } from './util';
+import { localFileUrl } from './localfiles';
 import type { AudioLike } from './view';
 
 const MUSIC_BASE = `${import.meta.env.BASE_URL}assets/music`;
 const VOICE_BASE = `${import.meta.env.BASE_URL}assets/voice`;
 /** 配音依序找的副檔名。 */
 export const VOICE_EXTENSIONS = ['mp3', 'ogg'];
-const EXTENSIONS = ['ogg', 'mp3'];
+export const MUSIC_EXTENSIONS = ['ogg', 'mp3'];
+const EXTENSIONS = MUSIC_EXTENSIONS;
 
 type Mode = 'file' | 'synth';
 
@@ -294,8 +296,6 @@ export class AudioEngine implements AudioLike {
   private voiceVolume = 0.9;
   private manifest: Promise<Set<string> | null> | null = null;
   private readonly voiceBuffers = new Map<string, Promise<AudioBuffer | null>>();
-  /** 開發者面板上傳的配音（只在這次開啟的頁面有效）。 */
-  private readonly uploadedVoices = new Set<string>();
   private requestSeq = 0;
   private degradation = 0;
   private muffled = false;
@@ -422,7 +422,7 @@ export class AudioEngine implements AudioLike {
 
   /** 這句配音有沒有音檔（依 manifest 判斷，不會產生 404）。 */
   async hasVoice(id: string): Promise<boolean> {
-    return this.uploadedVoices.has(id) || (await this.voiceFile(id)) !== null;
+    return (await this.voiceFile(id)) !== null;
   }
 
   /**
@@ -431,6 +431,8 @@ export class AudioEngine implements AudioLike {
    * 沒有 manifest 時才逐一嘗試 .mp3、.ogg。
    */
   private async voiceFile(id: string): Promise<string | null> {
+    const local = localFileUrl('voice', id, VOICE_EXTENSIONS);
+    if (local) return local;
     const manifest = await this.voiceManifest();
     if (manifest) {
       const ext = VOICE_EXTENSIONS.find((e) => manifest.has(`${id}.${e}`));
@@ -506,8 +508,8 @@ export class AudioEngine implements AudioLike {
   }
 
   /**
-   * 開發者面板上傳：把電腦裡的音檔暫時當成某句配音（只在這次開啟的頁面有效）。
-   * 回傳 false 表示瀏覽器無法解碼這個檔案。
+   * 開發者面板上傳：把電腦裡的音檔當成某句配音。檔案本身由呼叫端放進本機素材（localfiles），
+   * 這裡只先解碼確認瀏覽器能播。回傳 false 表示無法解碼。
    */
   async useVoiceFile(id: string, file: Blob): Promise<boolean> {
     this.unlock();
@@ -515,7 +517,6 @@ export class AudioEngine implements AudioLike {
     try {
       const buffer = await this.ctx.decodeAudioData(await file.arrayBuffer());
       this.voiceBuffers.set(id, Promise.resolve(buffer));
-      this.uploadedVoices.add(id);
       return true;
     } catch {
       return false;
@@ -547,9 +548,11 @@ export class AudioEngine implements AudioLike {
     let p = this.buffers.get(name);
     if (!p) {
       p = (async () => {
-        for (const ext of EXTENSIONS) {
+        const local = localFileUrl('music', name, EXTENSIONS);
+        const urls = local ? [local] : EXTENSIONS.map((ext) => `${MUSIC_BASE}/${name}.${ext}`);
+        for (const url of urls) {
           try {
-            const res = await fetch(`${MUSIC_BASE}/${name}.${ext}`);
+            const res = await fetch(url);
             const type = res.headers.get('content-type') ?? '';
             if (!res.ok || type.includes('text/html')) continue;
             return await this.ctx!.decodeAudioData(await res.arrayBuffer());

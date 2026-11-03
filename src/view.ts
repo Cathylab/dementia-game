@@ -151,6 +151,8 @@ export class AdvView implements View {
   private pendingTimer = 0;
   private monologueStay = 0;
   private inspectTimer = 0;
+  /** 標題畫面下方的小字（例如「本機專案」），空字串＝不顯示。 */
+  titleNote = '';
   /** 上一個顯示過的幕；換幕時才出現章節卡。回標題時清掉。 */
   private lastAct: number | null = null;
   private skipChapter: (() => void) | null = null;
@@ -643,6 +645,7 @@ export class AdvView implements View {
       el('h1', {}, [meta.title]),
       el('p', { class: 'subtitle' }, [meta.durationMinutes ? `約 ${meta.durationMinutes} 分鐘 ・ 建議戴上耳機` : '建議戴上耳機']),
       start,
+      ...(this.titleNote ? [el('p', { class: 'project-badge' }, [this.titleNote])] : []),
     );
     this.titleScreen.classList.add('open');
     this.stage.dataset.phase = 'title';

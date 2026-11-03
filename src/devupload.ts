@@ -1,16 +1,20 @@
 // 開發者面板「上傳素材」：把電腦裡的配音、背景、立繪、物品圖、音樂暫時放進遊戲裡試看，
 // 並產生檔名正確（圖片轉成 webp、太大會縮小）的檔案，方便放進 GitHub 的 public/assets/。
 // 網頁版（GitHub Pages）無法直接寫進 repo，所以上傳只在這次開啟的頁面有效。
-import { isPlaceholder, overrideImage, resolveImage, type ImageKind } from './assets';
-import { VOICE_EXTENSIONS } from './audio';
+import { assetNames, type AssetKind } from './assetnames';
+import { forgetImage, isPlaceholder, resolveImage, type ImageKind } from './assets';
+import { MUSIC_EXTENSIONS, VOICE_EXTENSIONS } from './audio';
 import type { Engine } from './engine';
-import { neededSprites } from './script';
-import { isText } from './types';
+import { putLocalFile } from './localfiles';
 import { el } from './util';
-import { voiceEntries } from './voice';
 import type { AdvView } from './view';
 
-export type UploadKind = 'voice' | ImageKind | 'music';
+export type UploadKind = AssetKind;
+
+/** 腳本裡用到的素材名稱（依腳本順序、不重複）。 */
+export function neededNames(engine: Engine, kind: UploadKind): string[] {
+  return assetNames(engine.script, kind);
+}
 
 export const UPLOAD_KINDS: { kind: UploadKind; label: string; folder: string; accept: string }[] = [
   { kind: 'voice', label: '配音', folder: 'voice', accept: 'audio/*,.mp3,.ogg' },
@@ -22,28 +26,6 @@ export const UPLOAD_KINDS: { kind: UploadKind; label: string; folder: string; ac
 
 /** 圖片最長邊上限：背景要看清楚細節，其他用不到那麼大。 */
 const MAX_SIDE: Record<ImageKind, number> = { bg: 2560, char: 2048, fg: 2048 };
-const MUSIC_EXTENSIONS = ['ogg', 'mp3'];
-
-/** 腳本裡用到的素材名稱（依腳本順序、不重複）。 */
-export function neededNames(engine: Engine, kind: UploadKind): string[] {
-  const script = engine.script;
-  const names = new Set<string>();
-  if (kind === 'voice') for (const v of voiceEntries(script)) names.add(v.id);
-  if (kind === 'char') for (const s of neededSprites(script)) names.add(`${s.charId}_${s.expression}`);
-  for (const scene of script.scenes) {
-    if (kind === 'bg' && scene.background) names.add(scene.background);
-    if (kind === 'fg' && scene.foreground) names.add(scene.foreground);
-    if (kind === 'music' && scene.music) names.add(scene.music);
-    for (const obj of scene.objects ?? []) if (kind === 'fg' && obj.image) names.add(obj.image);
-    for (const line of scene.lines) {
-      if (!isText(line)) continue;
-      if (kind === 'fg' && line.wrongObject) names.add(line.wrongObject);
-      if (kind === 'bg' && line.timeSkipTo) names.add(line.timeSkipTo);
-      if (kind === 'music' && line.music) names.add(line.music);
-    }
-  }
-  return [...names];
-}
 
 /** 線上版（xxx.github.io/repo/）對應的 GitHub 上傳頁；其他網址回傳 null。 */
 export function githubUploadUrl(folder: string, loc: Location = window.location): string | null {
@@ -104,7 +86,7 @@ function kb(n: number): string {
 }
 
 /** 開發者面板裡的「上傳素材」區塊。 */
-export function buildUploadSection(engine: Engine, view: AdvView): HTMLElement {
+export function buildUploadSection(engine: Engine, view: AdvView, savedToProject = false): HTMLElement {
   const kindSelect = el('select', { name: 'dev-upload-kind' });
   for (const k of UPLOAD_KINDS) kindSelect.append(el('option', { value: k.kind }, [k.label]));
   const nameSelect = el('select', { name: 'dev-upload-name' });
@@ -177,12 +159,15 @@ export function buildUploadSection(engine: Engine, view: AdvView): HTMLElement {
           if (!view.audio) throw new Error('這個頁面沒有聲音引擎');
           const played = k.kind === 'voice' ? await view.audio.useVoiceFile(name, f) : await view.audio.useFile(name, f);
           if (!played) throw new Error(`瀏覽器無法播放：${f.name}`);
+          // 副檔名不對時也先放進來試聽；匯出專案檔時用正確的副檔名
+          putLocalFile(`${k.folder}/${name}.${allowed.includes(ext) ? ext : allowed[0]}`, f);
           if (k.kind === 'music' && (engine.scene?.music === name || view.audio.musicName === name)) view.audio.playMusic(name);
           const extNote = allowed.includes(ext) ? '' : `（正式檔案要是 ${allowed.join(' 或 ')}，這個檔是 .${ext || '?'}）`;
           addResult(name, f, `${name}.${allowed.includes(ext) ? ext : allowed[0]}`, `已放進遊戲${unknown}${extNote}`);
         } else {
           const { blob, ext, note } = await prepareImage(f, k.kind);
-          overrideImage(k.kind, name, URL.createObjectURL(blob));
+          putLocalFile(`${k.folder}/${name}.${ext}`, blob);
+          forgetImage(k.kind, name);
           await view.refreshAsset(k.kind, name);
           addResult(name, blob, `${name}.${ext}`, `已放進遊戲（${note}）${unknown}`);
         }
@@ -192,7 +177,9 @@ export function buildUploadSection(engine: Engine, view: AdvView): HTMLElement {
         addResult(name, null, '', `✗ ${err instanceof Error ? err.message : String(err)}`);
       }
     }
-    status.textContent = `${ok} / ${files.length} 個檔案已放進遊戲。只在這次開啟的頁面有效，重新整理就會消失；要正式使用，請下載下面的檔案，放進 GitHub 的 public/assets/${k.folder}/。`;
+    status.textContent = savedToProject
+      ? `${ok} / ${files.length} 個檔案已放進遊戲，並存進本機專案（重新整理也還在，匯出專案檔時會一起帶走）。`
+      : `${ok} / ${files.length} 個檔案已放進遊戲。只在這次開啟的頁面有效，重新整理就會消失；要留下來，可以按上方「存成本機專案」，或下載下面的檔案放進 GitHub 的 public/assets/${k.folder}/。`;
     void fillNames();
   };
 

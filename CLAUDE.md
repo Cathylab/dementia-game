@@ -30,7 +30,10 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/view.ts`：ADV 介面、轉場（`blink()`，樣式由 `meta.transition` 決定）、打字、獨白、選項與 hotspot、可點物件與說明卡、記憶對照、對話紀錄、設定、手機直式拖曳背景。`src/fx.ts` 實作 11 個效果標籤與退化係數（act 1→0、2→0.5、3 以上→1）。
 - `src/script.ts`：`validateScript`（所有腳本檢查規則，警告以「（警告）」開頭）、`if`／結局條件（`new Function`，可用數值名稱、`has()`、`seen()`、`flags`）、`sceneReachability`。
 - `src/audio.ts`：音樂（找不到 `.ogg`／`.mp3` 時用 Web Audio 合成，退化時走音）與配音（另一條音軌，只受 `muffle` 影響）。配音只請求 `assets/voice/manifest.json` 列出的檔案，避免缺檔產生 404。
-- `src/devupload.ts`：開發者面板「上傳素材」，暫時覆寫圖片（`overrideImage`）與配音／音樂（`useVoiceFile`／`useFile`），並提供轉好 webp 的下載與 GitHub 上傳頁連結（不會寫進 repo）。
+- `src/main.ts` 啟動時經 `ProjectSession.start`（`src/project.ts`）決定模式：`site`＝網站的 `script.json`；`local`＝瀏覽器 IndexedDB 裡的本機專案（`src/projectstore.ts` 的 `ProjectStore` 介面，之後做雲端就換實作）。`?site=1` 略過本機專案。
+- `src/localfiles.ts`：本機素材層（`bg/x.webp` 這種路徑→Blob）。`resolveImage`、配音、音樂都先查這裡再去 `public/assets/`。本機專案模式下新加入的檔案自動存回 store。
+- `src/projectfile.ts`：專案檔 `.vnproj`（zip：`project.json`、`script.json`、`assets/…`），用 `fflate`。
+- `src/devupload.ts`：開發者面板「上傳素材」，放進本機素材層（`putLocalFile`＋`forgetImage`），並提供轉好 webp 的下載與 GitHub 上傳頁連結。
 - `src/editable.ts`：文字編輯器可改的欄位、`structureOf`（只比結構；呈現設定 `meta.transition`、`objectHighlight`、`sprite`、`characters[].sprite`、`scenes[].music` 視為可改）、JSON 排版 `formatScript`。瀏覽器與 dev server 共用。
 - `vite-plugin-script-save.ts`：dev 模式 `POST /__editor/save-script` 寫回 `public/script.json`（結構不同就拒絕）。`vite-plugin-voice-manifest.ts`：dev 端點與 build 產生 `assets/voice/manifest.json`。
 
@@ -46,6 +49,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - 大部分測試用 `tests/fixtures/test-script.json`（`openWithTestScript` 用 route 攔截 `script.json`），不依賴正式劇本；`play.spec.ts`、`script.spec.ts` 才用 `public/script.json`。
 - `tests/helpers.ts`：`jumpTo`（經開發者面板跳場景）、`advance`（等 `engine.phase === 'text'` 才點台詞區）、`?timescale=0.2` 讓動畫變快。熱點會隨畫面晃動，點擊要用 `click({ force: true })`。
 - `tests/simulate.ts` 窮舉選項與物件點擊組合檢查每個結局可達（狀態太多時隨機抽樣）；`play.spec.ts` 依它的路線在瀏覽器實際走到每個結局。
+- 本環境沒有設 `LANG`，Chromium 會把中文下載檔名改成 `download`；`playwright.config.ts` 已替瀏覽器補上 `C.UTF-8`。
 - 測試音檔／圖檔用 route 送假的 WAV／PNG；配音要同時 route `assets/voice/manifest.json`。
 - 改完功能後跑完整 `npm test` 再推。
 

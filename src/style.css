@@ -483,6 +483,16 @@ button {
 }
 
 /* 章節卡：每一幕開頭，在黑幕上大字顯示「婚禮前半年」這類時間 */
+.project-badge {
+  margin: 0;
+  padding: 2px 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 13px;
+  opacity: 0.8;
+}
+
 .chapter-card {
   position: absolute;
   inset: 0;
@@ -1277,6 +1287,23 @@ button {
 
 .dev-section > summary:hover h3 {
   color: #8fd3ff;
+}
+
+/* 專案 */
+.dev-project-where {
+  margin: 2px 0 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #1a2230;
+  font-size: 12px;
+}
+
+.dev-project-where[data-mode='local'] {
+  background: #23301a;
+}
+
+.dev-wrap {
+  flex-wrap: wrap;
 }
 
 /* 上傳素材 */

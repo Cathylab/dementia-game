@@ -12,6 +12,8 @@ import {
   type TransitionStyle,
 } from './types';
 import { buildUploadSection } from './devupload';
+import { PROJECT_EXT } from './projectfile';
+import { timeLabel, type ProjectSession } from './project';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -64,6 +66,8 @@ export class DevPanel {
     private readonly openEditor?: () => void,
     /** 儲存腳本（本機寫回 script.json，線上版下載），回傳結果訊息。 */
     private readonly saveScript?: () => Promise<string>,
+    /** 專案（網站版或本機專案），沒有就不顯示「專案」區塊。 */
+    private readonly project?: ProjectSession,
   ) {
     this.build();
     document.body.append(this.root);
@@ -190,10 +194,11 @@ export class DevPanel {
 
     this.root.append(
       el('header', {}, [title, foldAll, fold, close]),
+      ...(this.project ? [this.buildProject(this.project)] : []),
       this.section('目前狀態', this.status, this.stats),
       this.section('跳到場景', el('div', { class: 'dev-row' }, [this.sceneSelect, jump])),
       this.buildPresentation(),
-      this.section('上傳素材', buildUploadSection(e, this.view)),
+      this.section('上傳素材', buildUploadSection(e, this.view, this.project?.mode === 'local')),
       this.section('觸發效果', el('div', { class: 'dev-grid' }, fxButtons)),
       this.section(
         '退化係數',
@@ -406,6 +411,91 @@ export class DevPanel {
     );
   }
 
+  /**
+   * 專案：匯出整個遊戲成一個專案檔、開啟專案檔、把目前的遊戲存成本機專案、關閉本機專案。
+   * 開啟／存成／關閉之後重新載入頁面，遊戲從頭開始。
+   */
+  private buildProject(project: ProjectSession): HTMLElement {
+    const e = this.engine;
+    const local = project.mode === 'local';
+    const where = el('p', { class: 'dev-project-where', 'data-dev': 'project-mode', 'data-mode': project.mode });
+    const msg = el('p', { class: 'dev-note', 'data-dev': 'project-status', 'aria-live': 'polite' });
+    const showWhere = () => {
+      where.textContent = local
+        ? `目前：本機專案「${e.script.meta.title}」，存在${project.store.label}裡${project.savedAt ? `（最後儲存 ${timeLabel(project.savedAt)}）` : ''}。文字修改按「儲存」、上傳的素材會自動存進去。`
+        : '目前：網站上的遊戲。這裡的修改和上傳只在這次開啟的頁面有效。';
+      if (project.lastError) msg.textContent = project.lastError;
+    };
+    this.syncProject = showWhere;
+    showWhere();
+
+    const busy = (on: boolean) => {
+      for (const b of buttons) b.disabled = on;
+      file.disabled = on;
+    };
+    const progress = (verb: string) => (done: number, total: number) => {
+      msg.textContent = total ? `${verb}：收集素材 ${done} / ${total}…` : `${verb}…`;
+    };
+    const run = async (task: () => Promise<string | void>, reload = false) => {
+      busy(true);
+      try {
+        const text = await task();
+        if (reload) {
+          msg.textContent = '完成，重新載入…';
+          location.reload();
+          return;
+        }
+        if (text) msg.textContent = text;
+      } catch (err) {
+        msg.textContent = `沒有成功：${(err as Error)?.message ?? err}`;
+      }
+      busy(false);
+      showWhere();
+    };
+
+    const exportBtn = this.button('匯出專案檔', () => void run(() => project.exportFile(e.script, progress('匯出中'))), {
+      'data-dev': 'export-project',
+      class: 'dev-primary',
+    });
+    const file = el('input', { type: 'file', name: 'dev-project-file', accept: `.${PROJECT_EXT},.zip` });
+    file.onchange = () => {
+      const f = file.files?.[0];
+      file.value = '';
+      if (!f) return;
+      if (local && !confirm('開啟後會取代目前的本機專案。還沒匯出的修改會不見，確定嗎？')) return;
+      void run(async () => {
+        msg.textContent = `開啟「${f.name}」…`;
+        await project.openFile(f);
+      }, true);
+    };
+    const saveLocal = this.button(
+      '存成本機專案',
+      () => void run(() => project.saveAsLocal(e.script, progress('存成本機專案')), true),
+      { 'data-dev': 'save-local' },
+    );
+    const close = this.button(
+      '關閉本機專案',
+      () => {
+        if (!confirm('關閉後會回到網站上的遊戲，這個瀏覽器裡的專案會刪掉。先匯出專案檔了嗎？')) return;
+        void run(() => project.close(), true);
+      },
+      { 'data-dev': 'close-project' },
+    );
+    const buttons = [exportBtn, local ? close : saveLocal];
+
+    return this.section(
+      '專案',
+      where,
+      el('div', { class: 'dev-row dev-wrap' }, buttons),
+      el('label', { class: 'dev-row' }, ['開啟專案檔', file]),
+      msg,
+      el('p', { class: 'dev-note' }, [
+        `專案檔（.${PROJECT_EXT}）把劇本和所有圖片、配音、音樂裝在一個檔案裡，可以存在電腦、傳給別人。開啟後存在${project.store.label}裡，重新整理也還在；換電腦或換瀏覽器時，用專案檔帶過去。`,
+      ]),
+    );
+  }
+
+  private syncProject: () => void = () => {};
   private syncSpriteChar: () => void = () => {};
   private syncMusic: () => void = () => {};
 
@@ -472,6 +562,7 @@ export class DevPanel {
       this.syncMusic();
     }
     this.syncSpriteChar();
+    this.syncProject();
     this.degRange.value = String(e.degradation);
     this.degOut.textContent = e.degradation.toFixed(2);
     const pose = e.lastChar ? e.poses[e.lastChar] : null;

@@ -12,7 +12,11 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}/`,
     viewport: { width: 1280, height: 720 },
-    launchOptions: { args: ['--autoplay-policy=no-user-gesture-required'] },
+    launchOptions: {
+      args: ['--autoplay-policy=no-user-gesture-required'],
+      // 沒有設定語系的環境，Chromium 會把中文下載檔名改成 "download"
+      env: { ...process.env, LANG: process.env.LANG || 'C.UTF-8' },
+    },
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } } }],
