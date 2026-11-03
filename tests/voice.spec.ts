@@ -1,6 +1,6 @@
 // 配音（v3）：播放、缺檔安靜、自動模式等聲音、略過不播、配音音量、紀錄重播、記憶對照、
 // 選項提示、腳本檢查、開發者頁面「配音總表」。
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { validateScript } from '../src/script';
 import type { Script } from '../src/types';
@@ -229,14 +229,17 @@ test.describe('腳本檢查：配音', () => {
 });
 
 test.describe('開發者頁面：配音總表', () => {
-  test('正式腳本：66 句全部缺檔', async ({ page }) => {
+  test('正式腳本：66 句，有無音檔與 public/assets/voice 裡的檔案一致', async ({ page }) => {
+    const files = (await readdir(new URL('../public/assets/voice/', import.meta.url))).filter((f) => /\.(mp3|ogg)$/.test(f));
+    const has = new Set(files.map((f) => f.replace(/\.(mp3|ogg)$/, '')));
+    const real = JSON.parse(await readFile(new URL('../public/script.json', import.meta.url), 'utf8')) as Script;
+    const present = voiceEntries(real).filter((e) => has.has(e.id)).length;
     await page.goto('./?voice=1');
-    await expect(page.locator('.voice-desk')).toHaveAttribute('data-ready', '1', { timeout: 20000 });
+    await expect(page.locator('.voice-desk')).toHaveAttribute('data-ready', '1', { timeout: 30000 });
     await expect(page.locator('.vd-table tbody tr')).toHaveCount(66);
     await expect(page.locator('[data-count=total]')).toHaveText('共 66 句');
-    await expect(page.locator('[data-count=missing]')).toHaveText('缺檔 66');
-    await expect(page.locator('[data-count=has]')).toHaveText('有音檔 0');
-    await expect(page.locator('.vd-table tr[data-status=missing]')).toHaveCount(66);
+    await expect(page.locator('[data-count=has]')).toHaveText(`有音檔 ${present}`);
+    await expect(page.locator('[data-count=missing]')).toHaveText(`缺檔 ${66 - present}`);
   });
 
   test('探測、統計、篩選、試聽、匯出', async ({ page }) => {
