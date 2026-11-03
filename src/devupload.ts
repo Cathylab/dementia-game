@@ -21,7 +21,8 @@ export const UPLOAD_KINDS: { kind: UploadKind; label: string; folder: string; ac
   { kind: 'bg', label: '背景圖', folder: 'bg', accept: 'image/*' },
   { kind: 'char', label: '立繪', folder: 'char', accept: 'image/*' },
   { kind: 'fg', label: '物品圖', folder: 'fg', accept: 'image/*' },
-  { kind: 'music', label: '音樂／音效', folder: 'music', accept: 'audio/*,.mp3,.ogg' },
+  { kind: 'music', label: '背景音樂', folder: 'music', accept: 'audio/*,.mp3,.ogg' },
+  { kind: 'sfx', label: '音效', folder: 'sfx', accept: 'audio/*,.mp3,.ogg' },
 ];
 
 /** 圖片最長邊上限：背景要看清楚細節，其他用不到那麼大。 */
@@ -127,6 +128,7 @@ export function buildUploadSection(engine: Engine, view: AdvView, savedToProject
 
   const exists = async (kind: UploadKind, name: string): Promise<boolean | null> => {
     if (kind === 'voice') return view.audio ? view.audio.hasVoice(name) : null;
+    if (kind === 'sfx') return view.audio ? view.audio.hasSfx(name) : null;
     if (kind === 'music') return null;
     return !isPlaceholder(await resolveImage(kind, name));
   };
@@ -153,15 +155,22 @@ export function buildUploadSection(engine: Engine, view: AdvView, savedToProject
       const name = files.length === 1 && chosen ? chosen : baseName(f.name);
       const unknown = !names.has(name) ? '（腳本裡沒有用到這個名稱，檢查一下拼字）' : '';
       try {
-        if (k.kind === 'voice' || k.kind === 'music') {
+        if (k.kind === 'voice' || k.kind === 'music' || k.kind === 'sfx') {
           const ext = extOf(f.name);
-          const allowed = k.kind === 'voice' ? VOICE_EXTENSIONS : MUSIC_EXTENSIONS;
+          const allowed = k.kind === 'music' ? MUSIC_EXTENSIONS : VOICE_EXTENSIONS;
           if (!view.audio) throw new Error('這個頁面沒有聲音引擎');
-          const played = k.kind === 'voice' ? await view.audio.useVoiceFile(name, f) : await view.audio.useFile(name, f);
+          const played =
+            k.kind === 'voice'
+              ? await view.audio.useVoiceFile(name, f)
+              : k.kind === 'sfx'
+                ? await view.audio.useSfxFile(name, f)
+                : await view.audio.useFile(name, f);
           if (!played) throw new Error(`瀏覽器無法播放：${f.name}`);
           // 副檔名不對時也先放進來試聽；匯出專案檔時用正確的副檔名
           putLocalFile(`${k.folder}/${name}.${allowed.includes(ext) ? ext : allowed[0]}`, f);
           if (k.kind === 'music' && (engine.scene?.music === name || view.audio.musicName === name)) view.audio.playMusic(name);
+          // 音效：放進去後馬上播一次給你聽
+          if (k.kind === 'sfx' && files.length === 1) view.audio.playSfx(name);
           const extNote = allowed.includes(ext) ? '' : `（正式檔案要是 ${allowed.join(' 或 ')}，這個檔是 .${ext || '?'}）`;
           addResult(name, f, `${name}.${allowed.includes(ext) ? ext : allowed[0]}`, `已放進遊戲${unknown}${extNote}`);
         } else {
@@ -191,7 +200,7 @@ export function buildUploadSection(engine: Engine, view: AdvView, savedToProject
     el('label', { class: 'dev-row' }, ['名稱', nameSelect]),
     el('label', { class: 'dev-row' }, ['檔案', file]),
     el('p', { class: 'dev-note' }, [
-      '可以一次選多個檔案：檔名要和腳本裡的名稱一樣（例如 a1_s04_01_clerk.mp3）。只選一個檔案時，可以在「名稱」指定要換掉哪一個。圖片會自動轉成 webp，太大會縮小。',
+      '可以一次選多個檔案：檔名要和腳本裡的名稱一樣（例如 a1_s04_01_clerk.mp3）。只選一個檔案時，可以在「名稱」指定要換掉哪一個。圖片會自動轉成 webp，太大會縮小。新的音效名稱要先在故事編輯器的台詞「♪ 聲音」裡設定，才會出現在名稱清單。',
     ]),
     folderNote,
     github,

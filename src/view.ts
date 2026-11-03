@@ -37,6 +37,13 @@ export interface AudioLike {
   /** 這句配音有沒有音檔。 */
   hasVoice(id: string): Promise<boolean>;
   setVoiceVolume(v: number): void;
+  /** 播一個音效（只播一次）。 */
+  playSfx(name: string): void;
+  hasSfx(name: string): Promise<boolean>;
+  /** 上傳了新的音效檔：忘掉之前載入的。 */
+  forgetSfx(name: string): void;
+  /** 把電腦裡的音檔當成某個音效（開發者面板上傳用）。 */
+  useSfxFile(name: string, file: Blob): Promise<boolean>;
 }
 
 /** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
@@ -537,7 +544,7 @@ export class AdvView implements View {
       close,
       el('div', { class: 'settings-body' }, [
         el('label', { class: 'setting' }, [el('span', {}, ['文字速度']), speed, speedOut]),
-        el('label', { class: 'setting' }, [el('span', {}, ['音樂音量']), vol]),
+        el('label', { class: 'setting' }, [el('span', {}, ['音樂與音效音量']), vol]),
         el('label', { class: 'setting' }, [el('span', {}, ['配音音量']), voice]),
         el('label', { class: 'setting setting-toggle' }, [el('span', {}, ['隱藏選項提示']), hints]),
         el('div', { class: 'setting setting-choice', role: 'radiogroup', 'aria-label': '記憶對照' }, [
@@ -846,6 +853,7 @@ export class AdvView implements View {
     this.fx.applyGlobal();
     this.renderObjects();
     if (line.music !== undefined) this.audio?.playMusic(line.music);
+    if (line.sfx && !this.skip) this.audio?.playSfx(line.sfx);
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
     this.showMemoryCard(line);
     if (!line.memory) this.startVoice(line.voice);

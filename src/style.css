@@ -2526,7 +2526,31 @@ body.voice-desk-page #app {
   gap: 6px;
 }
 
-.story-option .story-chips {
+.story-option .story-sound {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #11141a;
+}
+
+.story-sound[hidden] {
+  display: none;
+}
+
+.story-sound-label {
+  min-width: 5.5em;
+  color: #a8a196;
+  font-size: 13px;
+}
+
+.story button.small.on {
+  border-color: #7fb0d6;
+  color: #9cc8ea;
+}
+
+.story-chips {
   grid-column: 2 / -1;
 }
 

@@ -18,6 +18,7 @@ const EXTS: Record<AssetKind, readonly string[]> = {
   fg: IMAGE_EXTENSIONS,
   voice: VOICE_EXTENSIONS,
   music: MUSIC_EXTENSIONS,
+  sfx: VOICE_EXTENSIONS,
 };
 
 export class ProjectSession {
@@ -77,14 +78,19 @@ export class ProjectSession {
       }
       for (const name of names) if (!has(kind, name)) wanted.push({ kind, name });
     }
-    const voiceManifest = await fetchJson<string[]>(`${BASE}/voice/manifest.json`);
+    // 配音與音效有清單：只下載實際存在的檔案
+    const manifests: Partial<Record<AssetKind, string[] | null>> = {
+      voice: await fetchJson<string[]>(`${BASE}/voice/manifest.json`),
+      sfx: await fetchJson<string[]>(`${BASE}/sfx/manifest.json`),
+    };
     const required = new Set(ASSET_KINDS.flatMap((k) => assetNames(script, k).map((n) => `${k}/${n}`)));
     const missing: string[] = [];
     let done = 0;
     onProgress?.(0, wanted.length);
     await pool(wanted, 6, async ({ kind, name }) => {
       let exts = EXTS[kind];
-      if (kind === 'voice' && voiceManifest) exts = exts.filter((e) => voiceManifest.includes(`${name}.${e}`));
+      const list = manifests[kind];
+      if (list) exts = exts.filter((e) => list.includes(`${name}.${e}`));
       let found = false;
       for (const ext of exts) {
         const blob = await fetchFile(`${BASE}/${kind}/${name}.${ext}`);

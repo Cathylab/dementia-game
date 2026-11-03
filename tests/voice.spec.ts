@@ -186,7 +186,7 @@ test.describe('設定', () => {
     await startGame(page);
     await page.click('.tool-settings');
     await expect(page.locator('.settings-overlay')).toContainText('配音音量');
-    await expect(page.locator('.settings-overlay')).toContainText('音樂音量');
+    await expect(page.locator('.settings-overlay')).toContainText('音樂與音效音量');
     await expect(page.locator('input[name=voiceVolume]')).toHaveValue('0.9');
   });
 

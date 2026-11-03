@@ -89,6 +89,8 @@ export interface TextLine {
   music?: string | null;
   /** 配音編號：public/assets/voice/{voice}.mp3（或 .ogg）（v3）。 */
   voice?: string;
+  /** 這句出現時播一次的音效：public/assets/sfx/{sfx}.mp3（或 .ogg）。 */
+  sfx?: string;
   /** 引擎內部用：記憶對照產生的台詞，附帶物件圖與當時的說明。腳本裡不要寫。 */
   memory?: { objectId: string; label: string; description: string; image?: string };
 }

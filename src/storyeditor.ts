@@ -318,6 +318,15 @@ export class StoryEditor {
     for (const s of this.script.scenes) if (s.background) bgNames.add(s.background);
     for (const p of localFiles().keys()) if (p.startsWith('bg/')) bgNames.add(p.slice(3).replace(/\.[^.]+$/, ''));
     const bgList = el('datalist', { id: 'story-bg-names' }, [...bgNames].map((n) => el('option', { value: n })));
+    const soundNames = (kind: 'sfx' | 'music') => {
+      const names = new Set<string>();
+      for (const s of this.script.scenes) {
+        if (kind === 'music' && s.music) names.add(s.music);
+        for (const l of s.lines) if (isText(l) && l[kind]) names.add(l[kind]!);
+      }
+      for (const p of localFiles().keys()) if (p.startsWith(`${kind}/`)) names.add(p.slice(kind.length + 1).replace(/\.[^.]+$/, ''));
+      return el('datalist', { id: `story-${kind}-names` }, [...names].sort().map((n) => el('option', { value: n })));
+    };
     const bg = this.input(scene.background ?? '', { name: 'story-scene-bg', list: 'story-bg-names', placeholder: '背景圖名稱' });
     const thumb = el('img', { class: 'story-thumb', alt: '' });
     const showThumb = () => {
@@ -420,6 +429,8 @@ export class StoryEditor {
       el('div', { class: 'story-lines' }, lines),
       el('div', { class: 'story-add' }, [addText, addChoice]),
       ...(objects ? [objects] : []),
+      soundNames('sfx'),
+      soundNames('music'),
     );
   }
 
@@ -480,11 +491,80 @@ export class StoryEditor {
       autosize(text);
     };
     requestAnimationFrame(() => autosize(text));
+    const { row: sound, toggle } = this.soundRow(scene, t, i);
     return el('div', { class: `story-line story-text speaker-${t.speaker === 'narrator' || t.speaker === 'player' ? t.speaker : 'char'}`, 'data-line': String(i) }, [
-      el('div', { class: 'story-line-head' }, [num, speaker, expr, tools]),
+      el('div', { class: 'story-line-head' }, [num, speaker, expr, toggle, tools]),
       text,
+      sound,
       chips(textChips(t)),
     ]);
+  }
+
+  /**
+   * 這句台詞的聲音：出現時播一次的音效、從這句開始換音樂（或停止）。
+   * 沒設定時收起來，按「♪ 聲音」打開。
+   */
+  private soundRow(scene: Scene, t: TextLine, i: number): { row: HTMLElement; toggle: HTMLButtonElement } {
+    const sfx = this.input(t.sfx ?? '', { name: 'story-sfx', list: 'story-sfx-names', placeholder: '音效名稱，例如 door_bell' });
+    const hear = this.small('▶ 聽', () => {
+      const name = sfx.value.trim();
+      if (!name || !this.view.audio) return;
+      this.view.audio.unlock();
+      this.view.audio.playSfx(name);
+      void this.view.audio.hasSfx(name).then((ok) => {
+        if (!ok) {
+          this.message = `還沒有音效檔 ${name}：用開發者面板「上傳素材」的「音效」放進來，或上傳到 public/assets/sfx/${name}.mp3`;
+          this.refreshStatus();
+        }
+      });
+    }, { title: '試聽這個音效', 'data-story': 'hear-sfx' });
+    sfx.onchange = () =>
+      this.commit(
+        () => {
+          const name = sfx.value.trim();
+          if (name) t.sfx = name;
+          else delete t.sfx;
+        },
+        { rerender: false },
+      );
+
+    const mode = el('select', { name: 'story-line-music-mode', 'aria-label': '音樂' }, [
+      el('option', { value: 'keep' }, ['音樂不變']),
+      el('option', { value: 'stop' }, ['停止音樂']),
+      el('option', { value: 'set' }, ['換成：']),
+    ]);
+    mode.value = t.music === undefined ? 'keep' : t.music === null ? 'stop' : 'set';
+    const music = this.input(t.music ?? '', { name: 'story-line-music', list: 'story-music-names', placeholder: '曲名，例如 rain_night' });
+    music.hidden = mode.value !== 'set';
+    const applyMusic = () =>
+      this.commit(
+        () => {
+          if (mode.value === 'keep') delete t.music;
+          else if (mode.value === 'stop') t.music = null;
+          else if (music.value.trim()) t.music = music.value.trim();
+          else delete t.music;
+        },
+        { rerender: false },
+      );
+    mode.onchange = () => {
+      music.hidden = mode.value !== 'set';
+      if (mode.value === 'set') music.focus();
+      applyMusic();
+    };
+    music.onchange = applyMusic;
+
+    const row = el('div', { class: 'story-sound' }, [
+      el('label', { class: 'story-inline' }, [el('span', { class: 'story-sound-label' }, ['音效']), sfx, hear]),
+      el('label', { class: 'story-inline' }, [el('span', { class: 'story-sound-label' }, ['從這句開始']), mode, music]),
+    ]);
+    const has = t.sfx !== undefined || t.music !== undefined;
+    row.hidden = !has;
+    const toggle = this.small(has ? '♪ 聲音 ▴' : '♪ 聲音', () => {
+      row.hidden = !row.hidden;
+      toggle.textContent = row.hidden ? '♪ 聲音' : '♪ 聲音 ▴';
+    }, { title: '這句的音效、換音樂', 'data-story': 'sound', class: has ? 'on' : '' });
+    toggle.dataset.line = `${scene.id}:${i}`;
+    return { row, toggle };
   }
 
   private choiceCard(scene: Scene, line: ChoiceLine, i: number, num: HTMLElement, tools: HTMLElement, sceneIds: string[]): HTMLElement {
@@ -755,7 +835,6 @@ function textChips(t: TextLine): string[] {
   if (t.fx?.length) out.push(`效果 ${t.fx.join(', ')}`);
   if (t.voice) out.push(`配音 ${t.voice}`);
   if (t.if) out.push(`條件 ${t.if}`);
-  if (t.music !== undefined) out.push(t.music ? `換音樂 ${t.music}` : '音樂停止');
   if (t.gaze) out.push(`視線 ${t.gaze}`);
   if (t.distance) out.push(`距離 ${t.distance}`);
   if (t.wrongObject) out.push(`錯置物件 ${t.wrongObject}`);
