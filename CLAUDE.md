@@ -29,7 +29,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/engine.ts`：純流程與狀態（stats、flags、seen、history 快照、repeat_line 佇列、記憶對照展開的虛擬台詞）。透過 `View` 介面呼叫畫面，`engine.token` 每換句／換場景遞增，非同步流程用它判斷是否過期。`phase`：title／busy／text／choice／inspect／ending。
 - `src/view.ts`：ADV 介面、轉場（`blink()`，樣式由 `meta.transition` 決定）、打字、獨白、選項與 hotspot、可點物件與說明卡、記憶對照、對話紀錄、設定、手機直式拖曳背景。`src/fx.ts` 實作 11 個效果標籤與退化係數（act 1→0、2→0.5、3 以上→1）。
 - `src/script.ts`：`validateScript`（所有腳本檢查規則，警告以「（警告）」開頭）、`if`／結局條件（`new Function`，可用數值名稱、`has()`、`seen()`、`flags`）、`sceneReachability`。
-- `src/audio.ts`：音樂（找不到 `.ogg`／`.mp3` 時用 Web Audio 合成，退化時走音）與配音（另一條音軌，只受 `muffle` 影響）。配音只請求 `assets/voice/manifest.json` 列出的檔案，避免缺檔產生 404。
+- `src/audio.ts`：音樂（找不到 `.ogg`／`.mp3` 時用 Web Audio 合成，退化時走音）與配音（另一條音軌，只受 `muffle` 影響）。配音只請求 `assets/voice/manifest.json` 列出的檔案，避免缺檔產生 404。音效（台詞的 `sfx`，`public/assets/sfx/`，只播一次）同樣有 `assets/sfx/manifest.json`，走音樂的 bus。
 - `src/main.ts` 啟動時經 `ProjectSession.start`（`src/project.ts`）決定模式：`site`＝網站的 `script.json`；`local`＝瀏覽器 IndexedDB 裡的本機專案（`src/projectstore.ts` 的 `ProjectStore` 介面，之後做雲端就換實作）。`?site=1` 略過本機專案。
 - `src/localfiles.ts`：本機素材層（`bg/x.webp` 這種路徑→Blob）。`resolveImage`、配音、音樂都先查這裡再去 `public/assets/`。本機專案模式下新加入的檔案自動存回 store。
 - `src/projectfile.ts`：專案檔 `.vnproj`（zip：`project.json`、`script.json`、`assets/…`），用 `fflate`。

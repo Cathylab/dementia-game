@@ -3,8 +3,8 @@ import { neededSprites } from './script';
 import { isText, type Script } from './types';
 import { voiceEntries } from './voice';
 
-export type AssetKind = 'voice' | 'bg' | 'char' | 'fg' | 'music';
-export const ASSET_KINDS: AssetKind[] = ['bg', 'char', 'fg', 'voice', 'music'];
+export type AssetKind = 'voice' | 'bg' | 'char' | 'fg' | 'music' | 'sfx';
+export const ASSET_KINDS: AssetKind[] = ['bg', 'char', 'fg', 'voice', 'music', 'sfx'];
 
 /** 依腳本順序、不重複。 */
 export function assetNames(script: Script, kind: AssetKind): string[] {
@@ -21,6 +21,7 @@ export function assetNames(script: Script, kind: AssetKind): string[] {
       if (kind === 'fg' && line.wrongObject) names.add(line.wrongObject);
       if (kind === 'bg' && line.timeSkipTo) names.add(line.timeSkipTo);
       if (kind === 'music' && line.music) names.add(line.music);
+      if (kind === 'sfx' && line.sfx) names.add(line.sfx);
     }
   }
   return [...names];

@@ -5,7 +5,7 @@ import { localFileUrl } from './localfiles';
 import type { AudioLike } from './view';
 
 const MUSIC_BASE = `${import.meta.env.BASE_URL}assets/music`;
-const VOICE_BASE = `${import.meta.env.BASE_URL}assets/voice`;
+const ASSET_BASE = `${import.meta.env.BASE_URL}assets`;
 /** 配音依序找的副檔名。 */
 export const VOICE_EXTENSIONS = ['mp3', 'ogg'];
 export const MUSIC_EXTENSIONS = ['ogg', 'mp3'];
@@ -294,7 +294,9 @@ export class AudioEngine implements AudioLike {
   private voice: { src: AudioBufferSourceNode; gain: GainNode; done: () => void } | null = null;
   private voiceSeq = 0;
   private voiceVolume = 0.9;
-  private manifest: Promise<Set<string> | null> | null = null;
+  /** 各資料夾（voice、sfx）實際存在的檔案清單。 */
+  private readonly manifests = new Map<string, Promise<Set<string> | null>>();
+  private readonly sfxBuffers = new Map<string, Promise<AudioBuffer | null>>();
   private readonly voiceBuffers = new Map<string, Promise<AudioBuffer | null>>();
   private requestSeq = 0;
   private degradation = 0;
@@ -426,20 +428,20 @@ export class AudioEngine implements AudioLike {
   }
 
   /**
-   * 找音檔：建置時會產生 assets/voice/manifest.json（列出實際存在的檔案），
+   * 找音檔：先看本機素材；建置時會產生 assets/{folder}/manifest.json（列出實際存在的檔案），
    * 有它就只請求存在的檔案，缺檔時完全不發請求，主控台不會出現 404。
    * 沒有 manifest 時才逐一嘗試 .mp3、.ogg。
    */
-  private async voiceFile(id: string): Promise<string | null> {
-    const local = localFileUrl('voice', id, VOICE_EXTENSIONS);
+  private async findAudio(folder: 'voice' | 'sfx', id: string): Promise<string | null> {
+    const local = localFileUrl(folder, id, VOICE_EXTENSIONS);
     if (local) return local;
-    const manifest = await this.voiceManifest();
+    const manifest = await this.manifestFor(folder);
     if (manifest) {
       const ext = VOICE_EXTENSIONS.find((e) => manifest.has(`${id}.${e}`));
-      return ext ? `${VOICE_BASE}/${id}.${ext}` : null;
+      return ext ? `${ASSET_BASE}/${folder}/${id}.${ext}` : null;
     }
     for (const ext of VOICE_EXTENSIONS) {
-      const url = `${VOICE_BASE}/${id}.${ext}`;
+      const url = `${ASSET_BASE}/${folder}/${id}.${ext}`;
       try {
         const res = await fetch(url, { method: 'HEAD' });
         if (res.ok && !(res.headers.get('content-type') ?? '').includes('text/html')) return url;
@@ -450,12 +452,20 @@ export class AudioEngine implements AudioLike {
     return null;
   }
 
-  private voiceManifest(): Promise<Set<string> | null> {
-    this.manifest ??= fetch(`${VOICE_BASE}/manifest.json`, { cache: 'no-cache' })
-      .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('json') ? r.json() : null))
-      .then((list: unknown) => (Array.isArray(list) ? new Set(list.map(String)) : null))
-      .catch(() => null);
-    return this.manifest;
+  private voiceFile(id: string): Promise<string | null> {
+    return this.findAudio('voice', id);
+  }
+
+  private manifestFor(folder: string): Promise<Set<string> | null> {
+    let p = this.manifests.get(folder);
+    if (!p) {
+      p = fetch(`${ASSET_BASE}/${folder}/manifest.json`, { cache: 'no-cache' })
+        .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('json') ? r.json() : null))
+        .then((list: unknown) => (Array.isArray(list) ? new Set(list.map(String)) : null))
+        .catch(() => null);
+      this.manifests.set(folder, p);
+    }
+    return p;
   }
 
   private loadVoice(id: string): Promise<AudioBuffer | null> {
@@ -472,6 +482,78 @@ export class AudioEngine implements AudioLike {
         }
       });
       this.voiceBuffers.set(id, p);
+    }
+    return p;
+  }
+
+  // ───────── 音效（只播一次，不循環） ─────────
+
+  /**
+   * 播一個音效：public/assets/sfx/{name}.mp3（或 .ogg）。和音樂走同一條音軌（受音樂音量與 muffle 影響，
+   * 不受退化走音影響），可以和音樂、配音同時出現。缺檔時什麼都不做。
+   */
+  playSfx(name: string): void {
+    if (!this.ctx || !name) return;
+    const ctx = this.ctx;
+    this.statusEl.dataset.sfx = name;
+    this.statusEl.dataset.sfxState = 'loading';
+    void this.loadSfx(name).then((buffer) => {
+      if (!buffer) {
+        if (this.statusEl.dataset.sfx === name) this.statusEl.dataset.sfxState = 'missing';
+        return;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(this.bus);
+      src.onended = () => {
+        if (this.statusEl.dataset.sfx === name) this.statusEl.dataset.sfxState = 'ended';
+      };
+      this.statusEl.dataset.sfxState = 'playing';
+      src.start();
+    });
+  }
+
+  /** 有沒有這個音效檔。 */
+  async hasSfx(name: string): Promise<boolean> {
+    return (await this.findAudio('sfx', name)) !== null;
+  }
+
+  /** 開發者面板上傳：先解碼確認能播，並記住這個音效（檔案本身由呼叫端放進本機素材）。 */
+  async useSfxFile(name: string, file: Blob): Promise<boolean> {
+    this.unlock();
+    if (!this.ctx) return false;
+    try {
+      const buffer = await this.ctx.decodeAudioData(await file.arrayBuffer());
+      this.sfxBuffers.set(name, Promise.resolve(buffer));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** 本機素材換了（上傳）：下次重新載入。 */
+  forgetSfx(name: string): void {
+    this.sfxBuffers.delete(name);
+  }
+
+  private loadSfx(name: string): Promise<AudioBuffer | null> {
+    let p = this.sfxBuffers.get(name);
+    if (!p) {
+      p = this.findAudio('sfx', name).then(async (url) => {
+        if (!url || !this.ctx) return null;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          return await this.ctx.decodeAudioData(await res.arrayBuffer());
+        } catch {
+          return null;
+        }
+      });
+      // 找不到的不要記住，之後上傳了還能播
+      void p.then((b) => {
+        if (!b && this.sfxBuffers.get(name) === p) this.sfxBuffers.delete(name);
+      });
+      this.sfxBuffers.set(name, p);
     }
     return p;
   }

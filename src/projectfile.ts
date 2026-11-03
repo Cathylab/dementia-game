@@ -2,7 +2,7 @@
 //
 //   project.json   { format, version, title, exportedAt }
 //   script.json    劇本
-//   assets/bg/…  assets/char/…  assets/fg/…  assets/voice/…  assets/music/…
+//   assets/bg/…  assets/char/…  assets/fg/…  assets/voice/…  assets/music/…  assets/sfx/…
 //
 // 這個檔案只負責「打包／拆包」，不管檔案從哪裡來、要存去哪裡。
 import { unzipSync, zipSync, type Zippable } from 'fflate';
@@ -28,7 +28,7 @@ export interface Project {
 
 /** 已經壓縮過的格式不再壓縮（省時間，也不會變小）。 */
 const STORED = /\.(webp|png|jpe?g|gif|mp3|ogg|m4a|wav)$/i;
-const ASSET_PATH = /^(bg|char|fg|voice|music)\/[^/]+\.[a-z0-9]+$/i;
+const ASSET_PATH = /^(bg|char|fg|voice|music|sfx)\/[^/]+\.[a-z0-9]+$/i;
 
 export async function packProject(project: Project, now = new Date()): Promise<Blob> {
   const enc = new TextEncoder();

@@ -173,6 +173,9 @@ export function validateScript(script: Script): string[] {
           problems.push(`${where}：表情 "${line.expression}" 不在角色 ${line.speaker} 的 expressions 清單裡`);
         }
       }
+      if (isText(line) && line.sfx !== undefined && !(typeof line.sfx === 'string' && /^[A-Za-z0-9_-]+$/.test(line.sfx))) {
+        problems.push(`${where}.sfx：音效名稱只能用英文字母、數字、底線或連字號`);
+      }
     });
   }
   // 配音（v3）：編號不可重複；格式不對只是警告。缺音檔不是錯誤，這裡不讀檔。
