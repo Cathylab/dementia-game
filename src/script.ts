@@ -99,6 +99,7 @@ export function validateScript(script: Script): string[] {
   const objectSeen = new Set<string>();
   for (const scene of script.scenes) {
     checkTarget(`${scene.id}.next`, scene.next);
+    if (scene.chapter !== undefined && typeof scene.chapter !== 'string') problems.push(`${scene.id}.chapter 必須是文字`);
     (scene.objects ?? []).forEach((obj, j) => {
       const where = `${scene.id}.objects[${j}]`;
       if (!obj.id) problems.push(`${where}：缺少 id`);

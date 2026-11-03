@@ -11,6 +11,7 @@ import {
   type Gaze,
   type TransitionStyle,
 } from './types';
+import { buildUploadSection } from './devupload';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -22,6 +23,25 @@ const TRANSITION_LABELS: Record<TransitionStyle, string> = {
   focus: '模糊對焦',
 };
 const DISTANCES: Distance[] = ['near', 'normal', 'far'];
+/** 面板收合、各區塊摺疊的狀態記在瀏覽器裡（只是方便，讀不到也沒關係）。 */
+const FOLD_KEY = 'dev-panel-folds';
+
+function loadFolds(): { collapsed: boolean; closed: string[] } {
+  try {
+    const v = JSON.parse(localStorage.getItem(FOLD_KEY) ?? '{}');
+    return { collapsed: v.collapsed === true, closed: Array.isArray(v.closed) ? v.closed.map(String) : [] };
+  } catch {
+    return { collapsed: false, closed: [] };
+  }
+}
+
+function saveFolds(v: { collapsed: boolean; closed: string[] }): void {
+  try {
+    localStorage.setItem(FOLD_KEY, JSON.stringify(v));
+  } catch {
+    /* 不能存就算了 */
+  }
+}
 
 export class DevPanel {
   readonly root = el('aside', { class: 'devpanel', 'aria-label': '開發者面板' });
@@ -35,6 +55,7 @@ export class DevPanel {
   private readonly distSelect = el('select', { name: 'dev-distance' });
   private lastScene = '';
   private readonly spriteList = el('div', { class: 'dev-sprites' }, ['檢查中…']);
+  private readonly folds = loadFolds();
 
   constructor(
     private readonly engine: Engine,
@@ -49,10 +70,26 @@ export class DevPanel {
     window.addEventListener('keydown', (e) => {
       if (e.key === '`' || e.key === 'F8') {
         e.preventDefault();
+        // 用鍵盤打開時一律展開
+        if (!this.isOpen) this.collapse(false);
         this.toggle();
       }
     });
+    this.root.classList.toggle('collapsed', this.folds.collapsed);
     if (urlParam('dev')) this.toggle(true);
+  }
+
+  get isCollapsed(): boolean {
+    return this.root.classList.contains('collapsed');
+  }
+
+  /** 收合成右上角的一個小標籤（遊戲畫面不會被擋住），再按一下展開。 */
+  collapse(force?: boolean): void {
+    const on = force ?? !this.isCollapsed;
+    this.root.classList.toggle('collapsed', on);
+    this.folds.collapsed = on;
+    saveFolds(this.folds);
+    if (!on) this.refresh();
   }
 
   get isOpen(): boolean {
@@ -64,8 +101,19 @@ export class DevPanel {
     if (this.isOpen) this.refresh();
   }
 
+  /** 可以摺疊的區塊；點標題開關，狀態記在瀏覽器裡。 */
   private section(title: string, ...children: (Node | string)[]): HTMLElement {
-    return el('section', {}, [el('h3', {}, [title]), ...children]);
+    const d = el('details', { class: 'dev-section', 'data-section': title }, [
+      el('summary', {}, [el('h3', {}, [title])]),
+      ...children,
+    ]);
+    d.open = !this.folds.closed.includes(title);
+    d.addEventListener('toggle', () => {
+      this.folds.closed = this.folds.closed.filter((t) => t !== title);
+      if (!d.open) this.folds.closed.push(title);
+      saveFolds(this.folds);
+    });
+    return d;
   }
 
   private button(label: string, onClick: () => void, attrs: Record<string, string> = {}): HTMLButtonElement {
@@ -81,6 +129,15 @@ export class DevPanel {
   private build(): void {
     const e = this.engine;
     const close = this.button('×', () => this.toggle(false), { class: 'dev-close', 'aria-label': '關閉' });
+    const fold = this.button('', () => this.collapse(), { class: 'dev-fold', 'data-dev': 'collapse', 'aria-label': '收合／展開開發者面板' });
+    const foldAll = this.button('全部摺疊', () => {
+      const sections = [...this.root.querySelectorAll<HTMLDetailsElement>('details.dev-section')];
+      const open = !sections.some((d) => d.open);
+      for (const d of sections) d.open = open;
+      foldAll.textContent = open ? '全部摺疊' : '全部展開';
+    }, { class: 'dev-fold-all', 'data-dev': 'fold-all' });
+    const title = el('h2', { title: '點一下收合／展開' }, ['開發者面板']);
+    title.addEventListener('click', () => this.collapse());
 
     for (const s of e.script.scenes) {
       this.sceneSelect.append(el('option', { value: s.id }, [`${s.id}${s.title ? `｜${s.title}` : ''}`]));
@@ -132,10 +189,11 @@ export class DevPanel {
       : el('p', { class: 'dev-ok' }, ['腳本檢查沒有問題']);
 
     this.root.append(
-      el('header', {}, [el('h2', {}, ['開發者面板']), close]),
+      el('header', {}, [title, foldAll, fold, close]),
       this.section('目前狀態', this.status, this.stats),
       this.section('跳到場景', el('div', { class: 'dev-row' }, [this.sceneSelect, jump])),
       this.buildPresentation(),
+      this.section('上傳素材', buildUploadSection(e, this.view)),
       this.section('觸發效果', el('div', { class: 'dev-grid' }, fxButtons)),
       this.section(
         '退化係數',

@@ -29,6 +29,18 @@ export function resolveImage(kind: ImageKind, name: string): Promise<string> {
   return p;
 }
 
+/**
+ * 開發者面板上傳：把某個素材暫時換成指定網址（blob:），只在這次開啟的頁面有效。
+ * 立繪換了表情檔以後，之前退回 neutral 的結果也要重新找，所以整個角色的快取一起清掉。
+ */
+export function overrideImage(kind: ImageKind, name: string, url: string): void {
+  if (kind === 'char') {
+    const [id] = splitCharName(name);
+    for (const key of [...cache.keys()]) if (key.startsWith(`char/${id}_`)) cache.delete(key);
+  }
+  cache.set(`${kind}/${name}`, Promise.resolve(url));
+}
+
 function loads(url: string): Promise<boolean> {
   return new Promise((resolve) => {
     const img = new Image();

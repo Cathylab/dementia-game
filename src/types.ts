@@ -177,6 +177,11 @@ export interface Scene {
   id: string;
   act?: number;
   title?: string;
+  /**
+   * 章節卡上的大字（例如「婚禮前半年」）。只看每一幕的第一個場景；
+   * 省略時取 title 裡「・」前面的部分，空字串＝這一幕不顯示章節卡。
+   */
+  chapter?: string;
   background?: string | null;
   /** 字串＝播放該曲；null＝靜音；省略＝沿用上一首。 */
   music?: string | null;

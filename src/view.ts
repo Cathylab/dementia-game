@@ -1,4 +1,4 @@
-import { imageSize, resolveImage, resolveSprite } from './assets';
+import { imageSize, resolveImage, resolveSprite, type ImageKind } from './assets';
 import { Effects, fadeText, glitchSpans } from './fx';
 import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
@@ -29,6 +29,8 @@ export interface AudioLike {
   readonly musicName: string | null;
   /** 把電腦裡的音樂檔暫時當成某個曲名來播（開發者面板試聽用）。 */
   useFile(name: string, file: Blob): Promise<boolean>;
+  /** 把電腦裡的音檔暫時當成某句配音（開發者面板上傳用）。 */
+  useVoiceFile(id: string, file: Blob): Promise<boolean>;
   /** 播一句配音；播完、被停止或缺檔時完成。 */
   playVoice(id: string): Promise<void>;
   stopVoice(): void;
@@ -127,6 +129,8 @@ export class AdvView implements View {
   readonly blinkEl = el('div', { class: 'blink' }, [el('div', { class: 'lid top' }), el('div', { class: 'lid bottom' })]);
   /** 淡入淡出轉場用的黑幕。 */
   readonly fadeEl = el('div', { class: 'fade-curtain' });
+  /** 每一幕開頭的章節卡（第一章／婚禮前半年）。 */
+  readonly chapterCard = el('div', { class: 'chapter-card', 'aria-live': 'polite' });
   readonly logOverlay = el('div', { class: 'overlay log-overlay', role: 'dialog' });
   readonly settingsOverlay = el('div', { class: 'overlay settings-overlay', role: 'dialog' });
   readonly titleScreen = el('div', { class: 'screen title-screen' });
@@ -147,6 +151,9 @@ export class AdvView implements View {
   private pendingTimer = 0;
   private monologueStay = 0;
   private inspectTimer = 0;
+  /** 上一個顯示過的幕；換幕時才出現章節卡。回標題時清掉。 */
+  private lastAct: number | null = null;
+  private skipChapter: (() => void) | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -201,6 +208,7 @@ export class AdvView implements View {
       this.inspectEl,
       this.blinkEl,
       this.fadeEl,
+      this.chapterCard,
       this.logOverlay,
       this.settingsOverlay,
       this.endingScreen,
@@ -216,6 +224,10 @@ export class AdvView implements View {
       this.closeInspect();
     });
     window.addEventListener('keydown', (e) => this.onKey(e));
+    this.chapterCard.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.skipChapter?.();
+    });
   }
 
   private onStageClick(): void {
@@ -238,6 +250,11 @@ export class AdvView implements View {
 
   private onKey(e: KeyboardEvent): void {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+    if (this.skipChapter && (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape')) {
+      e.preventDefault();
+      this.skipChapter();
+      return;
+    }
     if (this.inspectOpen()) {
       if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
@@ -610,6 +627,8 @@ export class AdvView implements View {
     this.objectsBg.replaceChildren();
     this.memoryCard.classList.remove('open');
     this.memoryPage.classList.remove('open');
+    this.lastAct = null;
+    this.skipChapter?.();
     clearTimeout(this.pendingTimer);
     this.pendingType = null;
     this.audio?.setMuffle(false);
@@ -637,18 +656,58 @@ export class AdvView implements View {
     void this.engine.start();
   }
 
-  async enterScene(scene: Scene, _opts: { restoring: boolean }): Promise<void> {
+  async enterScene(scene: Scene, opts: { restoring: boolean }): Promise<void> {
     this.typer.stop();
     this.audio?.stopVoice();
     this.fx.clearScene();
     const bgUrl = scene.background ? await resolveImage('bg', scene.background) : '';
     const fgUrl = scene.foreground ? await resolveImage('fg', scene.foreground) : '';
-    await this.blink(() => {
+    const act = scene.act ?? 1;
+    const chapter = !opts.restoring && act !== this.lastAct ? this.chapterText(act) : '';
+    this.lastAct = act;
+    await this.blink(async () => {
+      // 換幕：先在黑幕上顯示章節卡，音樂同時換成新場景的
+      if (chapter) {
+        this.audio?.playMusic(scene.music);
+        await this.showChapterCard(act, chapter);
+      }
       this.stage.classList.remove('eyes-closed');
       this.applyScene(scene, bgUrl, fgUrl);
       this.fx.applyGlobal();
       this.audio?.playMusic(scene.music);
     });
+  }
+
+  /** 這一幕章節卡的大字：該幕第一個場景的 chapter，沒有就取 title 裡「・」前面的部分。 */
+  chapterText(act: number): string {
+    const first = this.engine.script.scenes.find((s) => (s.act ?? 1) === act);
+    if (!first) return '';
+    if (first.chapter !== undefined) return first.chapter.trim();
+    const title = first.title ?? '';
+    const i = title.indexOf('・');
+    return i > 0 ? title.slice(0, i).trim() : '';
+  }
+
+  /** 章節卡：全黑畫面上「第一章」＋大字的時間，約 3 秒；點一下或按空白鍵可以跳過。 */
+  private async showChapterCard(act: number, text: string): Promise<void> {
+    this.stage.classList.remove('menu-open');
+    this.chapterCard.replaceChildren(
+      el('p', { class: 'chapter-no' }, [`第${chineseNumber(act)}章`]),
+      el('h2', { class: 'chapter-time' }, [text]),
+      el('div', { class: 'chapter-rule', 'aria-hidden': 'true' }),
+    );
+    this.chapterCard.dataset.act = String(act);
+    this.chapterCard.classList.add('open');
+    void this.chapterCard.offsetWidth;
+    this.chapterCard.classList.add('show');
+    let done!: () => void;
+    const skipped = new Promise<void>((resolve) => (done = resolve));
+    this.skipChapter = done;
+    await Promise.race([sleep(T(3200)), skipped]);
+    this.skipChapter = null;
+    this.chapterCard.classList.remove('show');
+    await sleep(T(700));
+    this.chapterCard.classList.remove('open');
   }
 
   protected applyScene(scene: Scene, bgUrl: string, fgUrl: string): void {
@@ -893,6 +952,23 @@ export class AdvView implements View {
     this.stage.classList.add('has-char');
   }
 
+  /** 開發者面板上傳了新素材：畫面上正在用它的地方立刻換掉。 */
+  async refreshAsset(kind: ImageKind, name: string): Promise<void> {
+    if (kind === 'bg' && this.bg.dataset.name === name) this.setBackground(name, await resolveImage('bg', name));
+    if (kind === 'fg') {
+      const url = await resolveImage('fg', name);
+      if (this.fg.dataset.name === name && !this.fg.hidden) this.fg.src = url;
+      for (const img of this.stage.querySelectorAll<HTMLImageElement>('img[data-name]')) {
+        if (img !== this.fg && img.dataset.name === name) img.src = url;
+      }
+    }
+    if (kind === 'char' && this.sprite.dataset.char && name.startsWith(`${this.sprite.dataset.char}_`)) {
+      const char = this.engine.getChar(this.sprite.dataset.char);
+      const pose = char ? this.engine.poses[char.id] : null;
+      if (char && pose) await this.showSprite(char, pose);
+    }
+  }
+
   hideSprite(): void {
     this.sprite.hidden = true;
     delete this.sprite.dataset.char;
@@ -1125,4 +1201,14 @@ export class AdvView implements View {
   stateChanged(): void {
     this.onStateChange?.();
   }
+}
+
+/** 1–99 的中文數字（章節卡用）。 */
+function chineseNumber(n: number): string {
+  const d = '〇一二三四五六七八九';
+  if (!Number.isInteger(n) || n < 1 || n > 99) return String(n);
+  if (n < 10) return d[n];
+  const tens = Math.floor(n / 10);
+  const ones = n % 10;
+  return `${tens > 1 ? d[tens] : ''}十${ones ? d[ones] : ''}`;
 }

@@ -30,6 +30,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/view.ts`：ADV 介面、轉場（`blink()`，樣式由 `meta.transition` 決定）、打字、獨白、選項與 hotspot、可點物件與說明卡、記憶對照、對話紀錄、設定、手機直式拖曳背景。`src/fx.ts` 實作 11 個效果標籤與退化係數（act 1→0、2→0.5、3 以上→1）。
 - `src/script.ts`：`validateScript`（所有腳本檢查規則，警告以「（警告）」開頭）、`if`／結局條件（`new Function`，可用數值名稱、`has()`、`seen()`、`flags`）、`sceneReachability`。
 - `src/audio.ts`：音樂（找不到 `.ogg`／`.mp3` 時用 Web Audio 合成，退化時走音）與配音（另一條音軌，只受 `muffle` 影響）。配音只請求 `assets/voice/manifest.json` 列出的檔案，避免缺檔產生 404。
+- `src/devupload.ts`：開發者面板「上傳素材」，暫時覆寫圖片（`overrideImage`）與配音／音樂（`useVoiceFile`／`useFile`），並提供轉好 webp 的下載與 GitHub 上傳頁連結（不會寫進 repo）。
 - `src/editable.ts`：文字編輯器可改的欄位、`structureOf`（只比結構；呈現設定 `meta.transition`、`objectHighlight`、`sprite`、`characters[].sprite`、`scenes[].music` 視為可改）、JSON 排版 `formatScript`。瀏覽器與 dev server 共用。
 - `vite-plugin-script-save.ts`：dev 模式 `POST /__editor/save-script` 寫回 `public/script.json`（結構不同就拒絕）。`vite-plugin-voice-manifest.ts`：dev 端點與 build 產生 `assets/voice/manifest.json`。
 
