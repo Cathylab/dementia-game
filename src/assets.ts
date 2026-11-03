@@ -1,5 +1,6 @@
 // 圖片素材解析：先嘗試載入 public/assets 下的真實檔案（.webp、.png、.jpg 依序），
 // 都不存在時以 canvas 產生佔位圖。
+import { localFileUrl } from './localfiles';
 import { IMAGE_EXTENSIONS } from './script';
 import { hash, seeded } from './util';
 
@@ -18,6 +19,8 @@ export function resolveImage(kind: ImageKind, name: string): Promise<string> {
   let p = cache.get(key);
   if (!p) {
     p = (async () => {
+      const local = localFileUrl(kind, name, IMAGE_EXTENSIONS);
+      if (local) return local;
       for (const ext of IMAGE_EXTENSIONS) {
         const url = assetPath(kind, name, ext);
         if (await loads(url)) return url;
@@ -30,15 +33,15 @@ export function resolveImage(kind: ImageKind, name: string): Promise<string> {
 }
 
 /**
- * 開發者面板上傳：把某個素材暫時換成指定網址（blob:），只在這次開啟的頁面有效。
+ * 本機素材換了（上傳、開啟專案檔）：忘掉之前找到的結果，下次重新找。
  * 立繪換了表情檔以後，之前退回 neutral 的結果也要重新找，所以整個角色的快取一起清掉。
  */
-export function overrideImage(kind: ImageKind, name: string, url: string): void {
+export function forgetImage(kind: ImageKind, name: string): void {
   if (kind === 'char') {
     const [id] = splitCharName(name);
     for (const key of [...cache.keys()]) if (key.startsWith(`char/${id}_`)) cache.delete(key);
   }
-  cache.set(`${kind}/${name}`, Promise.resolve(url));
+  cache.delete(`${kind}/${name}`);
 }
 
 function loads(url: string): Promise<boolean> {

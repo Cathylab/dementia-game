@@ -32,6 +32,8 @@ export class TextEditor {
   /** 儲存後的下一次輸入一定開新的一步，不併進已儲存的那步。 */
   private noMerge = false;
   private message = '';
+  /** 開啟本機專案時：存檔改成存進專案（不寫 script.json、不下載）。回傳給人看的訊息。 */
+  saveToProject: ((text: string) => Promise<string>) | null = null;
 
   constructor(
     private readonly engine: Engine,
@@ -175,6 +177,15 @@ export class TextEditor {
   /** 儲存目前的腳本（含開發者面板調整的呈現設定）。回傳給人看的結果訊息。 */
   async save(): Promise<string> {
     const text = formatScript(this.engine.script);
+    if (this.saveToProject) {
+      try {
+        this.markSaved(await this.saveToProject(text));
+      } catch (err) {
+        this.message = `沒有儲存：${(err as Error)?.message ?? err}`;
+        this.refresh();
+      }
+      return this.message;
+    }
     if (import.meta.env.DEV) {
       try {
         const res = await fetch(SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: text });
