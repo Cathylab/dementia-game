@@ -123,9 +123,17 @@ export class Engine {
 
   constructor(script: Script) {
     this.script = script;
-    for (const s of script.scenes) this.scenes.set(s.id, s);
-    for (const s of script.scenes) for (const o of s.objects ?? []) this.objects.set(o.id, o);
-    for (const c of script.characters ?? []) this.chars.set(c.id, c);
+    this.reindex();
+  }
+
+  /** 腳本的結構改了（故事編輯器新增、刪除場景或角色）之後重建索引。 */
+  reindex(): void {
+    this.scenes.clear();
+    this.objects.clear();
+    this.chars.clear();
+    for (const s of this.script.scenes) this.scenes.set(s.id, s);
+    for (const s of this.script.scenes) for (const o of s.objects ?? []) this.objects.set(o.id, o);
+    for (const c of this.script.characters ?? []) this.chars.set(c.id, c);
   }
 
   getScene(id: string): Scene | undefined {

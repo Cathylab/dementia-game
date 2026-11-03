@@ -175,7 +175,7 @@ export class TextEditor {
 
   /** 本機開發寫回 script.json；線上版（或寫回失敗時）下載檔案。 */
   /** 儲存目前的腳本（含開發者面板調整的呈現設定）。回傳給人看的結果訊息。 */
-  async save(): Promise<string> {
+  async save(allowStructure = false): Promise<string> {
     const text = formatScript(this.engine.script);
     if (this.saveToProject) {
       try {
@@ -188,7 +188,7 @@ export class TextEditor {
     }
     if (import.meta.env.DEV) {
       try {
-        const res = await fetch(SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: text });
+        const res = await fetch(allowStructure ? `${SAVE_URL}?structure=1` : SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: text });
         const body = (await res.json().catch(() => null)) as { ok: boolean; message: string } | null;
         if (res.ok && body?.ok) {
           this.markSaved('已寫回 public/script.json');
@@ -206,6 +206,16 @@ export class TextEditor {
     download(text);
     this.markSaved('已下載 script.json，請用它取代 public/script.json');
     return this.message;
+  }
+
+  /** 故事編輯器改了結構：下次打開重新列出欄位，舊的復原紀錄作廢。 */
+  invalidate(): void {
+    this.list.replaceChildren();
+    this.inputs.clear();
+    this.undoStack = [];
+    this.redoStack = [];
+    this.savedTop = null;
+    this.refresh();
   }
 
   private markSaved(message: string): void {

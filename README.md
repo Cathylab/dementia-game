@@ -11,6 +11,7 @@
 | 玩遊戲（給試玩者） | <https://cathylab.github.io/dementia-game/> |
 | 開發者版本（開著開發者面板：跳場景、看數值、呈現調整） | <https://cathylab.github.io/dementia-game/?dev=1> |
 | 文字編輯器（改台詞，線上版會下載修改後的 script.json） | <https://cathylab.github.io/dementia-game/?edit=1> |
+| 故事編輯器（新增場景、台詞、選項分支、角色、結局） | <https://cathylab.github.io/dementia-game/?story=1> |
 | 配音總表（每句配音有沒有音檔、試聽、匯出缺檔清單） | <https://cathylab.github.io/dementia-game/?voice=1> |
 
 開發者版本和文字編輯器只是在網址後面多一段，給試玩者的連結不會出現這些工具。
@@ -440,6 +441,25 @@ assets/bg/…  assets/char/…  assets/fg/…  assets/voice/…  assets/music/�
   - 本機 `npm run dev`：直接寫回 `public/script.json`（會重新排版）。若磁碟上的檔案結構在別處被改過，會拒絕寫入。
   - 線上版：下載修改後的 `script.json`，再用它取代 `public/script.json`。
 
+## 故事編輯
+
+不用碰 JSON 就能做出整個故事：新增場景、寫台詞、做選項和分支、新增角色和結局。打開方式：開發者面板「編輯故事」區塊的「打開故事編輯」，或網址加 `?story=1`。
+
+- **場景與台詞**：左邊是場景列表（依幕分組），每個場景下面的「→」是它會走到哪裡。右邊編輯選到的場景：
+  - 場景設定：標題、代號、第幾幕、章節卡文字、背景（有縮圖）、音樂（沿用上一首／靜音／指定曲名）、播完後到哪個場景。
+  - 台詞：選誰說的（旁白、主角內心、各個角色）和表情，打字。每句可以上移、下移、在下面插入、刪除，「▶」從這一句開始試玩。
+  - 選項：提示文字、每個選項的文字和「→ 去哪裡」（繼續這個場景、某個場景、判定結局）。
+  - 效果、配音、條件、數值、旗標等進階設定以唯讀小標籤顯示，編輯時會保留。
+  - 「＋ 新增場景」加在選到的場景後面，並自動接進流程（前一個場景 → 新場景 → 原本的下一個）。
+  - 刪除場景時，原本會跳到它的地方改成跳到它的下一個場景；結局用的場景不能刪。
+  - 改代號時，所有跳到這個場景的地方會一起改（配音檔名不會跟著改）。
+- **角色**：名字、特徵（名字淡忘時顯示）、關係、表情清單（立繪檔名 `{代號}_{表情}`）；新增角色要給英文代號。
+- **結局**：名稱、條件、結局場景，可以調優先順序；「新增結局」會同時建立一個 `end_` 開頭的結局場景。
+- 上方的「腳本檢查」即時列出問題。
+- 復原／重做（Ctrl+Z、Ctrl+Shift+Z）、Ctrl+S 儲存、Esc 關閉。
+- **儲存**和文字編輯一樣：本機專案存進瀏覽器裡的專案；`npm run dev` 寫回 `public/script.json`（故事編輯允許改結構）；線上版下載 `script.json`。
+- 還沒有：物件位置的拖曳、效果與條件的編輯（請用文字編輯或請劇本 AI 改 JSON）。
+
 ## 部署
 
 推到 `main` 時，GitHub Actions（`.github/workflows/deploy.yml`）會自動建置並發布到 GitHub Pages：<https://cathylab.github.io/dementia-game/>
@@ -473,6 +493,8 @@ src/
   assets.ts            圖片載入與佔位圖
   devpanel.ts          開發者面板
   devupload.ts         開發者面板的「上傳素材」
+  storyeditor.ts       故事編輯器（?story=1）
+  storyops.ts          故事編輯器的結構操作：新增／刪除／移動／改代號場景、角色
   localfiles.ts        本機素材（專案檔或上傳的檔案），找圖片／配音／音樂時先看這裡
   project.ts           網站版／本機專案、匯出、開啟、存成本機專案
   projectfile.ts       專案檔（.vnproj）打包與拆包

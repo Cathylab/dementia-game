@@ -398,6 +398,18 @@
 - **復原與重做**：按鈕，或 Ctrl+Z（Mac 是 ⌘Z）、Ctrl+Shift+Z、Ctrl+Y。0.8 秒內在同一欄連續打字併成一步。復原紀錄只存在這次開啟的頁面裡，重新整理就清空。
 - **其他**：Ctrl+S 儲存、Esc 關閉（再打開時修改與復原紀錄都還在）；有未儲存的變更時離開頁面會先詢問。編輯器開著時，遊戲與開發者面板不會收到按鍵。
 
+### 故事編輯器
+
+開發者面板的「打開故事編輯」或網址加 `?story=1`。和文字編輯不同，它**可以改結構**：新增／刪除／移動場景、改場景代號、新增台詞與選項、設定選項的 `goto` 與場景的 `next`、新增角色與結局。引擎對這些操作的決定：
+
+- 新場景代號：`a{幕}_s{兩位數}`，數字接在整份腳本 `_sNN` 最大的後面；背景沿用前一個場景，`next` 接上前一個場景原本的 `next`。
+- 刪除場景：所有 `next`、`goto` 指到它的改成它自己的 `next`（沒有就是 `@ending`）；`backTarget`、`timeSkipTo` 指到它的直接刪掉；`endings[].scene` 用到的場景不能刪。
+- 改代號：`next`、`goto`、`backTarget`、`timeSkipTo`、`endings[].scene` 一起改；配音編號（檔名）不改。代號限英文字母開頭的英數與底線。
+- 角色代號同上，不能是 `narrator`、`player`；還有台詞的角色不能刪。新角色預設 `expressions: ["neutral"]`。
+- 新增結局：建立 `end_{n}` 場景與 `ending_{n}`，條件 `true`，加在最後（優先順序最低）。
+- 沒有編輯介面的欄位（`fx`、`voice`、`if`、`effects`、`flags`、`requires`、座標等）原樣保留。
+- `npm run dev` 存檔時帶 `?structure=1`，寫回 `script.json` 不檢查結構是否相同。
+
 ### 結局可達性測試
 
 - 實作在 `tests/simulate.ts`，由 `npm test` 執行。
