@@ -1783,7 +1783,7 @@ button {
 
 /* ───────────── 文字編輯（v2） ───────────── */
 
-.editor {
+:is(.editor, .story) {
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -1794,11 +1794,11 @@ button {
   font: 15px/1.6 var(--font-body);
 }
 
-.editor.open {
+:is(.editor, .story).open {
   display: flex;
 }
 
-.editor-header {
+:is(.editor-header, .story-header) {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
@@ -1808,20 +1808,20 @@ button {
   background: #181b20;
 }
 
-.editor-header h2 {
+:is(.editor-header, .story-header) h2 {
   margin: 0;
   font-size: 17px;
   color: #8fd3ff;
 }
 
-.editor-actions {
+:is(.editor-actions, .story-actions) {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.editor button {
+:is(.editor, .story) button {
   min-height: 40px;
   padding: 0 14px;
   border: 1px solid #3a404a;
@@ -1832,21 +1832,21 @@ button {
   cursor: pointer;
 }
 
-.editor button:hover:not(:disabled) {
+:is(.editor, .story) button:hover:not(:disabled) {
   border-color: #8fd3ff;
 }
 
-.editor button:disabled {
+:is(.editor, .story) button:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.editor button.primary {
+:is(.editor, .story) button.primary {
   border-color: #3d7aa3;
   background: #1d3b52;
 }
 
-.editor.dirty button.primary {
+:is(.editor, .story).dirty button.primary {
   background: #2a5878;
 }
 
@@ -1861,14 +1861,14 @@ button {
   font: inherit;
 }
 
-.editor-status {
+:is(.editor-status, .story-status) {
   grid-column: 1 / -1;
   margin: 0;
   color: #9aa3ad;
   font-size: 14px;
 }
 
-.editor.dirty .editor-status {
+:is(.editor, .story).dirty :is(.editor-status, .story-status) {
   color: #ffcf7a;
 }
 
@@ -1910,13 +1910,13 @@ button {
   font-size: 12px;
 }
 
-.editor .editor-play {
+:is(.editor, .story) .editor-play {
   min-height: 28px;
   padding: 0 8px;
   font-size: 12px;
 }
 
-.editor textarea {
+:is(.editor, .story) textarea {
   display: block;
   width: 100%;
   min-height: 40px;
@@ -1930,7 +1930,7 @@ button {
   overflow: hidden;
 }
 
-.editor textarea:focus {
+:is(.editor, .story) textarea:focus {
   outline: none;
   border-color: #8fd3ff;
 }
@@ -2253,4 +2253,348 @@ body.voice-desk-page #app {
 
 .vd-table tr.playing {
   background: #1d3b52;
+}
+
+/* ───────────── 故事編輯器 ───────────── */
+
+.story .story-header {
+  grid-template-columns: auto 1fr;
+}
+
+.story-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.story-tabs button[aria-selected='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.story-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+}
+
+.story-scenes {
+  overflow-y: auto;
+  padding: 8px 10px 24px;
+  border-right: 1px solid #2a2e35;
+  background: #0f1114;
+}
+
+.story-scenes h3 {
+  margin: 12px 4px 4px;
+  font-size: 12px;
+  color: #8a9099;
+  letter-spacing: 0.1em;
+}
+
+.story .story-scene-item {
+  display: grid;
+  width: 100%;
+  margin: 2px 0;
+  padding: 6px 8px;
+  text-align: left;
+  border-color: transparent;
+  background: transparent;
+}
+
+.story .story-scene-item.selected {
+  border-color: var(--accent);
+  background: #1d2026;
+}
+
+.story-scene-title {
+  font-weight: 600;
+}
+
+.story-scene-id,
+.story-scene-next {
+  font-size: 12px;
+  color: #8a9099;
+  word-break: break-all;
+}
+
+.story-list-actions {
+  margin-top: 12px;
+}
+
+.story-pane {
+  overflow-y: auto;
+  padding: 12px 20px 60px;
+}
+
+.story-problems {
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #9fd39f;
+}
+
+.story-problems.has-errors {
+  color: #f0a878;
+}
+
+.story-problems summary {
+  cursor: pointer;
+}
+
+.story-problems ul {
+  margin: 6px 0 0;
+  padding-left: 1.4em;
+  color: #c9c3b8;
+}
+
+.story-main {
+  max-width: 860px;
+}
+
+.story-card {
+  margin: 10px 0;
+  padding: 10px 14px;
+  border: 1px solid #2a2e35;
+  border-radius: 10px;
+  background: #171a1f;
+}
+
+.story-card h3,
+.story-lines-title {
+  margin: 4px 0 8px;
+  font-size: 14px;
+  color: #c9b48a;
+}
+
+.story-row {
+  display: grid;
+  grid-template-columns: 6em 1fr;
+  align-items: start;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.story-label {
+  padding-top: 6px;
+  color: #a8a196;
+}
+
+.story-control {
+  display: grid;
+  gap: 2px;
+}
+
+.story-control small,
+.story-hint {
+  color: #8a9099;
+  font-size: 12px;
+}
+
+.story-hint {
+  margin: 4px 0;
+}
+
+.story input[type='text'],
+.story input[type='number'],
+.story select,
+.story textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #333840;
+  border-radius: 6px;
+  background: #0f1114;
+  color: inherit;
+  font: inherit;
+}
+
+.story input[type='number'] {
+  width: 6em;
+}
+
+.story input:focus,
+.story select:focus,
+.story textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.story-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.story-inline > input {
+  flex: 1;
+  min-width: 8em;
+}
+
+.story-inline > select {
+  width: auto;
+}
+
+.story-thumb {
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.story-scene-actions,
+.story-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.story button.small {
+  min-height: 28px;
+  padding: 2px 8px;
+  font-size: 13px;
+}
+
+.story button.danger:hover:not(:disabled) {
+  border-color: #e07a5f;
+  color: #f0a878;
+}
+
+.story-line {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-left: 3px solid #555;
+  border-radius: 6px;
+  background: #171a1f;
+}
+
+.story-line.speaker-narrator {
+  border-left-color: #6b7380;
+}
+
+.story-line.speaker-player {
+  border-left-color: #c9b48a;
+}
+
+.story-line.speaker-char {
+  border-left-color: #7fb0d6;
+}
+
+.story-choice {
+  border-left-color: #b98ad6;
+}
+
+.story-memory {
+  border-left-color: #8ad6b0;
+}
+
+.story-line-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.story-line-head select {
+  width: auto;
+}
+
+.story-line-no {
+  min-width: 1.8em;
+  color: #8a9099;
+  font-size: 12px;
+}
+
+.story-line-tools {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.story-options {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.story-option {
+  display: grid;
+  grid-template-columns: auto 1fr auto minmax(8em, 40%) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.story-option .story-chips {
+  grid-column: 2 / -1;
+}
+
+.story-option-mark,
+.story-arrow {
+  color: #b98ad6;
+}
+
+.story-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.story-chip {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #262a31;
+  color: #a8a196;
+  font-size: 12px;
+}
+
+.story-objects {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+@media (max-width: 720px) {
+  .story .story-header {
+    grid-template-columns: 1fr;
+    padding: 8px 12px;
+  }
+
+  .story .story-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .story-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 32%) 1fr;
+  }
+
+  .story-scenes {
+    border-right: 0;
+    border-bottom: 1px solid #2a2e35;
+  }
+
+  .story-pane {
+    padding: 10px 12px 60px;
+  }
+
+  .story-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .story-label {
+    padding-top: 0;
+  }
+
+  .story-option {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .story-option > select {
+    grid-column: 2 / 3;
+  }
 }

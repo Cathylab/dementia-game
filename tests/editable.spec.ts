@@ -71,6 +71,15 @@ test.describe('文字編輯：寫回 script.json（開發伺服器端）', () =>
     expect(JSON.parse(await readFile(file, 'utf8'))).toEqual(testScript());
   });
 
+  test('故事編輯器（允許改結構）：結構不同也寫入；缺 scenes 仍拒絕', async () => {
+    const file = await tempScript();
+    const s = testScript();
+    s.scenes.pop();
+    expect((await saveScript(file, JSON.stringify(s), true)).status).toBe(200);
+    expect(JSON.parse(await readFile(file, 'utf8'))).toEqual(s);
+    expect((await saveScript(file, JSON.stringify({ meta: {} }), true)).status).toBe(400);
+  });
+
   test('不是 JSON：拒絕寫入（400）', async () => {
     const file = await tempScript();
     expect((await saveScript(file, '{ broken')).status).toBe(400);

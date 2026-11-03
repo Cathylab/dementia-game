@@ -5,6 +5,7 @@ import { TextEditor } from './editor';
 import { Engine } from './engine';
 import { ProjectSession } from './project';
 import { BrowserProjectStore } from './projectstore';
+import { StoryEditor } from './storyeditor';
 import { applyScriptDefaults, settings } from './settings';
 import { urlParam } from './util';
 import { AdvView } from './view';
@@ -37,16 +38,23 @@ async function boot() {
       editor.saveToProject = () => project.saveScript(engine.script);
       view.titleNote = `本機專案（存在${store.label}裡）`;
     }
+    const story = new StoryEditor(
+      engine,
+      view,
+      () => editor.save(true),
+      () => editor.invalidate(),
+    );
     const dev = new DevPanel(
       engine,
       view,
       () => editor.open(),
       () => editor.save(),
       project,
+      () => story.open(),
     );
     view.onStateChange = () => dev.refresh();
     // 給測試與主控台除錯用
-    (window as unknown as { __vn: unknown }).__vn = { engine, view, dev, editor, project };
+    (window as unknown as { __vn: unknown }).__vn = { engine, view, dev, editor, story, project };
     engine.toTitle();
   } catch (err) {
     app.textContent = `載入失敗：${(err as Error).message}`;

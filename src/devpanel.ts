@@ -68,6 +68,8 @@ export class DevPanel {
     private readonly saveScript?: () => Promise<string>,
     /** 專案（網站版或本機專案），沒有就不顯示「專案」區塊。 */
     private readonly project?: ProjectSession,
+    /** 打開故事編輯器。 */
+    private readonly openStory?: () => void,
   ) {
     this.build();
     document.body.append(this.root);
@@ -225,13 +227,17 @@ export class DevPanel {
         ]),
       ),
       this.section(
-        '文字編輯',
-        el('div', { class: 'dev-row' }, [
+        '編輯故事',
+        el('div', { class: 'dev-row dev-wrap' }, [
           this.button('配音總表', () => window.open('?voice=1', '_blank'), { 'data-dev': 'voice-desk' }),
           this.button('打開文字編輯', () => {
             this.toggle(false);
             this.openEditor?.();
           }, { 'data-dev': 'editor' }),
+          this.button('打開故事編輯', () => {
+            this.toggle(false);
+            this.openStory?.();
+          }, { 'data-dev': 'story', class: 'dev-primary' }),
         ]),
       ),
       this.section('腳本檢查', problemList),

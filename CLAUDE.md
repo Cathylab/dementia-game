@@ -25,7 +25,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 
 ## 架構
 
-- `src/main.ts`：載入 `script.json` → `Engine` + `AdvView` + `AudioEngine` + `TextEditor` + `DevPanel`。網址參數 `?voice=1` 改為渲染開發者頁面「配音總表」（`voicedesk.ts`），不啟動遊戲。`window.__vn = { engine, view, dev, editor }` 供測試與除錯。
+- `src/main.ts`：載入腳本 → `Engine` + `AdvView` + `AudioEngine` + `TextEditor` + `StoryEditor` + `DevPanel`。網址參數 `?voice=1` 改為渲染開發者頁面「配音總表」（`voicedesk.ts`），不啟動遊戲。`window.__vn = { engine, view, dev, editor, story, project }` 供測試與除錯。
 - `src/engine.ts`：純流程與狀態（stats、flags、seen、history 快照、repeat_line 佇列、記憶對照展開的虛擬台詞）。透過 `View` 介面呼叫畫面，`engine.token` 每換句／換場景遞增，非同步流程用它判斷是否過期。`phase`：title／busy／text／choice／inspect／ending。
 - `src/view.ts`：ADV 介面、轉場（`blink()`，樣式由 `meta.transition` 決定）、打字、獨白、選項與 hotspot、可點物件與說明卡、記憶對照、對話紀錄、設定、手機直式拖曳背景。`src/fx.ts` 實作 11 個效果標籤與退化係數（act 1→0、2→0.5、3 以上→1）。
 - `src/script.ts`：`validateScript`（所有腳本檢查規則，警告以「（警告）」開頭）、`if`／結局條件（`new Function`，可用數值名稱、`has()`、`seen()`、`flags`）、`sceneReachability`。
@@ -34,6 +34,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/localfiles.ts`：本機素材層（`bg/x.webp` 這種路徑→Blob）。`resolveImage`、配音、音樂都先查這裡再去 `public/assets/`。本機專案模式下新加入的檔案自動存回 store。
 - `src/projectfile.ts`：專案檔 `.vnproj`（zip：`project.json`、`script.json`、`assets/…`），用 `fflate`。
 - `src/devupload.ts`：開發者面板「上傳素材」，放進本機素材層（`putLocalFile`＋`forgetImage`），並提供轉好 webp 的下載與 GitHub 上傳頁連結。
+- `src/storyeditor.ts`＋`src/storyops.ts`：故事編輯器（`?story=1`），可改結構（場景、台詞、選項去向、角色、結局）。復原用整份腳本 JSON 快照；`restore` 原地換掉 `engine.script` 的內容後 `engine.reindex()`。改結構後呼叫 `TextEditor.invalidate()`。存檔走 `editor.save(true)`（dev 端點加 `?structure=1`）。
 - `src/editable.ts`：文字編輯器可改的欄位、`structureOf`（只比結構；呈現設定 `meta.transition`、`objectHighlight`、`sprite`、`characters[].sprite`、`scenes[].music` 視為可改）、JSON 排版 `formatScript`。瀏覽器與 dev server 共用。
 - `vite-plugin-script-save.ts`：dev 模式 `POST /__editor/save-script` 寫回 `public/script.json`（結構不同就拒絕）。`vite-plugin-voice-manifest.ts`：dev 端點與 build 產生 `assets/voice/manifest.json`。
 
