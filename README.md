@@ -4,11 +4,21 @@
 
 這個 repo 是**與內容無關的引擎**。故事、圖片、音樂都放在資料檔與素材檔裡；換內容只要換檔案，不必改程式。
 
-- 線上版：<https://cathylab.github.io/dementia-game/>
+## 快速連結
+
+| 用途 | 連結 |
+| --- | --- |
+| 玩遊戲（給試玩者） | <https://cathylab.github.io/dementia-game/> |
+| 開發者版本（開著開發者面板：跳場景、看數值、呈現調整） | <https://cathylab.github.io/dementia-game/?dev=1> |
+| 文字編輯器（改台詞，線上版會下載修改後的 script.json） | <https://cathylab.github.io/dementia-game/?edit=1> |
+| 配音總表（每句配音有沒有音檔、試聽、匯出缺檔清單） | <https://cathylab.github.io/dementia-game/?voice=1> |
+
+開發者版本和文字編輯器只是在網址後面多一段，給試玩者的連結不會出現這些工具。
+
 - 技術：Vite + TypeScript，純前端、無框架、無後端
 - 電腦橫式與手機直式都能玩
 
-目前 repo 裡沒有任何真實圖片或音樂：背景、立繪、前景物件都由程式畫出佔位圖，音樂由 Web Audio 即時合成。之後把檔案放進對應資料夾就會自動換上。
+找不到圖片、音樂或配音檔時，引擎會用佔位圖、合成環境音代替，或安靜略過配音，所以素材可以一批一批補。
 
 ---
 
