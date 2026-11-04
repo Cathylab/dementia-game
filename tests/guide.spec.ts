@@ -115,6 +115,8 @@ test('離線版「開始.html」：引導網站照樣能用，連結指到離線
   await expect(page.locator('[data-guide=progress]')).toContainText('第 1 步，共 9 步');
   await page.locator('textarea[name=guide-goal]').fill('離線的目標');
   await page.click('[data-guide=next]');
+  // 等換到第 2 步（存檔完成）再離開
+  await expect(page.locator('[data-guide=progress]')).toContainText('第 2 步');
   await page.goto(pathToFileURL(join(OUT, '開始.html')).href);
   await expect(page.locator('[data-guide=resume]')).toContainText('第 2 步');
   expect(errors).toEqual([]);
