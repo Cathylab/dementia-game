@@ -316,7 +316,7 @@ docs/                 規格文件與本需求書
 | 6 | 引導網站首頁 | 5.1 | 完成（#18） |
 | 7 | 引導流程與提示詞產生器 | 5.2 | 完成（#19） |
 | 8 | 匯出可遊玩版本、發佈到 GitHub Pages 教學 | 5.5 | 完成（#20） |
-| 9 | Release 壓縮檔（GitHub Actions）與使用說明 | 4.3 | 進行中 |
+| 9 | Release 壓縮檔（GitHub Actions）與使用說明 | 4.3 | 完成（#21） |
 
 ### 4.2 repo 結構調整
 
@@ -460,4 +460,16 @@ docs/                 規格文件與本需求書
   - **第一次推送標籤要使用者同意**（發佈後別人就可能下載）。
 - 授權與 Demo 素材權利（待使用者決定 #2、#3）尚未決定，壓縮檔目前沒有授權檔。發佈 v1.0.0 前應先決定。
 - 目前大小約 9.4 MB（README 有標示）。
+
+### 使用者的決定（2026-11-04）
+
+- **階段二的順序：先做 A（課堂版），再做 B（專業版）。**
+- **發佈方式除了 GitHub Pages，再加 itch.io。**
+
+### 5.5 補充：itch.io
+
+- `exportPlayable(script, files, 'itch')` 產生 `作品名-itch.zip`：`index.html` 在壓縮檔最外層，只有 `index.html` 與 `game/assets/…`（itch.io 的 HTML 遊戲要求；中文檔名與外層資料夾都拿掉）。
+- 第 9 步新增「匯出 itch.io 用的壓縮檔」與上傳步驟（放在 GitHub Pages 前面，因為不用解壓縮、最簡單）；教學在 `docs/publish-itch.md`。
+- 建議的 itch.io 設定：Kind of project 選 HTML、Viewport 1280×720、Mobile friendly、Fullscreen button。先用 Draft 自己試玩，再改成 Restricted（課堂作業）或 Public。
+- 下載版可以放在同一個 itch.io 頁面（不勾 played in the browser）。
 
