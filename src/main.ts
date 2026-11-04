@@ -14,7 +14,7 @@ import { projectDir, scriptUrl } from './paths';
 import { loadScript } from './script';
 import { currentPack, packIdOf, setCurrentPack } from './pack';
 import { loadPack } from './packloader';
-import { ProjectSession } from './project';
+import { ProjectSession, reloadWithProject } from './project';
 import { BrowserProjectStore } from './projectstore';
 import { showcaseDb } from './guide/review';
 import { StoryEditor } from './storyeditor';
@@ -33,7 +33,7 @@ async function bootGuide() {
   // 以前分享的連結（首頁加 ?dev=1 等）轉到遊戲頁
   const params = new URLSearchParams(location.search);
   if (GAME_PARAMS.some((k) => params.has(k))) {
-    location.replace(gameHref(Object.fromEntries(params)) + location.hash);
+    location.replace(gameHref(Object.fromEntries(params), false) + location.hash);
     return;
   }
   document.title = '開始做你的遊戲｜同理體驗視覺小說';
@@ -87,8 +87,9 @@ async function boot() {
   const store = new BrowserProjectStore(showcase ? showcaseDb(showcase) : undefined);
   let session: ProjectSession | null = null;
   try {
-    // 開過專案檔就用瀏覽器裡的專案；網址加 ?site=1 可以暫時略過，看網站原本的遊戲
-    const started = await ProjectSession.start(store, () => embeddedScript(projectDir()) ?? loadScript(scriptUrl()), !!urlParam('site') || !!EMBED?.player);
+    // 預設永遠是網站上的原版；本機專案只在 ?local=1（引導網站的連結會帶）或班級展示時讀
+    const useLocal = (!!urlParam('local') || !!showcase) && !urlParam('site') && !EMBED?.player;
+    const started = await ProjectSession.start(store, () => embeddedScript(projectDir()) ?? loadScript(scriptUrl()), !useLocal);
     session = started.session;
     const script = started.script;
     const packProblems: string[] = [];
@@ -141,7 +142,7 @@ async function boot() {
       const back = document.createElement('button');
       back.type = 'button';
       back.textContent = '關閉本機專案，回到網站版';
-      back.onclick = () => void store.clear().then(() => location.reload());
+      back.onclick = () => void store.clear().then(() => reloadWithProject(false));
       app.append(document.createElement('br'), back);
     }
   }

@@ -107,7 +107,7 @@ test('引導網站：上傳照片當背景（自動裁切）、從圖庫選，�
   await expect(row.locator('[data-guide=drawing-status]')).toContainText('圖庫：臥室');
 
   // 遊戲裡用的是專案裡的圖，不是佔位圖
-  await page.goto('./play.html?timescale=0.2');
+  await page.goto('./play.html?local=1&timescale=0.2');
   await page.click('.start-button');
   await expect
     .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('.bg')!).backgroundImage))

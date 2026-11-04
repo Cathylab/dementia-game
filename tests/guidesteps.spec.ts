@@ -116,7 +116,7 @@ test('用失智症題材包走完整個流程', async ({ page }) => {
   await next(page).click();
 
   // 7. 素材
-  await expect(page.locator('[data-guide=open-assets]')).toHaveAttribute('href', 'play.html?story=assets');
+  await expect(page.locator('[data-guide=open-assets]')).toHaveAttribute('href', 'play.html?story=assets&local=1');
   await next(page).click();
 
   // 8. 試玩：劇本檢查沒有必須修正
@@ -132,7 +132,7 @@ test('用失智症題材包走完整個流程', async ({ page }) => {
   await page.goto('./#/step/2');
   await expect(page.locator('textarea[name=guide-chosen]')).toHaveValue('選定的方向DIRECTION');
   // 遊戲頁開的是套用後的劇本
-  await page.goto('./play.html');
+  await page.goto('./play.html?local=1');
   await expect(page.locator('.title-screen h1')).toHaveText('寫給未來的我');
   expect(errors).toEqual([]);
 });

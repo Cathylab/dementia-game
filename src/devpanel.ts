@@ -13,7 +13,7 @@ import {
 } from './types';
 import { buildUploadSection } from './devupload';
 import { PROJECT_EXT } from './projectfile';
-import { downloadBlob, timeLabel, type ProjectSession } from './project';
+import { downloadBlob, reloadWithProject, timeLabel, type ProjectSession } from './project';
 import { exportPlayable } from './exporter';
 import { localFiles } from './localfiles';
 import { assetFolderLabel, projectUrl } from './paths';
@@ -497,13 +497,14 @@ export class DevPanel {
     const progress = (verb: string) => (done: number, total: number) => {
       msg.textContent = total ? `${verb}：收集素材 ${done} / ${total}…` : `${verb}…`;
     };
-    const run = async (task: () => Promise<string | void>, reload = false) => {
+    /** reload：完成後重新載入，'local' 開本機專案、'site' 回到網站上的原版。 */
+    const run = async (task: () => Promise<string | void>, reload?: 'local' | 'site') => {
       busy(true);
       try {
         const text = await task();
         if (reload) {
           msg.textContent = '完成，重新載入…';
-          location.reload();
+          reloadWithProject(reload === 'local');
           return;
         }
         if (text) msg.textContent = text;
@@ -538,26 +539,43 @@ export class DevPanel {
       void run(async () => {
         msg.textContent = `開啟「${f.name}」…`;
         await project.openFile(f);
-      }, true);
+      }, 'local');
     };
     const saveLocal = this.button(
       '存成本機專案',
-      () => void run(() => project.saveAsLocal(e.script, progress('存成本機專案')), true),
+      () => void run(() => project.saveAsLocal(e.script, progress('存成本機專案')), 'local'),
       { 'data-dev': 'save-local' },
     );
     const close = this.button(
       '關閉本機專案',
       () => {
         if (!confirm('關閉後會回到網站上的遊戲，這個瀏覽器裡的專案會刪掉。先匯出專案檔了嗎？')) return;
-        void run(() => project.close(), true);
+        void run(() => project.close(), 'site');
       },
       { 'data-dev': 'close-project' },
     );
     const buttons = [exportBtn, playBtn, local ? close : saveLocal];
+    // 看原版時，瀏覽器裡若還有本機專案，給一個打開它的連結（遊戲網址預設不讀本機專案）
+    const stored = el('p', { class: 'dev-note', 'data-dev': 'stored-project' });
+    if (!local) {
+      void project.store.load().then(
+        (p) => {
+          if (!p) return;
+          const open = el('a', { href: '#', 'data-dev': 'open-stored' }, ['打開它']);
+          open.onclick = (ev) => {
+            ev.preventDefault();
+            reloadWithProject(true);
+          };
+          stored.replaceChildren(`這個瀏覽器裡還有本機專案《${p.script.meta.title}》：`, open);
+        },
+        () => {},
+      );
+    }
 
     return this.section(
       '專案',
       where,
+      stored,
       el('div', { class: 'dev-row dev-wrap' }, buttons),
       el('label', { class: 'dev-row' }, ['開啟專案檔', file]),
       msg,

@@ -237,10 +237,17 @@ export class Guide {
       el('section', { class: 'g-section' }, [
         el('details', { class: 'g-making' }, [el('summary', {}, ['製作紀錄：《寫給未來的我》是怎麼做出來的']), ...markdown(makingOf)]),
       ]),
+      el('section', { class: 'g-section', 'data-guide': 'maker' }, [
+        el('h2', {}, ['製作者入口']),
+        el('p', { class: 'g-meta' }, ['打開《寫給未來的我》原版（網站上的版本，不是你在這裡做的遊戲）的製作工具。']),
+        el('div', { class: 'g-actions' }, [
+          el('a', { class: 'g-btn', href: gameHref({ project: DEFAULT_PROJECT, site: '1', dev: '1' }), 'data-guide': 'maker-dev' }, ['開發者面板']),
+          el('a', { class: 'g-btn', href: gameHref({ project: DEFAULT_PROJECT, site: '1', voice: '1' }), 'data-guide': 'maker-voice' }, ['配音總表']),
+          el('a', { class: 'g-btn', href: gameHref({ project: DEFAULT_PROJECT, site: '1', story: '1' }), 'data-guide': 'maker-story' }, ['故事編輯器']),
+        ]),
+      ]),
       el('footer', { class: 'g-footer' }, [
         el('a', { href: gameHref({ project: BLANK, site: '1', story: '1' }) }, ['直接打開故事編輯器（空白範本）']),
-        ' ・ ',
-        el('a', { href: gameHref({ dev: '1' }) }, ['開發者版本']),
         ' ・ ',
         el('a', { href: '#/teacher', 'data-guide': 'teacher-link' }, ['老師工作台（代貼提示詞）']),
         ' ・ ',

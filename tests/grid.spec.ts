@@ -104,7 +104,7 @@ test('課堂模式第 2 堂：照格子填，產生劇本並套用，然後可�
   await page.goto('./#/lesson/2');
   await expect(page.locator('[data-grid-scene="1"] input[name=grid-title]')).toHaveValue('第2天・教室');
 
-  await page.goto('./play.html?timescale=0.2');
+  await page.goto('./play.html?local=1&timescale=0.2');
   await expect(page.locator('.title-screen h1')).toHaveText('轉學第一天');
   await page.click('.start-button');
   for (let i = 0; i < 30 && !(await page.locator('.ending-screen.open').isVisible()); i++) {

@@ -147,6 +147,19 @@ export class ProjectSession {
   }
 }
 
+/**
+ * 重新載入遊戲頁：local=true 開本機專案（網址加 local=1），false 回到網站上的原版。
+ * 開啟／存成／關閉本機專案之後用。
+ */
+export function reloadWithProject(local: boolean): void {
+  const params = new URLSearchParams(location.search);
+  params.delete('site');
+  if (local) params.set('local', '1');
+  else params.delete('local');
+  const q = params.toString();
+  location.replace(`${location.pathname}${q ? `?${q}` : ''}${location.hash}`);
+}
+
 export function timeLabel(t: number): string {
   if (!t) return '';
   const d = new Date(t);

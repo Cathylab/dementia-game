@@ -40,7 +40,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/view.ts`：ADV 介面、轉場（`blink()`，樣式由 `meta.transition` 決定）、打字、獨白、選項與 hotspot、可點物件與說明卡、記憶對照、對話紀錄、設定、手機直式拖曳背景。`src/fx.ts` 實作 11 個效果標籤與退化係數（act 1→0、2→0.5、3 以上→1）。
 - `src/script.ts`：`validateScript`（所有腳本檢查規則，警告以「（警告）」開頭）、`if`／結局條件（`new Function`，可用數值名稱、`has()`、`seen()`、`flags`）、`sceneReachability`。
 - `src/audio.ts`：音樂（找不到 `.ogg`／`.mp3` 時用 Web Audio 合成，退化時走音）與配音（另一條音軌，只受 `muffle` 影響）。配音只請求 `assets/voice/manifest.json` 列出的檔案，避免缺檔產生 404。音效（台詞的 `sfx`，`{專案}/assets/sfx/`，只播一次）同樣有 `assets/sfx/manifest.json`，走音樂的 bus。
-- `src/main.ts` 啟動時經 `ProjectSession.start`（`src/project.ts`）決定模式：`site`＝網站的 `script.json`；`local`＝瀏覽器 IndexedDB 裡的本機專案（`src/projectstore.ts` 的 `ProjectStore` 介面，之後做雲端就換實作）。`?site=1` 略過本機專案。
+- `src/main.ts` 啟動時經 `ProjectSession.start`（`src/project.ts`）決定模式：`site`＝網站的 `script.json`；`local`＝瀏覽器 IndexedDB 裡的本機專案（`src/projectstore.ts` 的 `ProjectStore` 介面，之後做雲端就換實作）。**預設永遠是 `site`**；只有 `?local=1`（引導網站的 `gameHref` 自動帶）或 `?showcase=` 才讀本機專案，`?site=1` 優先。開啟／關閉本機專案後用 `reloadWithProject` 換網址。測試要開本機專案記得加 `local=1`。
 - `src/localfiles.ts`：本機素材層（`bg/x.webp` 這種路徑→Blob）。`resolveImage`、配音、音樂都先查這裡再去目前專案的 `assets/`。本機專案模式下新加入的檔案自動存回 store。
 - `src/projectfile.ts`：專案檔 `.vnproj`（zip：`project.json`、`script.json`、`assets/…`），用 `fflate`。
 - `src/devupload.ts`：開發者面板「上傳素材」，放進本機素材層（`putLocalFile`＋`forgetImage`），並提供轉好 webp 的下載與 GitHub 上傳頁連結。

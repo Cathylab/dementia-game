@@ -131,7 +131,12 @@ test('離線模式：開啟專案檔後存在瀏覽器裡，重新開啟還在',
   await page.keyboard.press('Backquote');
   await page.setInputFiles('input[name=dev-project-file]', { name: 'game.vnproj', mimeType: 'application/zip', buffer: file });
   await expect(page.locator('.title-screen h1')).toHaveText('離線開啟的專案', { timeout: 15_000 });
+  // 直接雙擊 html 是原本的空白範本；開發者面板有連結打開本機專案（網址帶 local=1）
   await page.goto(pageUrl('空白範本.html'));
+  await expect(page.locator('.project-badge')).toHaveCount(0);
+  await page.keyboard.press('Backquote');
+  await expect(page.locator('[data-dev=stored-project]')).toContainText('離線開啟的專案');
+  await page.locator('[data-dev=open-stored]').click();
   await expect(page.locator('.title-screen h1')).toHaveText('離線開啟的專案');
   await expect(page.locator('.project-badge')).toContainText('本機專案');
   expect(errors).toEqual([]);
