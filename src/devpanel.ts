@@ -1,6 +1,6 @@
 // 開發者面板：按 ` 鍵（或 F8）開關，網址加 ?dev=1 則一開始就打開。
 import type { Engine } from './engine';
-import { neededSprites, pickEnding, spriteWarnings, validateScript } from './script';
+import { neededSprites, pickEnding, spriteWarnings } from './script';
 import {
   ALL_FX,
   isText,
@@ -16,6 +16,8 @@ import { PROJECT_EXT } from './projectfile';
 import { timeLabel, type ProjectSession } from './project';
 import { assetFolderLabel, projectUrl } from './paths';
 import { FILE_MODE, OFFLINE_LIMITS } from './embed';
+import { checkScript } from './checks';
+import { issueSummary, renderIssues } from './issueview';
 import { currentPack, setCurrentPack } from './pack';
 import { listPacks, loadPack } from './packloader';
 import { clamp, el, urlParam } from './util';
@@ -193,10 +195,22 @@ export class DevPanel {
     this.gazeSelect.onchange = applyPose;
     this.distSelect.onchange = applyPose;
 
-    const problems = validateScript(e.script, currentPack());
-    const problemList = problems.length
-      ? el('ul', { class: 'dev-problems' }, problems.map((p) => el('li', {}, [p])))
-      : el('p', { class: 'dev-ok' }, ['腳本檢查沒有問題']);
+    const issues = checkScript(e.script, currentPack());
+    const problemList = el('div', { class: 'dev-problems' }, [
+      el('p', { class: issues.length ? 'dev-note' : 'dev-ok' }, [issues.length ? issueSummary(issues) : '腳本檢查沒有問題']),
+      ...(issues.length
+        ? [
+            renderIssues(issues, {
+              limit: 8,
+              onJump: (issue) => {
+                this.toggle(false);
+                this.openStory?.();
+                window.dispatchEvent(new CustomEvent('vn:story-jump', { detail: issue }));
+              },
+            }),
+          ]
+        : []),
+    ]);
 
     this.root.append(
       el('header', {}, [title, foldAll, fold, close]),

@@ -4,10 +4,13 @@
 // （本機專案存進瀏覽器、npm run dev 寫回 script.json、線上版下載）。
 import { resolveImage } from './assets';
 import type { Engine } from './engine';
+import { checkPastedScript, checkScript, hasBlocking, type Issue } from './checks';
+import { copyText } from './clipboard';
+import { issueSummary, renderIssues } from './issueview';
 import { currentPack } from './pack';
 import { assetFolderLabel } from './paths';
 import { localFiles } from './localfiles';
-import { ENDING_TARGET, validateScript } from './script';
+import { ENDING_TARGET } from './script';
 import {
   addCharacter,
   deleteCharacter,
@@ -24,7 +27,7 @@ import { isChoice, isMemoryReview, isText, type ChoiceLine, type Line, type Scen
 import { el, urlParam } from './util';
 import type { AdvView } from './view';
 
-type Tab = 'scenes' | 'characters' | 'endings';
+type Tab = 'scenes' | 'characters' | 'endings' | 'paste';
 
 /** 連續打字在這個時間內併成一步復原。 */
 const MERGE_MS = 800;
@@ -69,6 +72,7 @@ export class StoryEditor {
       ['scenes', '場景與台詞'],
       ['characters', '角色'],
       ['endings', '結局'],
+      ['paste', '貼上劇本'],
     ] as const) {
       const b = el('button', { type: 'button', role: 'tab', 'data-tab': t }, [label]);
       b.onclick = () => {
@@ -96,6 +100,11 @@ export class StoryEditor {
         e.preventDefault();
         e.returnValue = '';
       }
+    });
+    // 開發者面板的檢查結果按「跳到這裡」
+    window.addEventListener('vn:story-jump', (ev) => {
+      const issue = (ev as CustomEvent<Issue>).detail;
+      if (issue?.scene) this.jumpTo(issue.scene, issue.line);
     });
     if (urlParam('story')) this.open();
   }
@@ -210,7 +219,8 @@ export class StoryEditor {
     this.renderSceneList();
     if (this.tab === 'scenes') this.renderScene();
     else if (this.tab === 'characters') this.renderCharacters();
-    else this.renderEndings();
+    else if (this.tab === 'endings') this.renderEndings();
+    else this.renderPaste();
     this.refreshStatus();
     this.renderProblems();
   }
@@ -228,13 +238,17 @@ export class StoryEditor {
   }
 
   private renderProblems(): void {
-    const list = validateScript(this.script, currentPack());
-    const errors = list.filter((p) => !p.startsWith('（警告）'));
-    const summary = el('summary', {}, [
-      list.length ? `腳本檢查：${errors.length} 個問題${list.length > errors.length ? `、${list.length - errors.length} 個警告` : ''}` : '腳本檢查：沒有問題',
-    ]);
-    this.problems.classList.toggle('has-errors', errors.length > 0);
-    this.problems.replaceChildren(summary, el('ul', {}, list.map((p) => el('li', {}, [p]))));
+    const issues = checkScript(this.script, currentPack());
+    const summary = el('summary', {}, [`腳本檢查：${issueSummary(issues)}`]);
+    this.problems.classList.toggle('has-errors', hasBlocking(issues));
+    this.problems.replaceChildren(
+      summary,
+      renderIssues(issues, {
+        onJump: (issue) => {
+          if (issue.scene) this.jumpTo(issue.scene, issue.line);
+        },
+      }),
+    );
   }
 
   private sceneLabel(id: string | null | undefined): string {
@@ -621,6 +635,89 @@ export class StoryEditor {
       add,
       chips(extra),
     ]);
+  }
+
+  /** 打開某個場景，捲到某一句並閃一下。 */
+  jumpTo(sceneId: string, line?: number): void {
+    if (!this.isOpen) this.open(sceneId);
+    this.selected = sceneId;
+    this.tab = 'scenes';
+    this.render();
+    if (line !== undefined) {
+      const row = this.main.querySelector<HTMLElement>(`.story-line[data-line="${line}"]`);
+      row?.scrollIntoView({ block: 'center' });
+      row?.classList.add('flash');
+    }
+  }
+
+  // ───────────── 貼上劇本 ─────────────
+
+  /** 把 AI 寫好的 script.json 貼進來：抓出 JSON、白話檢查，沒有「必須修正」才能套用。 */
+  private renderPaste(): void {
+    const area = el('textarea', {
+      name: 'story-paste',
+      rows: '12',
+      spellcheck: 'false',
+      placeholder: '把 AI 給的劇本（script.json）整段貼在這裡。前後有說明文字也沒關係，會自動抓出 JSON。',
+    });
+    area.value = this.pasteDraft;
+    area.oninput = () => (this.pasteDraft = area.value);
+    const result = el('div', { class: 'story-paste-result', 'aria-live': 'polite' });
+    const check = el('button', { type: 'button', class: 'primary', 'data-story': 'paste-check' }, ['檢查']);
+    check.onclick = () => {
+      const r = checkPastedScript(area.value, currentPack());
+      if (!r.ok) {
+        result.replaceChildren(
+          el('p', { class: 'story-paste-error' }, [r.error]),
+          el('p', { class: 'story-hint' }, ['請 AI 重新輸出。可以把下面這段提示詞貼給它：']),
+          el('pre', { class: 'story-prompt' }, [r.prompt]),
+          this.copyBtn('複製提示詞', r.prompt),
+        );
+        return;
+      }
+      const blocking = hasBlocking(r.issues);
+      const apply = el('button', { type: 'button', class: 'primary', 'data-story': 'paste-apply' }, ['套用這份劇本']);
+      apply.disabled = blocking;
+      apply.onclick = () => {
+        if (!confirm('套用後會取代目前整份劇本（可以按「復原」回來）。確定嗎？')) return;
+        const next = JSON.parse(JSON.stringify(r.script)) as Script;
+        this.commit(() => {
+          const s = this.script as unknown as Record<string, unknown>;
+          for (const k of Object.keys(s)) delete s[k];
+          Object.assign(s, next);
+          this.selected = next.scenes[0]?.id ?? '';
+          this.tab = 'scenes';
+        });
+        this.pasteDraft = '';
+        this.message = '已套用貼上的劇本';
+        this.refreshStatus();
+      };
+      result.replaceChildren(
+        ...(r.note ? [el('p', { class: 'story-hint' }, [r.note])] : []),
+        el('p', {}, [`《${r.script.meta.title ?? '未命名'}》：${r.script.scenes.length} 個場景，${issueSummary(r.issues)}。`]),
+        renderIssues(r.issues),
+        el('p', { class: 'story-hint' }, [blocking ? '還有「必須修正」的問題，修好之前不能套用。' : '可以套用了。']),
+        apply,
+      );
+    };
+    this.main.replaceChildren(
+      el('p', { class: 'story-hint' }, ['請 AI 寫好劇本後貼回來。這裡會先檢查，有「必須修正」的問題時，會附上可以直接貼給 AI 的修正提示詞。']),
+      area,
+      el('div', { class: 'story-add' }, [check]),
+      result,
+    );
+  }
+
+  private pasteDraft = '';
+
+  private copyBtn(label: string, text: string): HTMLButtonElement {
+    const b = el('button', { type: 'button', class: 'small' }, [label]);
+    b.onclick = () =>
+      void copyText(text).then((ok) => {
+        b.textContent = ok ? '已複製' : '複製失敗';
+        window.setTimeout(() => (b.textContent = label), 1500);
+      });
+    return b;
   }
 
   // ───────────── 角色 ─────────────
