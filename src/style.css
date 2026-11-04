@@ -2641,3 +2641,134 @@ body.voice-desk-page #app {
     grid-column: 2 / 3;
   }
 }
+
+/* ───────────── 白話檢查結果 ───────────── */
+
+.issues {
+  display: grid;
+  gap: 6px;
+}
+
+.issues-ok {
+  margin: 4px 0;
+  color: #9fd39f;
+}
+
+.issue-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.issue {
+  padding: 6px 8px;
+  border-left: 3px solid #b98a3a;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.issue.error {
+  border-left-color: #e07a5f;
+}
+
+.issue-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.issue-level {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #111;
+  background: #e6c27a;
+}
+
+.issue-level.error {
+  background: #f0a878;
+}
+
+.issue-plain {
+  color: inherit;
+}
+
+.issue-fix {
+  margin: 2px 0;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.issue-tech {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.issue-tech code {
+  word-break: break-all;
+}
+
+.issue-tools,
+.issues-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.issues button {
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #1e232b;
+  color: #eee;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.issues button:hover {
+  border-color: #8fd3ff;
+}
+
+.story-line.flash {
+  animation: story-flash 1.4s ease;
+}
+
+@keyframes story-flash {
+  0%,
+  40% {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.story textarea[name='story-paste'] {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+
+.story-paste-result {
+  margin-top: 10px;
+}
+
+.story-paste-error {
+  color: #f0a878;
+}
+
+.story-prompt {
+  max-height: 12em;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 6px;
+  background: #0f1114;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
