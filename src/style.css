@@ -2772,3 +2772,83 @@ body.voice-desk-page #app {
   font-size: 12px;
 }
 
+/* ───────────── 故事編輯器：素材 ───────────── */
+
+.story-assets {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.story-asset {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #2a2e35;
+  border-radius: 10px;
+  background: #171a1f;
+}
+
+.story-asset[hidden] {
+  display: none;
+}
+
+.story-asset[data-status='missing'] {
+  border-color: #5a4a2a;
+}
+
+.story-asset-thumb {
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 68px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #0f1114;
+  font-size: 28px;
+}
+
+.story-asset-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.story-asset-thumb.kind-bg img {
+  object-fit: cover;
+}
+
+.story-asset-body p {
+  margin: 2px 0;
+}
+
+.story-asset-desc {
+  font-size: 13px;
+}
+
+.story-asset-status {
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #262a31;
+}
+
+.story-asset-status[data-status='site'] {
+  color: #9fd39f;
+}
+
+.story-asset-status[data-status='local'] {
+  color: #9cc8ea;
+}
+
+.story-asset-status[data-status='missing'] {
+  color: #e6c27a;
+}
+
+@media (max-width: 720px) {
+  .story-asset {
+    grid-template-columns: 1fr;
+  }
+}
+
