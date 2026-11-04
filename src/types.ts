@@ -47,8 +47,21 @@ export interface Meta {
    * 題材包代號（packs/{pack}/pack.json）。省略＝dementia（相容舊腳本）；null 或 "plain"＝一般故事，沒有特殊效果。
    */
   pack?: string | null;
+  /** 選項的位置與大小（呈現設定，開發者面板可調）。 */
+  choiceStyle?: ChoiceStyle;
   /** 素材出處（音效等），標題畫面「製作名單」顯示。 */
   credits?: Credit[];
+}
+
+/**
+ * 選項的位置與大小。position：right＝對話框右上方（預設）、center＝畫面中間（舊樣式）；
+ * width：選項寬度（畫面寬的比例 0.2～0.8，預設 0.36）；scale：字的大小倍數（0.6～1.3，預設 0.88）。
+ * 手機直式一律置中。
+ */
+export interface ChoiceStyle {
+  position?: 'right' | 'center';
+  width?: number;
+  scale?: number;
 }
 
 /** 一筆素材出處。file 是素材名稱（例如音效 phone_ring）。 */

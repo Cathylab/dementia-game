@@ -458,6 +458,38 @@ export class DevPanel {
       { 'data-dev': 'save-presentation', class: 'dev-primary' },
     );
 
+    // 選項的位置與大小（手機直式一律置中）
+    const cs = () => (meta.choiceStyle ??= {});
+    const choicePos = el('select', { name: 'dev-choice-position' }, [
+      el('option', { value: 'right' }, ['對話框右上方']),
+      el('option', { value: 'center' }, ['畫面中間']),
+    ]);
+    choicePos.value = meta.choiceStyle?.position ?? 'right';
+    const choiceWidth = el('input', { type: 'range', name: 'dev-choice-width', min: '0.2', max: '0.8', step: '0.02', value: String(meta.choiceStyle?.width ?? 0.36) });
+    const choiceScale = el('input', { type: 'range', name: 'dev-choice-scale', min: '0.6', max: '1.3', step: '0.02', value: String(meta.choiceStyle?.scale ?? 0.88) });
+    const widthOut = el('output', {}, [`${Math.round(Number(choiceWidth.value) * 100)}%`]);
+    const choiceScaleOut = el('output', {}, [`${Number(choiceScale.value).toFixed(2)} 倍`]);
+    const applyChoice = () => {
+      cs().position = choicePos.value as 'right' | 'center';
+      cs().width = Number(choiceWidth.value);
+      cs().scale = Number(choiceScale.value);
+      widthOut.textContent = `${Math.round(cs().width! * 100)}%`;
+      choiceScaleOut.textContent = `${cs().scale!.toFixed(2)} 倍`;
+      v.applyChoiceStyle();
+    };
+    choicePos.onchange = applyChoice;
+    choiceWidth.oninput = applyChoice;
+    choiceScale.oninput = applyChoice;
+    const previewChoice = this.button('預覽選項', () => {
+      if (e.phase !== 'text' && e.phase !== 'choice') return;
+      if (e.phase === 'choice') return v.applyChoiceStyle();
+      const test: ChoiceLine = { choice: [{ text: '第一個選項' }, { text: '比較長一點的第二個選項' }, { text: '第三個選項' }], mode: 'list' };
+      v.showChoice(test, test.choice.map((opt, index) => ({ opt, index, locked: false, missing: [] })), () => {
+        v.clearChoice();
+        v.stage.dataset.phase = e.phase;
+      });
+    }, { 'data-dev': 'preview-choice' });
+
     return this.section(
       '呈現調整',
       el('label', { class: 'dev-row' }, ['題材包', pack]),
@@ -468,6 +500,9 @@ export class DevPanel {
       el('label', { class: 'dev-row' }, ['大小', scale, scaleOut]),
       el('label', { class: 'dev-row' }, ['上下', y, yOut]),
       el('div', { class: 'dev-row' }, [applyAll]),
+      el('label', { class: 'dev-row' }, ['選項位置', choicePos, previewChoice]),
+      el('label', { class: 'dev-row' }, ['選項寬度', choiceWidth, widthOut]),
+      el('label', { class: 'dev-row' }, ['選項大小', choiceScale, choiceScaleOut]),
       el('div', { class: 'dev-row' }, ['音樂', music, list, applyMusic]),
       el('label', { class: 'dev-row' }, ['試聽檔案', file]),
       musicStatus,

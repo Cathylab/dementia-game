@@ -579,3 +579,9 @@ docs/                 規格文件與本需求書
 - 面板的「儲存物件」走 `editor.save(true)`（允許結構改變），之前先 `editor.invalidate()`。
 - 故事編輯器的物件卡提示改指向開發者面板。
 
+### 試玩回饋 2：選項與對話框
+
+- list 模式的 `prompt` 由 `AdvView.showPromptInDialog` 放進對話框（`.dialog.prompt .choice-prompt`）；沒有 prompt 時對話框不動。
+- `meta.choiceStyle` 是呈現設定（`stripPresentation` 會去掉），`applyChoiceStyle` 設 `data-layout` 與 CSS 變數 `--choice-width`、`--choice-scale`。橫式 `right` 版面在對話框文字上方的右側；直式不看 position，一律置中在對話框上方。
+- 選項出現時隱藏「▼」。
+

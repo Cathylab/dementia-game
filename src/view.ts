@@ -52,6 +52,10 @@ export interface AudioLike {
 }
 
 /** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
+function clampN(n: number, min: number, max: number): number {
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : min;
+}
+
 function round3(n: number): number {
   return Math.round(n * 1000) / 1000;
 }
@@ -910,7 +914,7 @@ export class AdvView implements View {
     }
     this.monologue.classList.remove('show');
     this.stage.classList.remove('monologue-on');
-    this.dialog.classList.remove('empty', 'done');
+    this.dialog.classList.remove('empty', 'done', 'prompt');
     this.nameEl.textContent = this.engine.speakerName(line.speaker);
     this.traitEl.textContent = '';
     this.nameBox.classList.toggle('hidden', !this.nameEl.textContent);
@@ -1251,7 +1255,8 @@ export class AdvView implements View {
       this.showHotspots(line, options, onPick);
       return;
     }
-    const prompt = line.prompt ? [el('p', { class: 'choice-prompt' }, [line.prompt])] : [];
+    // 選項上方的提問放進對話框（沒有 prompt 時，對話框保留前一句台詞與人名）
+    if (line.prompt) this.showPromptInDialog(line.prompt);
     const buttons = options.map((o) => {
       const { opt, index } = o;
       const b = el('button', { class: 'choice', type: 'button', 'data-index': String(index) }, [
@@ -1264,10 +1269,32 @@ export class AdvView implements View {
       this.markLocked(b, o);
       return b;
     });
-    this.choices.replaceChildren(...prompt, ...buttons);
+    this.choices.replaceChildren(...buttons);
     this.choices.className = 'choices open';
     this.choices.dataset.mode = 'list';
+    this.applyChoiceStyle();
     this.fx.applyChoice(line, this.choices, buttons);
+  }
+
+  /** 選項的提問顯示在對話框裡（像一句旁白，不打字）。 */
+  private showPromptInDialog(prompt: string): void {
+    this.typer.stop();
+    this.monologue.classList.remove('show');
+    this.stage.classList.remove('monologue-on');
+    this.dialog.classList.remove('empty');
+    this.dialog.classList.add('done', 'prompt');
+    this.dialog.dataset.speaker = 'narrator';
+    this.nameEl.textContent = '';
+    this.nameBox.classList.add('hidden');
+    this.textEl.replaceChildren(el('span', { class: 'choice-prompt' }, [prompt]));
+  }
+
+  /** 選項的位置與大小（meta.choiceStyle，開發者面板「呈現調整」可調）。手機直式一律置中。 */
+  applyChoiceStyle(): void {
+    const cs = this.engine.script.meta.choiceStyle ?? {};
+    this.choices.dataset.layout = cs.position === 'center' ? 'center' : 'right';
+    this.choices.style.setProperty('--choice-width', `${Math.round(clampN(cs.width ?? 0.36, 0.2, 0.8) * 100)}%`);
+    this.choices.style.setProperty('--choice-scale', String(clampN(cs.scale ?? 0.88, 0.6, 1.3)));
   }
 
   /** 熱點選項：畫面上的發光圓點；滑鼠移上或長按顯示文字，點擊選擇。 */
