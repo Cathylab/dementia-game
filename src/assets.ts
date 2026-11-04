@@ -1,16 +1,16 @@
 // 圖片素材解析：先嘗試載入 public/assets 下的真實檔案（.webp、.png、.jpg 依序），
 // 都不存在時以 canvas 產生佔位圖。
 import { localFileUrl } from './localfiles';
+import { assetBase } from './paths';
 import { IMAGE_EXTENSIONS } from './script';
 import { hash, seeded } from './util';
 
 export type ImageKind = 'bg' | 'char' | 'fg';
 
-const BASE = `${import.meta.env.BASE_URL}assets`;
 const cache = new Map<string, Promise<string>>();
 
 export function assetPath(kind: ImageKind, name: string, ext = 'png'): string {
-  return `${BASE}/${kind}/${name}.${ext}`;
+  return `${assetBase()}/${kind}/${name}.${ext}`;
 }
 
 /** 回傳可直接放進 <img src> 或 background-image 的網址。 */

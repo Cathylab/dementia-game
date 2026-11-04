@@ -7,7 +7,7 @@ import type { Script } from '../src/types';
 import { saveScript } from '../vite-plugin-script-save';
 import { testScript } from './helpers';
 
-const demo = async () => JSON.parse(await readFile(new URL('../public/script.json', import.meta.url), 'utf8')) as Script;
+const demo = async () => JSON.parse(await readFile(new URL('../examples/寫給未來的我/script.json', import.meta.url), 'utf8')) as Script;
 
 test.describe('文字編輯：可以改的欄位', () => {
   test('涵蓋文件列出的所有種類，且只有文字欄位', () => {

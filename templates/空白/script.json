@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "title": "我的遊戲",
+    "durationMinutes": 5,
+    "stats": {}
+  },
+  "characters": [],
+  "scenes": [
+    {
+      "id": "a1_s01",
+      "act": 1,
+      "title": "開場・第一個場景",
+      "background": "room",
+      "lines": [
+        { "speaker": "narrator", "text": "這是旁白。在故事編輯器裡改成你的第一句。" },
+        { "speaker": "player", "text": "這是主角心裡的話。" }
+      ],
+      "next": "@ending"
+    },
+    {
+      "id": "end_1",
+      "act": 1,
+      "title": "結局",
+      "background": "room",
+      "lines": [
+        { "speaker": "narrator", "text": "這是結局。" }
+      ]
+    }
+  ],
+  "endings": [
+    { "id": "ending_1", "title": "結局", "condition": "true", "scene": "end_1" }
+  ]
+}

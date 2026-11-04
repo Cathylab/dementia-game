@@ -6,6 +6,7 @@ import { forgetImage, isPlaceholder, resolveImage, type ImageKind } from './asse
 import { MUSIC_EXTENSIONS, VOICE_EXTENSIONS } from './audio';
 import type { Engine } from './engine';
 import { putLocalFile } from './localfiles';
+import { assetFolderLabel } from './paths';
 import { el } from './util';
 import type { AdvView } from './view';
 
@@ -33,7 +34,7 @@ export function githubUploadUrl(folder: string, loc: Location = window.location)
   const m = loc.hostname.match(/^([^.]+)\.github\.io$/i);
   const repo = loc.pathname.split('/').filter(Boolean)[0];
   if (!m || !repo) return null;
-  return `https://github.com/${m[1]}/${repo}/upload/main/public/assets/${folder}`;
+  return `https://github.com/${m[1]}/${repo}/upload/main/${encodeURI(assetFolderLabel(folder).replace(/\/$/, ''))}`;
 }
 
 function baseName(file: string): string {
@@ -118,12 +119,12 @@ export function buildUploadSection(engine: Engine, view: AdvView, savedToProject
     github.hidden = !url;
     if (url) {
       github.href = url;
-      github.textContent = `打開 GitHub 上傳頁（public/assets/${k.folder}/）`;
+      github.textContent = `打開 GitHub 上傳頁（${assetFolderLabel(k.folder)}）`;
     }
     const missing = rows.filter((r) => r.has === false).length;
     folderNote.textContent =
       `腳本用到 ${names.length} 個${k.label}${missing ? `，缺 ${missing} 個` : ''}。` +
-      `正式檔案要放在 public/assets/${k.folder}/，檔名＝上面的名稱。`;
+      `正式檔案要放在 ${assetFolderLabel(k.folder)}，檔名＝上面的名稱。`;
   };
 
   const exists = async (kind: UploadKind, name: string): Promise<boolean | null> => {
@@ -188,7 +189,7 @@ export function buildUploadSection(engine: Engine, view: AdvView, savedToProject
     }
     status.textContent = savedToProject
       ? `${ok} / ${files.length} 個檔案已放進遊戲，並存進本機專案（重新整理也還在，匯出專案檔時會一起帶走）。`
-      : `${ok} / ${files.length} 個檔案已放進遊戲。只在這次開啟的頁面有效，重新整理就會消失；要留下來，可以按上方「存成本機專案」，或下載下面的檔案放進 GitHub 的 public/assets/${k.folder}/。`;
+      : `${ok} / ${files.length} 個檔案已放進遊戲。只在這次開啟的頁面有效，重新整理就會消失；要留下來，可以按上方「存成本機專案」，或下載下面的檔案放進 GitHub 的 ${assetFolderLabel(k.folder)}。`;
     void fillNames();
   };
 

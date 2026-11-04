@@ -4,6 +4,7 @@
 // （本機專案存進瀏覽器、npm run dev 寫回 script.json、線上版下載）。
 import { resolveImage } from './assets';
 import type { Engine } from './engine';
+import { assetFolderLabel } from './paths';
 import { localFiles } from './localfiles';
 import { ENDING_TARGET, validateScript } from './script';
 import {
@@ -513,7 +514,7 @@ export class StoryEditor {
       this.view.audio.playSfx(name);
       void this.view.audio.hasSfx(name).then((ok) => {
         if (!ok) {
-          this.message = `還沒有音效檔 ${name}：用開發者面板「上傳素材」的「音效」放進來，或上傳到 public/assets/sfx/${name}.mp3`;
+          this.message = `還沒有音效檔 ${name}：用開發者面板「上傳素材」的「音效」放進來，或上傳到 ${assetFolderLabel('sfx')}${name}.mp3`;
           this.refreshStatus();
         }
       });

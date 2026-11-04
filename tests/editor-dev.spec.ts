@@ -16,7 +16,7 @@ test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(async () => {
   file = join(await mkdtemp(join(tmpdir(), 'vn-dev-')), 'script.json');
-  await copyFile(join(ROOT, 'public/script.json'), file);
+  await copyFile(join(ROOT, 'examples/寫給未來的我/script.json'), file);
   process.env.SCRIPT_SAVE_PATH = file;
   server = await createServer({ root: ROOT, configFile: join(ROOT, 'vite.config.ts'), server: { port: PORT, strictPort: true }, logLevel: 'error' });
   await server.listen();
@@ -34,7 +34,7 @@ test('本機開發：儲存直接寫回 script.json', async ({ page }) => {
   await expect(page.locator('[data-editor=save]')).toContainText('寫回');
   await first.fill('開發模式寫回的第一句。');
   await page.keyboard.press('Control+s');
-  await expect(page.locator('.editor-status')).toHaveText('已寫回 public/script.json');
+  await expect(page.locator('.editor-status')).toHaveText('已寫回 examples/寫給未來的我/script.json');
   const saved = JSON.parse(await readFile(file, 'utf8')) as Script;
   expect((saved.scenes[0].lines[0] as { text: string }).text).toBe('開發模式寫回的第一句。');
 });

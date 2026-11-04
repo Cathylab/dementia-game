@@ -2,6 +2,7 @@
 // 本機開發（npm run dev）時「儲存」直接寫回 public/script.json；線上版改成下載 script.json。
 import { editableFields, formatScript, getAt, setAt, type EditableField, type Path } from './editable';
 import type { Engine } from './engine';
+import { projectDir } from './paths';
 import { el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -40,7 +41,7 @@ export class TextEditor {
     private readonly view: AdvView,
   ) {
     this.saveBtn.textContent = import.meta.env.DEV ? '儲存（寫回 script.json）' : '下載 script.json';
-    this.saveBtn.title = import.meta.env.DEV ? '寫回 public/script.json（Ctrl+S）' : '線上版無法直接寫檔，會下載修改後的 script.json（Ctrl+S）';
+    this.saveBtn.title = import.meta.env.DEV ? `寫回 ${projectDir()}/script.json（Ctrl+S）` : '線上版無法直接寫檔，會下載修改後的 script.json（Ctrl+S）';
     const close = el('button', { type: 'button', 'data-editor': 'close', 'aria-label': '關閉' }, ['關閉']);
     this.undoBtn.onclick = () => this.undo();
     this.redoBtn.onclick = () => this.redo();
@@ -188,10 +189,10 @@ export class TextEditor {
     }
     if (import.meta.env.DEV) {
       try {
-        const res = await fetch(allowStructure ? `${SAVE_URL}?structure=1` : SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: text });
+        const res = await fetch(`${SAVE_URL}?project=${encodeURIComponent(projectDir())}${allowStructure ? '&structure=1' : ''}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: text });
         const body = (await res.json().catch(() => null)) as { ok: boolean; message: string } | null;
         if (res.ok && body?.ok) {
-          this.markSaved('已寫回 public/script.json');
+          this.markSaved(`已寫回 ${projectDir()}/script.json`);
           return this.message;
         }
         if (body?.message) {
@@ -204,7 +205,7 @@ export class TextEditor {
       }
     }
     download(text);
-    this.markSaved('已下載 script.json，請用它取代 public/script.json');
+    this.markSaved(`已下載 script.json，請用它取代 ${projectDir()}/script.json`);
     return this.message;
   }
 

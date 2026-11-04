@@ -4,6 +4,7 @@
 import { ASSET_KINDS, assetNames, type AssetKind } from './assetnames';
 import { MUSIC_EXTENSIONS, VOICE_EXTENSIONS } from './audio';
 import { hasLocalFiles, localFiles, onLocalFile, putLocalFile } from './localfiles';
+import { assetBase } from './paths';
 import { packProject, projectFileName, unpackProject, type Project } from './projectfile';
 import type { ProjectStore } from './projectstore';
 import { IMAGE_EXTENSIONS, loadScript } from './script';
@@ -11,7 +12,6 @@ import { isText, type Script } from './types';
 
 export type ProjectMode = 'site' | 'local';
 
-const BASE = `${import.meta.env.BASE_URL}assets`;
 const EXTS: Record<AssetKind, readonly string[]> = {
   bg: IMAGE_EXTENSIONS,
   char: IMAGE_EXTENSIONS,
@@ -80,8 +80,8 @@ export class ProjectSession {
     }
     // 配音與音效有清單：只下載實際存在的檔案
     const manifests: Partial<Record<AssetKind, string[] | null>> = {
-      voice: await fetchJson<string[]>(`${BASE}/voice/manifest.json`),
-      sfx: await fetchJson<string[]>(`${BASE}/sfx/manifest.json`),
+      voice: await fetchJson<string[]>(`${assetBase()}/voice/manifest.json`),
+      sfx: await fetchJson<string[]>(`${assetBase()}/sfx/manifest.json`),
     };
     const required = new Set(ASSET_KINDS.flatMap((k) => assetNames(script, k).map((n) => `${k}/${n}`)));
     const missing: string[] = [];
@@ -93,7 +93,7 @@ export class ProjectSession {
       if (list) exts = exts.filter((e) => list.includes(`${name}.${e}`));
       let found = false;
       for (const ext of exts) {
-        const blob = await fetchFile(`${BASE}/${kind}/${name}.${ext}`);
+        const blob = await fetchFile(`${assetBase()}/${kind}/${name}.${ext}`);
         if (blob) {
           files.set(`${kind}/${name}.${ext}`, blob);
           found = true;
