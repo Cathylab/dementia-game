@@ -5,7 +5,8 @@ import { assetNames, type AssetKind } from './assetnames';
 import { forgetImage, isPlaceholder, resolveImage, type ImageKind } from './assets';
 import { MUSIC_EXTENSIONS, VOICE_EXTENSIONS } from './audio';
 import type { Engine } from './engine';
-import { putLocalFile } from './localfiles';
+import { localFileUrl, putLocalFile } from './localfiles';
+import { IMAGE_EXTENSIONS } from './script';
 import { assetFolderLabel } from './paths';
 import { el } from './util';
 import type { AdvView } from './view';
@@ -87,6 +88,65 @@ function kb(n: number): string {
   return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
 }
 
+export interface UsedAsset {
+  /** 放進遊戲的檔案（圖片可能已轉成 webp）。 */
+  blob: Blob;
+  /** 正式檔名，例如 kitchen_morning.webp。 */
+  fileName: string;
+  note: string;
+}
+
+/**
+ * 把一個檔案放進遊戲當作某個素材：圖片轉 webp、音檔先確認能播，放進本機素材並立刻換上。
+ * 失敗時丟出看得懂的錯誤。開發者面板與故事編輯器的「素材」頁共用。
+ */
+export async function useAssetFile(
+  engine: Engine,
+  view: AdvView,
+  kind: UploadKind,
+  name: string,
+  f: File,
+  opts: { preview?: boolean } = {},
+): Promise<UsedAsset> {
+  const folder = UPLOAD_KINDS.find((k) => k.kind === kind)!.folder;
+  if (kind === 'voice' || kind === 'music' || kind === 'sfx') {
+    const ext = extOf(f.name);
+    const allowed = kind === 'music' ? MUSIC_EXTENSIONS : VOICE_EXTENSIONS;
+    if (!view.audio) throw new Error('這個頁面沒有聲音引擎');
+    const played =
+      kind === 'voice' ? await view.audio.useVoiceFile(name, f) : kind === 'sfx' ? await view.audio.useSfxFile(name, f) : await view.audio.useFile(name, f);
+    if (!played) throw new Error(`瀏覽器無法播放：${f.name}`);
+    // 副檔名不對時也先放進來試聽；匯出專案檔時用正確的副檔名
+    const fileName = `${name}.${allowed.includes(ext) ? ext : allowed[0]}`;
+    putLocalFile(`${folder}/${fileName}`, f);
+    if (kind === 'music' && (engine.scene?.music === name || view.audio.musicName === name)) view.audio.playMusic(name);
+    // 音效：放進去後馬上播一次給你聽
+    if (kind === 'sfx' && opts.preview) view.audio.playSfx(name);
+    const note = allowed.includes(ext) ? '' : `正式檔案要是 ${allowed.join(' 或 ')}，這個檔是 .${ext || '?'}`;
+    return { blob: f, fileName, note };
+  }
+  const { blob, ext, note } = await prepareImage(f, kind);
+  putLocalFile(`${folder}/${name}.${ext}`, blob);
+  forgetImage(kind, name);
+  await view.refreshAsset(kind, name);
+  return { blob, fileName: `${name}.${ext}`, note };
+}
+
+export type AssetStatus = 'site' | 'local' | 'missing';
+
+/** 素材現在的狀態：本機素材（上傳或專案檔）、網站上有檔案、還沒有（佔位中）。 */
+export async function assetStatus(view: AdvView, kind: UploadKind, name: string): Promise<AssetStatus> {
+  const folder = UPLOAD_KINDS.find((k) => k.kind === kind)!.folder;
+  const exts = kind === 'music' ? MUSIC_EXTENSIONS : kind === 'voice' || kind === 'sfx' ? VOICE_EXTENSIONS : IMAGE_EXTENSIONS;
+  if (localFileUrl(folder, name, exts)) return 'local';
+  let has = false;
+  if (kind === 'voice') has = (await view.audio?.hasVoice(name)) ?? false;
+  else if (kind === 'sfx') has = (await view.audio?.hasSfx(name)) ?? false;
+  else if (kind === 'music') has = (await view.audio?.hasMusic(name)) ?? false;
+  else has = !isPlaceholder(await resolveImage(kind, name));
+  return has ? 'site' : 'missing';
+}
+
 /** 開發者面板裡的「上傳素材」區塊。 */
 export function buildUploadSection(engine: Engine, view: AdvView, savedToProject = false): HTMLElement {
   const kindSelect = el('select', { name: 'dev-upload-kind' });
@@ -156,31 +216,8 @@ export function buildUploadSection(engine: Engine, view: AdvView, savedToProject
       const name = files.length === 1 && chosen ? chosen : baseName(f.name);
       const unknown = !names.has(name) ? '（腳本裡沒有用到這個名稱，檢查一下拼字）' : '';
       try {
-        if (k.kind === 'voice' || k.kind === 'music' || k.kind === 'sfx') {
-          const ext = extOf(f.name);
-          const allowed = k.kind === 'music' ? MUSIC_EXTENSIONS : VOICE_EXTENSIONS;
-          if (!view.audio) throw new Error('這個頁面沒有聲音引擎');
-          const played =
-            k.kind === 'voice'
-              ? await view.audio.useVoiceFile(name, f)
-              : k.kind === 'sfx'
-                ? await view.audio.useSfxFile(name, f)
-                : await view.audio.useFile(name, f);
-          if (!played) throw new Error(`瀏覽器無法播放：${f.name}`);
-          // 副檔名不對時也先放進來試聽；匯出專案檔時用正確的副檔名
-          putLocalFile(`${k.folder}/${name}.${allowed.includes(ext) ? ext : allowed[0]}`, f);
-          if (k.kind === 'music' && (engine.scene?.music === name || view.audio.musicName === name)) view.audio.playMusic(name);
-          // 音效：放進去後馬上播一次給你聽
-          if (k.kind === 'sfx' && files.length === 1) view.audio.playSfx(name);
-          const extNote = allowed.includes(ext) ? '' : `（正式檔案要是 ${allowed.join(' 或 ')}，這個檔是 .${ext || '?'}）`;
-          addResult(name, f, `${name}.${allowed.includes(ext) ? ext : allowed[0]}`, `已放進遊戲${unknown}${extNote}`);
-        } else {
-          const { blob, ext, note } = await prepareImage(f, k.kind);
-          putLocalFile(`${k.folder}/${name}.${ext}`, blob);
-          forgetImage(k.kind, name);
-          await view.refreshAsset(k.kind, name);
-          addResult(name, blob, `${name}.${ext}`, `已放進遊戲（${note}）${unknown}`);
-        }
+        const r = await useAssetFile(engine, view, k.kind, name, f, { preview: files.length === 1 });
+        addResult(name, r.blob, r.fileName, `已放進遊戲${r.note ? `（${r.note}）` : ''}${unknown}`);
         uploaded.add(`${k.kind}/${name}`);
         ok++;
       } catch (err) {

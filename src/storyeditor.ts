@@ -6,9 +6,12 @@ import { resolveImage } from './assets';
 import type { Engine } from './engine';
 import { checkPastedScript, checkScript, hasBlocking, type Issue } from './checks';
 import { copyText } from './clipboard';
+import { ASSET_KINDS, type AssetKind } from './assetnames';
+import { assetCatalog, KIND_LABEL, missingListText, type AssetItem } from './assetcatalog';
+import { assetStatus, useAssetFile, type AssetStatus } from './devupload';
 import { issueSummary, renderIssues } from './issueview';
 import { currentPack } from './pack';
-import { assetFolderLabel } from './paths';
+import { assetFolderLabel, projectDir } from './paths';
 import { localFiles } from './localfiles';
 import { ENDING_TARGET } from './script';
 import {
@@ -27,7 +30,7 @@ import { isChoice, isMemoryReview, isText, type ChoiceLine, type Line, type Scen
 import { el, urlParam } from './util';
 import type { AdvView } from './view';
 
-type Tab = 'scenes' | 'characters' | 'endings' | 'paste';
+type Tab = 'scenes' | 'characters' | 'endings' | 'assets' | 'paste';
 
 /** 連續打字在這個時間內併成一步復原。 */
 const MERGE_MS = 800;
@@ -72,6 +75,7 @@ export class StoryEditor {
       ['scenes', '場景與台詞'],
       ['characters', '角色'],
       ['endings', '結局'],
+      ['assets', '素材'],
       ['paste', '貼上劇本'],
     ] as const) {
       const b = el('button', { type: 'button', role: 'tab', 'data-tab': t }, [label]);
@@ -220,6 +224,7 @@ export class StoryEditor {
     if (this.tab === 'scenes') this.renderScene();
     else if (this.tab === 'characters') this.renderCharacters();
     else if (this.tab === 'endings') this.renderEndings();
+    else if (this.tab === 'assets') this.renderAssets();
     else this.renderPaste();
     this.refreshStatus();
     this.renderProblems();
@@ -648,6 +653,112 @@ export class StoryEditor {
       row?.scrollIntoView({ block: 'center' });
       row?.classList.add('flash');
     }
+  }
+
+  // ───────────── 素材 ─────────────
+
+  private assetKind: AssetKind | 'all' = 'all';
+  private assetMissingOnly = false;
+
+  /** 素材管理：劇本需要的每個素材、用在哪裡、狀態（網站有檔案／已上傳／佔位中），可以直接上傳。 */
+  private renderAssets(): void {
+    const items = assetCatalog(this.script);
+    const kinds = ASSET_KINDS.filter((k) => items.some((x) => x.kind === k));
+    const filter = el('select', { name: 'story-asset-kind' }, [
+      el('option', { value: 'all' }, ['全部']),
+      ...kinds.map((k) => el('option', { value: k }, [`${KIND_LABEL[k]}（${items.filter((x) => x.kind === k).length}）`])),
+    ]);
+    filter.value = this.assetKind;
+    filter.onchange = () => {
+      this.assetKind = filter.value as AssetKind | 'all';
+      this.renderAssets();
+    };
+    const missingOnly = el('input', { type: 'checkbox', name: 'story-asset-missing' });
+    missingOnly.checked = this.assetMissingOnly;
+    missingOnly.onchange = () => {
+      this.assetMissingOnly = missingOnly.checked;
+      this.renderAssets();
+    };
+    const summary = el('p', { class: 'story-hint', 'data-story': 'asset-summary' }, ['檢查中…']);
+    const copyMissing = el('button', { type: 'button', class: 'small', 'data-story': 'copy-missing' }, ['複製缺少的素材清單']);
+    const missing: AssetItem[] = [];
+    copyMissing.onclick = () =>
+      void copyText(missingListText(missing, this.script.meta.title)).then((ok) => {
+        copyMissing.textContent = ok ? '已複製' : '複製失敗';
+        window.setTimeout(() => (copyMissing.textContent = '複製缺少的素材清單'), 1500);
+      });
+
+    const shown = items.filter((x) => this.assetKind === 'all' || x.kind === this.assetKind);
+    const rows = shown.map((item) => this.assetRow(item));
+    const list = el('div', { class: 'story-assets' }, rows.map((r) => r.row));
+    // 狀態要非同步查（圖片、清單）
+    void Promise.all(rows.map((r) => r.ready)).then((statuses) => {
+      if (!list.isConnected) return;
+      const counts = { site: 0, local: 0, missing: 0 };
+      statuses.forEach((st, i) => {
+        counts[st]++;
+        if (st === 'missing') missing.push(shown[i]);
+        rows[i].row.hidden = this.assetMissingOnly && st !== 'missing';
+      });
+      summary.textContent = `共 ${shown.length} 個：網站上有檔案 ${counts.site}、已上傳 ${counts.local}、還沒有（佔位中）${counts.missing}。沒有素材也能玩：圖片用佔位圖、音樂用合成音、配音和音效先不出聲。`;
+    });
+    this.main.replaceChildren(
+      el('p', { class: 'story-hint' }, [
+        '劇本需要的所有素材。點「上傳」就能放進遊戲（存在本機專案時會一起存）；正式放上網站要用 GitHub 上傳到 ',
+        `${projectDir()}/assets/`,
+        ' 底下對應的資料夾。',
+      ]),
+      el('div', { class: 'story-inline' }, [el('label', { class: 'story-inline' }, ['種類', filter]), el('label', {}, [missingOnly, ' 只看還沒有的']), copyMissing]),
+      summary,
+      list,
+    );
+  }
+
+  private assetRow(item: AssetItem): { row: HTMLElement; ready: Promise<AssetStatus> } {
+    const badge = el('span', { class: 'story-asset-status' }, ['…']);
+    const thumb = el('div', { class: `story-asset-thumb kind-${item.kind}` });
+    const input = el('input', { type: 'file', name: 'story-asset-file', accept: item.kind === 'voice' || item.kind === 'music' || item.kind === 'sfx' ? 'audio/*,.mp3,.ogg' : 'image/*' });
+    input.hidden = true;
+    const upload = this.small('上傳', () => input.click(), { 'data-story': 'asset-upload' });
+    const msg = el('span', { class: 'story-hint' });
+    const showStatus = async (): Promise<AssetStatus> => {
+      const st = await assetStatus(this.view, item.kind, item.name);
+      badge.textContent = { site: '網站上有檔案', local: '已上傳', missing: '佔位中' }[st];
+      badge.dataset.status = st;
+      row.dataset.status = st;
+      if (item.kind === 'bg' || item.kind === 'char' || item.kind === 'fg') {
+        const url = await resolveImage(item.kind, item.name);
+        thumb.replaceChildren(el('img', { src: url, alt: '' }));
+      } else {
+        thumb.textContent = { voice: '🎙', music: '♪', sfx: '🔔' }[item.kind];
+      }
+      return st;
+    };
+    input.onchange = async () => {
+      const f = input.files?.[0];
+      input.value = '';
+      if (!f) return;
+      msg.textContent = '處理中…';
+      try {
+        const r = await useAssetFile(this.engine, this.view, item.kind, item.name, f, { preview: true });
+        msg.textContent = r.note ? `已放進遊戲（${r.note}）` : '已放進遊戲';
+        await showStatus();
+      } catch (err) {
+        msg.textContent = `沒有成功：${(err as Error)?.message ?? err}`;
+      }
+    };
+    const jump = item.scene ? this.small('看場景', () => this.jumpTo(item.scene!), { title: '打開第一個用到它的場景' }) : null;
+    const row = el('div', { class: 'story-asset', 'data-asset': `${item.kind}/${item.name}` }, [
+      thumb,
+      el('div', { class: 'story-asset-body' }, [
+        el('div', { class: 'story-line-head' }, [el('strong', {}, [item.name]), el('span', { class: 'story-chip' }, [KIND_LABEL[item.kind]]), badge]),
+        el('p', { class: 'story-asset-desc' }, [item.description || '（沒有描述）']),
+        el('p', { class: 'story-hint' }, [`用在：${item.uses.join('、') || '—'}`]),
+        el('p', { class: 'story-hint' }, [`規格：${item.spec}`]),
+        el('div', { class: 'story-inline' }, [upload, input, ...(jump ? [jump] : []), msg]),
+      ]),
+    ]);
+    return { row, ready: showStatus() };
   }
 
   // ───────────── 貼上劇本 ─────────────

@@ -38,6 +38,8 @@ export interface AudioLike {
   /** 這句配音有沒有音檔。 */
   hasVoice(id: string): Promise<boolean>;
   setVoiceVolume(v: number): void;
+  /** 有沒有這首音樂的檔案。 */
+  hasMusic(name: string): Promise<boolean>;
   /** 播一個音效（只播一次）。 */
   playSfx(name: string): void;
   hasSfx(name: string): Promise<boolean>;

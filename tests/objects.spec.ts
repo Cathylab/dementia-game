@@ -152,9 +152,10 @@ test('熱點的座標是背景圖上的位置，跟著背景一起平移', async
     page.evaluate(() => {
       const bg = document.querySelector('.bg')!.getBoundingClientRect();
       const spot = document.querySelector('.object-spot[data-object="o_phone"]')!.getBoundingClientRect();
-      // 佔位背景是 16:9；background-size: cover 後的圖片範圍
-      const imgH = Math.max(bg.height, bg.width / (16 / 9));
-      const imgW = imgH * (16 / 9);
+      // 佔位背景是 2304×1080；background-size: cover 後的圖片範圍
+      const ratio = 2304 / 1080;
+      const imgH = Math.max(bg.height, bg.width / ratio);
+      const imgW = imgH * ratio;
       const left = bg.left + (bg.width - imgW) / 2;
       const top = bg.top + (bg.height - imgH) / 2;
       return { dx: spot.x + spot.width / 2 - (left + 0.75 * imgW), dy: spot.y + spot.height / 2 - (top + 0.3 * imgH), bgLeft: bg.left };

@@ -803,6 +803,12 @@ export class AudioEngine implements AudioLike {
     });
   }
 
+  /** 有沒有這首音樂的檔案（沒有時會用合成音）。 */
+  async hasMusic(name: string): Promise<boolean> {
+    if (this.buffers.has(name) && (await this.buffers.get(name))) return true;
+    return (await this.musicUrl(name)) !== null;
+  }
+
   /** 音樂檔的網址：先看本機素材，再看清單（有清單時不請求不存在的檔案）。null＝沒有檔案。 */
   private async musicUrl(name: string): Promise<string | null> {
     const local = localFileUrl('music', name, EXTENSIONS);
