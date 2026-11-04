@@ -26,6 +26,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 ## 架構
 
 - 頁面：`index.html`＝引導網站（`src/guide/`，`data-page="guide"`），`play.html`＝遊戲。首頁收到遊戲參數會轉到 `play.html`。**測試開遊戲要用 `./play.html?…`**。離線版另有 `開始.html`。
+- 老師代貼：`src/guide/relay.ts`（代貼單／回覆檔格式）、`teacher.ts`（`#/teacher` 工作台）、`stepviews.ts` 的 `relayBox`。
 - 照格子填：`src/guide/grid.ts`（`gridToScript`，不碰 DOM）、`gridview.ts`（`registerTool('grid')`）。
 - 課堂模式：`src/guide/lessons.ts`（任務卡）、`guide.ts` 的 `renderLesson`／`embedStep`（`#/lesson/N`，`GuideState.mode = 'class'`）。引導頁的延遲存檔用 `src/guide/pending.ts` 的 `debounce`，換頁前 `flushPending()`。
 - 引導流程：`src/guide/steps.ts`（九步定義）、`stepviews.ts`（每步畫面，`registerStep`）、`prompts.ts`（提示詞，含前面答案、題材包 `guide.md`／`cautions.md`）、`format.ts`（給 AI 的劇本格式）。題材包文件離線時在 `EMBED.packs[id]._docs`。

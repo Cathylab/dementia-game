@@ -15,6 +15,7 @@ import { loadGuideState, newGuideState, saveGuideState, type GuideState } from '
 import { LESSON_MINUTES, LESSONS } from './lessons';
 import { flushPending } from './pending';
 import { STEPS, type StepDef } from './steps';
+import { renderTeacher } from './teacher';
 import './guide.css';
 
 const BLANK = 'templates/空白';
@@ -142,6 +143,7 @@ export class Guide {
     if (m && this.state && this.project) return this.renderStep(Math.min(STEPS.length, Math.max(1, Number(m[1]))));
     if (l && this.state && this.project) return this.renderLesson(Math.min(LESSONS.length, Math.max(1, Number(l[1]))));
     if (hash === 'start') return this.renderStart();
+    if (hash === 'teacher') return renderTeacher(this.root);
     return this.renderHome();
   }
 
@@ -216,7 +218,7 @@ export class Guide {
           '玩家用第一人稱經歷一種處境（失智、聽損、轉學……），介面會跟著處境一起「崩壞」。不用會寫程式、不用有圖或配音，每一步都有保底的做法。',
         ]),
         el('div', { class: 'g-actions' }, [...(resume ? [resume] : []), begin, playFull]),
-        el('p', { class: 'g-meta', 'data-guide': 'class-hint' }, ['老師帶學生？按「開始做我的遊戲」後選「課堂模式」：6 堂課，每堂一張可以列印的任務卡。']),
+        el('p', { class: 'g-meta', 'data-guide': 'class-hint' }, ['老師帶學生？按「開始做我的遊戲」後選「課堂模式」：6 堂課，每堂一張可以列印的任務卡。學生不能自己用 AI 時，可以用頁面最下方的「老師工作台」代貼提示詞。']),
       ]),
       el('section', { class: 'g-section' }, [
         el('h2', {}, ['先玩一分鐘']),
@@ -232,6 +234,8 @@ export class Guide {
         el('a', { href: gameHref({ project: BLANK, site: '1', story: '1' }) }, ['直接打開故事編輯器（空白範本）']),
         ' ・ ',
         el('a', { href: gameHref({ dev: '1' }) }, ['開發者版本']),
+        ' ・ ',
+        el('a', { href: '#/teacher', 'data-guide': 'teacher-link' }, ['老師工作台（代貼提示詞）']),
       ]),
     );
   }

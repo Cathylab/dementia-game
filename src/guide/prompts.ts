@@ -14,6 +14,8 @@ export interface ThemeAnswer {
   length: Length;
   /** 給誰玩（可以空白）。 */
   audience?: string;
+  /** 組別（課堂用，老師代貼時辨認是哪一組）。 */
+  group?: string;
 }
 
 export interface Answers {
