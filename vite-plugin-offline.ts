@@ -8,10 +8,11 @@ import { join } from 'node:path';
 import type { Plugin, Rollup } from 'vite';
 import { listAudioFiles, listProjects, MANIFEST_FOLDERS, readPacks } from './vite-plugin-content.ts';
 
-/** 產生哪些 html：檔名 → 預設載入的專案。 */
-export const OFFLINE_PAGES: Record<string, string> = {
-  '玩 Demo.html': 'examples/寫給未來的我',
-  '空白範本.html': 'templates/空白',
+/** 產生哪些 html：檔名 → 引導網站或遊戲、預設載入的專案。 */
+export const OFFLINE_PAGES: Record<string, { page: 'guide' | 'game'; project: string }> = {
+  '開始.html': { page: 'guide', project: 'examples/寫給未來的我' },
+  '玩 Demo.html': { page: 'game', project: 'examples/寫給未來的我' },
+  '空白範本.html': { page: 'game', project: 'templates/空白' },
 };
 
 /** 放進 <script> 裡的文字不能出現 </script 或 <!--。 */
@@ -36,7 +37,7 @@ export function offlinePlugin(): Plugin {
     async generateBundle(_options, bundle) {
       const files = Object.values(bundle);
       const entry = files.find((f): f is Rollup.OutputChunk => f.type === 'chunk' && f.isEntry);
-      const html = bundle['index.html'] as Rollup.OutputAsset | undefined;
+      const html = files.find((f): f is Rollup.OutputAsset => f.type === 'asset' && f.fileName.endsWith('.html'));
       if (!entry || !html) throw new Error('離線版建置：找不到入口程式或 index.html');
       const css = files
         .filter((f): f is Rollup.OutputAsset => f.type === 'asset' && f.fileName.endsWith('.css'))
@@ -58,21 +59,25 @@ export function offlinePlugin(): Plugin {
         .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>\s*/g, '')
         .replace(/<link\b[^>]*\brel="(?:stylesheet|modulepreload)"[^>]*>\s*/g, '');
 
-      for (const [fileName, defaultProject] of Object.entries(OFFLINE_PAGES)) {
+      // 每個專案用哪個 html 開（引導網站的連結用）
+      const pages: Record<string, string> = {};
+      for (const [fileName, p] of Object.entries(OFFLINE_PAGES)) if (p.page === 'game') pages[p.project] = fileName;
+      for (const [fileName, { page, project: defaultProject }] of Object.entries(OFFLINE_PAGES)) {
         if (!(defaultProject in projects)) continue;
-        const embed = JSON.stringify({ defaultProject, projects, packs }).replace(/</g, '\\u003c');
-        const title = (projects[defaultProject] as { title: string }).title;
-        const page = base
+        const embed = JSON.stringify({ page, defaultProject, projects, packs, pages }).replace(/</g, '\\u003c');
+        const title = page === 'guide' ? '開始做你的遊戲' : (projects[defaultProject] as { title: string }).title;
+        const out = base
           .replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(title)}</title>`)
+          .replace(/data-page="[^"]*"/, () => `data-page="${page}"`)
           .replace('</head>', () => `    <style>\n${css}\n    </style>\n  </head>`)
           .replace(
             '</body>',
             () => `    <script>window.__VN_EMBED__ = ${embed};</script>\n    <script>\n${safeScript(entry.code)}\n    </script>\n  </body>`,
           );
-        this.emitFile({ type: 'asset', fileName, source: page });
+        this.emitFile({ type: 'asset', fileName, source: out });
       }
-      // 原本的 index.html、js、css 都已經寫進上面的 html 了
-      delete bundle['index.html'];
+      // 原本的 html、js、css 都已經寫進上面的 html 了
+      delete bundle[html.fileName];
       delete bundle[entry.fileName];
       for (const f of files) if (f.type === 'asset' && f.fileName.endsWith('.css')) delete bundle[f.fileName];
     },

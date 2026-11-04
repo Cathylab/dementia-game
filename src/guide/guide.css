@@ -1,0 +1,396 @@
+/* 引導網站：明亮、好讀的一般網頁（遊戲頁是全螢幕黑底，樣式分開） */
+
+html[data-page='guide'],
+html[data-page='guide'] body {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+  background: var(--g-bg);
+  color: var(--g-ink);
+}
+
+html[data-page='guide'] {
+  --g-bg: #f6f1e7;
+  --g-paper: #fffdf8;
+  --g-ink: #2b2620;
+  --g-dim: #6b6157;
+  --g-line: #e2d8c6;
+  --g-accent: #a3542c;
+  --g-accent-ink: #fff;
+  --g-good: #2f7a4a;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-page='guide']:not([data-theme='light']) {
+    --g-bg: #1b1916;
+    --g-paper: #24211d;
+    --g-ink: #efe8dc;
+    --g-dim: #b0a596;
+    --g-line: #3a352e;
+    --g-accent: #e0956a;
+    --g-accent-ink: #1b1916;
+    --g-good: #7fc79a;
+    color-scheme: dark;
+  }
+}
+
+html[data-page='guide'] #app {
+  position: static;
+  display: block;
+  /* 遊戲頁的 #app 是置中的 grid；新版瀏覽器的區塊排版也吃 place-items，要還原 */
+  place-items: normal;
+}
+
+.guide {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px 64px;
+  font: 16px/1.75 var(--font-body);
+}
+
+.guide h1 {
+  margin: 0 0 12px;
+  font-size: clamp(26px, 5vw, 38px);
+  line-height: 1.3;
+}
+
+.guide h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.guide a {
+  color: var(--g-accent);
+}
+
+.g-hero {
+  padding: 56px 0 24px;
+}
+
+.g-kicker {
+  margin: 0 0 8px;
+  color: var(--g-accent);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.g-lead {
+  max-width: 44em;
+  color: var(--g-dim);
+  font-size: 17px;
+}
+
+.g-actions,
+.g-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.g-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 18px;
+  border: 1px solid var(--g-line);
+  border-radius: 999px;
+  background: var(--g-paper);
+  color: var(--g-ink) !important;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.g-btn.primary {
+  border-color: var(--g-accent);
+  background: var(--g-accent);
+  color: var(--g-accent-ink) !important;
+  font-weight: 600;
+}
+
+.g-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.g-btn:focus-visible,
+.g-choice:focus-visible,
+.g-pills a:focus-visible {
+  outline: 3px solid var(--g-accent);
+  outline-offset: 2px;
+}
+
+.g-section {
+  margin: 28px 0;
+  padding: 24px;
+  border: 1px solid var(--g-line);
+  border-radius: 16px;
+  background: var(--g-paper);
+}
+
+.g-clip-box {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
+
+.g-clip {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.g-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-overview li {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--g-bg);
+}
+
+.g-overview p {
+  margin: 2px 0;
+  font-size: 14px;
+}
+
+.g-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--g-accent);
+  color: var(--g-accent-ink);
+  font-weight: 700;
+}
+
+.g-meta {
+  color: var(--g-dim);
+  font-size: 13px;
+}
+
+.g-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.g-card {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--g-bg);
+}
+
+.g-card p {
+  margin: 4px 0 8px;
+  font-size: 14px;
+  color: var(--g-dim);
+}
+
+.g-making summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.g-making h3 {
+  margin: 20px 0 6px;
+}
+
+.g-making h4 {
+  margin: 16px 0 4px;
+}
+
+.g-footer {
+  color: var(--g-dim);
+  font-size: 14px;
+  text-align: center;
+}
+
+.g-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 16px 0 8px;
+  font-size: 14px;
+}
+
+.g-project {
+  font-weight: 600;
+}
+
+.g-link {
+  margin-left: auto;
+}
+
+.g-link + .g-link {
+  margin-left: 0;
+}
+
+.g-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.g-choice {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 2px solid var(--g-line);
+  border-radius: 14px;
+  background: var(--g-bg);
+  color: var(--g-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.g-choice:hover {
+  border-color: var(--g-accent);
+}
+
+.g-choice strong {
+  font-size: 18px;
+}
+
+.g-choice span {
+  color: var(--g-dim);
+  font-size: 14px;
+}
+
+.g-warn {
+  color: var(--g-accent);
+}
+
+.g-msg {
+  min-height: 1.5em;
+}
+
+/* 步驟頁：上方固定的進度 */
+.g-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -16px;
+  padding: 0 16px 10px;
+  background: var(--g-bg);
+  border-bottom: 1px solid var(--g-line);
+}
+
+.g-progress {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.g-progress span {
+  color: var(--g-dim);
+  font-size: 14px;
+}
+
+.g-pills {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-pills a {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 4px 2px;
+  border-radius: 8px;
+  color: var(--g-dim);
+  font-size: 12px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.g-pills a span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--g-line);
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.g-pills a.done span {
+  border-color: var(--g-good);
+  color: var(--g-good);
+}
+
+.g-pills a.skipped span {
+  border-style: dashed;
+}
+
+.g-pills a.current span {
+  border-color: var(--g-accent);
+  background: var(--g-accent);
+  color: var(--g-accent-ink);
+}
+
+.g-pills a.current {
+  color: var(--g-ink);
+  font-weight: 600;
+}
+
+.g-explain {
+  padding: 12px 16px;
+  border-left: 4px solid var(--g-accent);
+  border-radius: 8px;
+  background: var(--g-bg);
+}
+
+.g-explain p {
+  margin: 4px 0;
+}
+
+.g-todo {
+  margin-top: 16px;
+  padding: 16px;
+  border: 2px dashed var(--g-line);
+  border-radius: 12px;
+  color: var(--g-dim);
+}
+
+@media (max-width: 640px) {
+  /* 手機：片段用直式畫面（遊戲在直式時版面專門為手機設計） */
+  .g-clip-box {
+    aspect-ratio: 3 / 4;
+  }
+
+  .g-section {
+    padding: 16px;
+  }
+
+  .g-pills small {
+    display: none;
+  }
+
+  .g-link {
+    margin-left: 0;
+  }
+}

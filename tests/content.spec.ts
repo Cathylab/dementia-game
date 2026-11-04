@@ -15,7 +15,7 @@ test('空白範本：可以執行、腳本檢查沒有問題', async () => {
 test('沒有參數時載入 Demo；素材從 examples/寫給未來的我/assets 來', async ({ page }) => {
   const requests: string[] = [];
   page.on('request', (r) => requests.push(decodeURIComponent(r.url())));
-  await page.goto('./');
+  await page.goto('./play.html');
   await expect(page.locator('.title-screen h1')).toHaveText('寫給未來的我');
   await page.click('.start-button');
   await expect(page.locator('#stage')).toHaveAttribute('data-scene', 'a1_s01', { timeout: 15_000 });
@@ -24,7 +24,7 @@ test('沒有參數時載入 Demo；素材從 examples/寫給未來的我/assets 
 });
 
 test('?project=templates/空白 載入空白範本，可以玩到結局', async ({ page }) => {
-  await page.goto('./?project=templates/空白&timescale=0.2');
+  await page.goto('./play.html?project=templates/空白&timescale=0.2');
   await expect(page.locator('.title-screen h1')).toHaveText('我的遊戲');
   await page.click('.start-button');
   await expect(page.locator('.dialog .text')).toHaveText('這是旁白。在故事編輯器裡改成你的第一句。');
@@ -36,9 +36,9 @@ test('?project=templates/空白 載入空白範本，可以玩到結局', async 
 });
 
 test('不認得的專案參數改回 Demo（不能指到別的資料夾）', async ({ page }) => {
-  await page.goto('./?project=../../etc');
+  await page.goto('./play.html?project=../../etc');
   await expect(page.locator('.title-screen h1')).toHaveText('寫給未來的我');
-  await page.goto('./?project=src');
+  await page.goto('./play.html?project=src');
   await expect(page.locator('.title-screen h1')).toHaveText('寫給未來的我');
 });
 

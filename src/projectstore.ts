@@ -19,6 +19,9 @@ export interface ProjectStore {
   /** 新增或取代一個素材檔。 */
   saveFile(path: string, blob: Blob): Promise<number>;
   clear(): Promise<void>;
+  /** 專案附帶的其他資料（例如引導流程做到哪一步）。沒有回傳 undefined。 */
+  loadExtra<T>(key: string): Promise<T | undefined>;
+  saveExtra(key: string, value: unknown): Promise<void>;
 }
 
 const DB_NAME = 'vn-project';
@@ -113,6 +116,22 @@ export class BrowserProjectStore implements ProjectStore {
       meta.put(now, 'savedAt');
     });
     return now;
+  }
+
+  async loadExtra<T>(key: string): Promise<T | undefined> {
+    let value: T | undefined;
+    await this.tx('readonly', (meta) => {
+      const r = meta.get(`extra:${key}`);
+      r.onsuccess = () => (value = r.result as T | undefined);
+    });
+    return value;
+  }
+
+  async saveExtra(key: string, value: unknown): Promise<void> {
+    const plain = JSON.parse(JSON.stringify(value)) as unknown;
+    await this.tx('readwrite', (meta) => {
+      meta.put(plain, `extra:${key}`);
+    });
   }
 
   async clear(): Promise<void> {

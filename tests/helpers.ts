@@ -28,7 +28,7 @@ export async function openWithTestScript(
   opts.mutate?.(script);
   const body = JSON.stringify(script);
   await page.route('**/script.json', (route) => route.fulfill({ contentType: 'application/json', body }));
-  await page.goto(`./?${query}`);
+  await page.goto(`./play.html?${query}`);
   await expect(page.locator('.title-screen h1')).toHaveText('測試腳本');
 }
 

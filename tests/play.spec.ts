@@ -14,7 +14,7 @@ async function open(page: Page) {
   });
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('./?timescale=0.5');
+  await page.goto('./play.html?timescale=0.5');
   return errors;
 }
 
