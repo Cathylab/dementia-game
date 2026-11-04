@@ -412,6 +412,10 @@
 - 沒有編輯介面的欄位（`fx`、`voice`、`if`、`effects`、`flags`、`requires`、座標等）原樣保留。
 - `npm run dev` 存檔時帶 `?structure=1`，寫回 `script.json` 不檢查結構是否相同。
 
+### 題材包 `meta.pack`（引擎新增）
+
+`meta.pack` 指定題材包（`packs/{代號}/pack.json`，見 `docs/packs.md`）。省略＝`dementia`（全部效果、退化 0 → 0.5 → 1，和以前一樣）；`null` 或 `"plain"`＝一般故事，沒有特殊效果、沒有退化。題材包沒啟用的效果寫在腳本裡也不會出現，腳本檢查會給警告。
+
 ### 音效 `sfx`（引擎新增）
 
 台詞（TextLine）可以加 `"sfx": "名稱"`：這句出現時播一次 `{專案}/assets/sfx/{名稱}.mp3`（或 `.ogg`）。

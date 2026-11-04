@@ -34,6 +34,8 @@ test('玩 Demo.html：雙擊開啟就能玩，劇本與清單內嵌、圖片用�
   const { errors, fetched } = await open(page);
   await expect(page.locator('.title-screen h1')).toHaveText('寫給未來的我');
   await expect(page).toHaveTitle('寫給未來的我');
+  // 題材包也內嵌在 html 裡
+  expect(await page.evaluate(() => (window as unknown as { __vn: { pack: { id: string; effects: string[] } } }).__vn.pack)).toMatchObject({ id: 'dementia' });
   await page.click('.start-button');
   await expect(stage(page)).toHaveAttribute('data-scene', 'a1_s01', { timeout: 15_000 });
   await expect(page.locator('.bg')).toHaveAttribute('style', /examples\/.*\/assets\/bg\/kitchen_morning\.webp/);
@@ -111,6 +113,7 @@ test('離線模式的背景音樂檔用 <audio> 播放（走音只改速度與�
 test('空白範本.html：載入空白範本，可以玩到結局', async ({ page }) => {
   const { errors } = await open(page, '空白範本.html');
   await expect(page.locator('.title-screen h1')).toHaveText('我的遊戲');
+  expect(await page.evaluate(() => (window as unknown as { __vn: { pack: { id: string } } }).__vn.pack.id)).toBe('plain');
   await page.click('.start-button');
   for (let i = 0; i < 8 && !(await page.locator('.ending-screen.open').isVisible()); i++) {
     await page.waitForFunction(() => (window as unknown as { __vn: { engine: { phase: string } } }).__vn.engine.phase !== 'busy');

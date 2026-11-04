@@ -4,6 +4,7 @@
 // （本機專案存進瀏覽器、npm run dev 寫回 script.json、線上版下載）。
 import { resolveImage } from './assets';
 import type { Engine } from './engine';
+import { currentPack } from './pack';
 import { assetFolderLabel } from './paths';
 import { localFiles } from './localfiles';
 import { ENDING_TARGET, validateScript } from './script';
@@ -227,7 +228,7 @@ export class StoryEditor {
   }
 
   private renderProblems(): void {
-    const list = validateScript(this.script);
+    const list = validateScript(this.script, currentPack());
     const errors = list.filter((p) => !p.startsWith('（警告）'));
     const summary = el('summary', {}, [
       list.length ? `腳本檢查：${errors.length} 個問題${list.length > errors.length ? `、${list.length - errors.length} 個警告` : ''}` : '腳本檢查：沒有問題',

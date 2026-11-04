@@ -43,6 +43,10 @@ export interface Meta {
   objectHighlight?: 'glow' | 'ring';
   /** 所有角色立繪的預設構圖；角色自己的 sprite 會覆寫（呈現設定）。 */
   sprite?: SpriteFraming;
+  /**
+   * 題材包代號（packs/{pack}/pack.json）。省略＝dementia（相容舊腳本）；null 或 "plain"＝一般故事，沒有特殊效果。
+   */
+  pack?: string | null;
 }
 
 export type TransitionStyle = 'blink' | 'blink_soft' | 'fade' | 'focus';

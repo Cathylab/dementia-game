@@ -1,5 +1,8 @@
 # 題材包
 
-每個題材包是一個資料夾，例如 `packs/dementia/`，裡面有 `pack.json`、寫作準則與各步驟的提示詞範本。
+每個題材包是一個資料夾：`packs/{代號}/pack.json`，加上說明文件。怎麼做一個題材包見 [`docs/packs.md`](../docs/packs.md)。
 
-題材包機制見 `docs/product-requirements.md` 第 5.6 節，會在之後的 PR 實作。
+| 代號 | 名稱 | 說明 |
+| --- | --- | --- |
+| `dementia` | 失智症 | 全部 11 種效果；範例《寫給未來的我》 |
+| `plain` | 一般故事 | 沒有特殊效果；空白範本預設用它 |

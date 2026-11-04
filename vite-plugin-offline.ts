@@ -6,7 +6,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Plugin, Rollup } from 'vite';
-import { listAudioFiles, listProjects, MANIFEST_FOLDERS } from './vite-plugin-content.ts';
+import { listAudioFiles, listProjects, MANIFEST_FOLDERS, readPacks } from './vite-plugin-content.ts';
 
 /** 產生哪些 html：檔名 → 預設載入的專案。 */
 export const OFFLINE_PAGES: Record<string, string> = {
@@ -51,6 +51,8 @@ export function offlinePlugin(): Plugin {
         projects[p.dir] = { title: p.title, kind: p.kind, script, manifests };
       }
 
+      const packs = await readPacks(root);
+
       // 去掉原本的 <script type="module" src> 與 <link rel="stylesheet|modulepreload">
       const base = String(html.source)
         .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>\s*/g, '')
@@ -58,7 +60,7 @@ export function offlinePlugin(): Plugin {
 
       for (const [fileName, defaultProject] of Object.entries(OFFLINE_PAGES)) {
         if (!(defaultProject in projects)) continue;
-        const embed = JSON.stringify({ defaultProject, projects }).replace(/</g, '\\u003c');
+        const embed = JSON.stringify({ defaultProject, projects, packs }).replace(/</g, '\\u003c');
         const title = (projects[defaultProject] as { title: string }).title;
         const page = base
           .replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(title)}</title>`)

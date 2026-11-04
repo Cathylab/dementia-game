@@ -16,6 +16,8 @@ import { PROJECT_EXT } from './projectfile';
 import { timeLabel, type ProjectSession } from './project';
 import { assetFolderLabel, projectUrl } from './paths';
 import { FILE_MODE, OFFLINE_LIMITS } from './embed';
+import { currentPack, setCurrentPack } from './pack';
+import { listPacks, loadPack } from './packloader';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -191,7 +193,7 @@ export class DevPanel {
     this.gazeSelect.onchange = applyPose;
     this.distSelect.onchange = applyPose;
 
-    const problems = validateScript(e.script);
+    const problems = validateScript(e.script, currentPack());
     const problemList = problems.length
       ? el('ul', { class: 'dev-problems' }, problems.map((p) => el('li', {}, [p])))
       : el('p', { class: 'dev-ok' }, ['腳本檢查沒有問題']);
@@ -305,6 +307,30 @@ export class DevPanel {
     };
     const preview = this.button('預覽', () => void v.blink(undefined, 400), { 'data-dev': 'preview-transition' });
 
+    // 題材包：決定啟用哪些效果、退化係數的曲線
+    const pack = el('select', { name: 'dev-pack' }, [el('option', { value: currentPack().id }, [currentPack().name])]);
+    const packNote = el('p', { class: 'dev-note', 'data-dev': 'pack-note' });
+    const describePack = () => {
+      const p = currentPack();
+      packNote.textContent = `${p.description} 啟用 ${p.effects.length} 種效果，退化係數 ${p.degradation.join(' → ')}。`;
+    };
+    describePack();
+    void listPacks().then((list) => {
+      if (!list.length) return;
+      pack.replaceChildren(...list.map((p) => el('option', { value: p.id }, [p.name])));
+      if (!list.some((p) => p.id === currentPack().id)) pack.append(el('option', { value: currentPack().id }, [currentPack().name]));
+      pack.value = currentPack().id;
+    });
+    pack.onchange = async () => {
+      const problems: string[] = [];
+      setCurrentPack(await loadPack(pack.value, problems));
+      meta.pack = pack.value;
+      v.fx.applyGlobal();
+      describePack();
+      if (problems.length) packNote.textContent += ` ${problems.join('；')}`;
+      this.refresh();
+    };
+
     const highlight = el('select', { name: 'dev-highlight' }, [
       el('option', { value: 'glow' }, ['物品本身發亮']),
       el('option', { value: 'ring' }, ['圓圈']),
@@ -414,6 +440,8 @@ export class DevPanel {
 
     return this.section(
       '呈現調整',
+      el('label', { class: 'dev-row' }, ['題材包', pack]),
+      packNote,
       el('label', { class: 'dev-row' }, ['轉場', transition, preview]),
       el('label', { class: 'dev-row' }, ['物件提示', highlight]),
       el('div', { class: 'dev-row' }, ['角色', charSelect]),

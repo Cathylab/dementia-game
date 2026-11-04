@@ -1,6 +1,7 @@
 {
   "meta": {
     "title": "我的遊戲",
+    "pack": "plain",
     "durationMinutes": 5,
     "stats": {}
   },

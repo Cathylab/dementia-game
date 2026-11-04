@@ -1,6 +1,7 @@
 {
   "meta": {
     "title": "寫給未來的我",
+    "pack": "dementia",
     "durationMinutes": 16,
     "stats": { "trust": 0, "lucidity": 0 },
     "statRange": { "min": -4, "max": 4 },

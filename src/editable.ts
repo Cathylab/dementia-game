@@ -98,6 +98,7 @@ export function stripPresentation(script: Script): void {
   delete script.meta.transition;
   delete script.meta.objectHighlight;
   delete script.meta.sprite;
+  delete script.meta.pack;
   for (const c of script.characters ?? []) delete c.sprite;
   for (const s of script.scenes) delete s.music;
 }

@@ -1,0 +1,9 @@
+{
+  "name": "一般故事",
+  "description": "沒有特殊效果的一般視覺小說。適合先把故事寫完，之後再換成某個題材包。",
+  "effects": [],
+  "degradation": [0],
+  "docs": {
+    "readme": "README.md"
+  }
+}

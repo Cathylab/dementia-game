@@ -6,6 +6,8 @@ import { Engine } from './engine';
 import { embeddedScript } from './embed';
 import { projectDir, scriptUrl } from './paths';
 import { loadScript } from './script';
+import { currentPack, packIdOf, setCurrentPack } from './pack';
+import { loadPack } from './packloader';
 import { ProjectSession } from './project';
 import { BrowserProjectStore } from './projectstore';
 import { StoryEditor } from './storyeditor';
@@ -23,6 +25,9 @@ async function boot() {
     const started = await ProjectSession.start(store, () => embeddedScript(projectDir()) ?? loadScript(scriptUrl()), !!urlParam('site'));
     session = started.session;
     const script = started.script;
+    const packProblems: string[] = [];
+    setCurrentPack(await loadPack(packIdOf(script), packProblems));
+    for (const p of packProblems) console.warn('[pack]', p);
     document.title = script.meta.title;
     // 開發者頁面「配音總表」：?voice=1
     if (urlParam('voice')) {
@@ -57,7 +62,7 @@ async function boot() {
     );
     view.onStateChange = () => dev.refresh();
     // 給測試與主控台除錯用
-    (window as unknown as { __vn: unknown }).__vn = { engine, view, dev, editor, story, project };
+    (window as unknown as { __vn: unknown }).__vn = { engine, view, dev, editor, story, project, get pack() { return currentPack(); } };
     engine.toTitle();
   } catch (err) {
     app.textContent = `載入失敗：${(err as Error).message}`;
