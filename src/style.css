@@ -712,7 +712,8 @@ button {
   font-size: clamp(15px, 3cqh, 22px);
 }
 
-.start-button {
+.start-button,
+.continue-button {
   min-width: 200px;
   min-height: 56px;
   padding: 0.4em 2.4em;
@@ -726,7 +727,9 @@ button {
 }
 
 .start-button:hover,
-.start-button:focus-visible {
+.start-button:focus-visible,
+.continue-button:hover,
+.continue-button:focus-visible {
   border-color: var(--accent);
   color: var(--accent);
   outline: none;
@@ -3463,4 +3466,99 @@ body.voice-desk-page #app {
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+/* ───────────── 暫停選單與存檔 ───────────── */
+
+.pause-overlay {
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 7;
+}
+
+.pause-overlay.open {
+  display: flex;
+}
+
+.pause-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6em;
+  width: min(30em, 92%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 1.2em 1.4em;
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.pause-menu h2 {
+  margin: 0 0 0.3em;
+  font-size: 1.1em;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.pause-button,
+.save-slot {
+  min-height: 48px;
+  padding: 0.4em 1.2em;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pause-button {
+  border-radius: 999px;
+  letter-spacing: 0.2em;
+}
+
+.pause-button:hover,
+.pause-button:focus-visible,
+.save-slot:hover:not(:disabled),
+.save-slot:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+.pause-button:disabled,
+.save-slot:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.save-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1em;
+  text-align: left;
+}
+
+.save-slot span {
+  color: var(--ink-dim);
+  font-size: 0.8em;
+}
+
+.save-slot.just-saved {
+  border-color: var(--accent);
+}
+
+.continue-note {
+  margin: -0.4em 0 0;
+  max-width: 90%;
+  color: var(--ink-dim);
+  font-size: clamp(13px, 2.2cqh, 16px);
+}
+
+.title-screen .pause-overlay {
+  z-index: 9;
 }

@@ -190,7 +190,7 @@ export interface ChoiceLine {
 
 export type Line = TextLine | ChoiceLine | MemoryReviewLine;
 
-export type UiKey = 'back' | 'auto' | 'skip' | 'log' | 'hide' | 'settings' | 'title';
+export type UiKey = 'back' | 'auto' | 'skip' | 'log' | 'hide' | 'settings' | 'title' | 'pause';
 
 export interface UiOverrides {
   back?: 'normal' | 'disabled' | 'hidden' | 'wrong_scene';
@@ -199,7 +199,9 @@ export interface UiOverrides {
   log?: 'normal' | 'disabled' | 'hidden' | 'corrupt';
   hide?: 'normal' | 'disabled' | 'hidden';
   settings?: 'normal' | 'disabled' | 'hidden';
+  /** 暫停選單裡的「回到標題」。 */
   title?: 'normal' | 'disabled' | 'hidden';
+  pause?: 'normal' | 'disabled' | 'hidden';
 }
 
 /** 場景裡可以點來看說明的物件（v2）。 */
