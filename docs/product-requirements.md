@@ -585,3 +585,8 @@ docs/                 規格文件與本需求書
 - `meta.choiceStyle` 是呈現設定（`stripPresentation` 會去掉），`applyChoiceStyle` 設 `data-layout` 與 CSS 變數 `--choice-width`、`--choice-scale`。橫式 `right` 版面在對話框文字上方的右側；直式不看 position，一律置中在對話框上方。
 - 選項出現時隱藏「▼」。
 
+### 試玩回饋 3：效果修正
+
+- `time_skip` 用 `.bg-skip` 疊層（和 `.bg` 同樣的框）交叉淡入淡出，不再呼叫 `blink()`、不換 `.bg`。
+- 打字退化（`typewriter.ts`）與 `glitchSpans` 調柔和；`desaturate` 可以掛在選項上（`Fx.applyChoice`）。詳細見 `script-format-v1.md` 最後一節。
+

@@ -27,8 +27,8 @@ export class Typewriter {
       s.textContent = ch;
       if (d > 0 && ch.trim()) {
         // 字距隨機抖動
-        s.style.marginRight = `${((Math.random() - 0.35) * 0.22 * d).toFixed(3)}em`;
-        if (Math.random() < 0.25 * d) s.style.transform = `translateY(${((Math.random() - 0.5) * 0.12 * d).toFixed(3)}em)`;
+        s.style.marginRight = `${((Math.random() - 0.35) * 0.12 * d).toFixed(3)}em`;
+        if (Math.random() < 0.15 * d) s.style.transform = `translateY(${((Math.random() - 0.5) * 0.06 * d).toFixed(3)}em)`;
       }
       return s;
     });
@@ -44,9 +44,9 @@ export class Typewriter {
     const step = () => {
       if (this.pos >= this.spans.length) return this.finish();
       this.spans[this.pos++].classList.add('on');
-      // 退化時速度不穩：忽快忽慢，偶爾整個停住
-      let delay = base * (1 + (Math.random() * 2.2 - 0.7) * d);
-      if (Math.random() < 0.06 * d) delay += 500 + Math.random() * 700;
+      // 退化時速度略不穩：稍微忽快忽慢，偶爾停一下（試玩回饋：太大的抖動讀起來「卡卡的」，改柔和）
+      let delay = base * (1 + (Math.random() * 0.9 - 0.3) * d);
+      if (Math.random() < 0.025 * d) delay += 250 + Math.random() * 350;
       this.timer = window.setTimeout(step, T(Math.max(8, delay)));
     };
     step();
