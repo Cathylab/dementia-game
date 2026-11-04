@@ -604,3 +604,9 @@ docs/                 規格文件與本需求書
 - 製作名單：`meta.credits` 有內容時標題畫面多一個按鈕，打開 `.credits-overlay`。開發者面板拿掉關閉按鈕。
 - 介面樣式：`#stage[data-ui-style]`（`AdvView.applyUiStyle`，標題畫面時套用）；box／paper 的對話框是框，選項的位置另外往上移。
 
+### 階段二 B-8：無障礙
+
+- 設定多三項（`settings.ts`）：`textScale`（--text-scale 乘上 --text-size）、`calm`（`#stage.calm`；預設跟著 `prefers-reduced-motion`；`blink()` 改用 fade）、`colorAssist`（`#stage.color-assist`）。`AdvView.applyAccessibility` 在標題畫面與改設定時套用。
+- 標題畫面的提醒（`[data-ui=motion-note]`）只在題材包有效果時出現；設定視窗 z-index 9，可以疊在標題畫面上。
+- 「字幕」：所有台詞與配音本來就有文字；音效字幕還沒做（需要每個音效的中文說明，劇本格式要先定）。
+

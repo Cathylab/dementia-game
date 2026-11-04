@@ -50,14 +50,14 @@ button {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   cursor: default;
-  --text-size: clamp(18px, 4.3cqh, 42px);
+  --text-size: calc(clamp(18px, 4.3cqh, 42px) * var(--text-scale, 1));
 }
 
 @media (orientation: portrait) {
   .stage {
     width: 100vw;
     height: 100dvh;
-    --text-size: clamp(19px, 5.6cqw, 30px);
+    --text-size: calc(clamp(19px, 5.6cqw, 30px) * var(--text-scale, 1));
   }
 }
 
@@ -3682,4 +3682,87 @@ body.voice-desk-page #app {
   .stage:is([data-ui-style='box'], [data-ui-style='paper']) .choices[data-mode='list'] {
     bottom: calc(72px + env(safe-area-inset-bottom) + 24cqh);
   }
+}
+
+/* ───────────── 無障礙：減少晃動與閃爍（設定 calm） ───────────── */
+
+.stage.calm .scene-layers,
+.stage.calm .objects,
+.stage.calm .objects-bg,
+.stage.calm .bg-layer,
+.stage.calm .char-layer,
+.stage.calm .text,
+.stage.calm .monologue-text,
+.stage.calm .inspect-desc,
+.stage.calm .dialog.fx-repeat .text,
+.stage.calm .object-spot,
+.stage.calm .object-spot .glow,
+.stage.calm .object-spot::before {
+  animation: none !important;
+}
+
+.stage.calm .text .ch.glitch-block {
+  filter: none;
+}
+
+/* ───────────── 無障礙：色弱友善（設定 colorAssist） ───────────── */
+/* 提示不只靠顏色：物件加上黑白雙圈、灰掉的選項加虛線與鎖頭、人名加底線 */
+
+.stage.color-assist .object-spot {
+  outline: 2px solid #fff;
+  outline-offset: -3px;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.75);
+  border-radius: 50%;
+}
+
+.stage.color-assist .object-spot.has-overlay {
+  border-radius: 8%;
+}
+
+.stage.color-assist .object-spot.seen {
+  outline-style: dashed;
+}
+
+.stage.color-assist .choice.locked {
+  border-style: dashed;
+  border-width: 2px;
+}
+
+.stage.color-assist .choice.locked .label::before {
+  content: '🔒 ';
+}
+
+.stage.color-assist .namebox .name {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.stage.color-assist .choice:hover,
+.stage.color-assist .choice:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+/* 標題畫面的晃動、閃爍提醒 */
+.motion-note {
+  max-width: 90%;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: clamp(13px, 2.2cqh, 16px);
+}
+
+.motion-note button {
+  margin-left: 0.4em;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 設定可以從標題畫面打開，要疊在標題畫面上面 */
+.settings-overlay.open {
+  z-index: 9;
 }

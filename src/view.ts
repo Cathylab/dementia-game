@@ -688,6 +688,28 @@ export class AdvView implements View {
       setSetting('hiddenHints', hints.checked);
       this.choices.querySelectorAll<HTMLElement>('.locked').forEach((b) => this.updateLockedLabel(b));
     };
+    const scale = (value: number, text: string) => {
+      const radio = el('input', { type: 'radio', name: 'textScale', value: String(value) });
+      radio.checked = settings.textScale === value;
+      radio.onchange = () => {
+        if (!radio.checked) return;
+        setSetting('textScale', value);
+        this.applyAccessibility();
+      };
+      return el('label', { class: 'radio' }, [radio, text]);
+    };
+    const calm = el('input', { type: 'checkbox', name: 'calm', class: 'toggle' });
+    calm.checked = settings.calm;
+    calm.onchange = () => {
+      setSetting('calm', calm.checked);
+      this.applyAccessibility();
+    };
+    const colorAssist = el('input', { type: 'checkbox', name: 'colorAssist', class: 'toggle' });
+    colorAssist.checked = settings.colorAssist;
+    colorAssist.onchange = () => {
+      setSetting('colorAssist', colorAssist.checked);
+      this.applyAccessibility();
+    };
     const review = (value: MemoryReviewMode, text: string) => {
       const radio = el('input', { type: 'radio', name: 'memoryReview', value });
       radio.checked = settings.memoryReview === value;
@@ -712,6 +734,12 @@ export class AdvView implements View {
           el('span', {}, ['記憶對照']),
           el('div', { class: 'radios' }, [review('inline', '融入結局'), review('page', '結局後獨立一頁')]),
         ]),
+        el('div', { class: 'setting setting-choice', role: 'radiogroup', 'aria-label': '文字大小' }, [
+          el('span', {}, ['文字大小']),
+          el('div', { class: 'radios' }, [scale(1, '標準'), scale(1.2, '大'), scale(1.4, '特大')]),
+        ]),
+        el('label', { class: 'setting setting-toggle' }, [el('span', {}, ['減少晃動與閃爍']), calm]),
+        el('label', { class: 'setting setting-toggle' }, [el('span', {}, ['色弱友善（提示加框線與圖示）']), colorAssist]),
       ]),
     );
     this.settingsOverlay.onclick = (ev) => ev.stopPropagation();
@@ -734,7 +762,8 @@ export class AdvView implements View {
    * blink 眨眼、blink_soft 柔和的眨眼、fade 淡入淡出、focus 模糊對焦。
    */
   async blink(mid?: () => void | Promise<void>, hold = 140): Promise<void> {
-    const style = this.transitionStyle;
+    // 減少晃動與閃爍：眨眼改成淡入淡出
+    const style = settings.calm ? 'fade' : this.transitionStyle;
     const dur = { blink: 320, blink_soft: 700, fade: 600, focus: 700 }[style];
     this.applyTransitionStyle();
     this.stage.classList.add('transitioning');
@@ -814,6 +843,7 @@ export class AdvView implements View {
     };
     this.applyCover();
     this.applyUiStyle();
+    this.applyAccessibility();
     const saveButtons = this.titleSaveButtons(start);
     this.titleScreen.replaceChildren(
       el('h1', {}, [meta.title]),
@@ -822,6 +852,7 @@ export class AdvView implements View {
       start,
       ...saveButtons.bottom,
       ...(this.creditsButton() ?? []),
+      this.motionNote(),
       ...(this.titleNote ? [el('p', { class: 'project-badge' }, [this.titleNote])] : []),
     );
     this.titleScreen.classList.add('open');
@@ -856,6 +887,22 @@ export class AdvView implements View {
       bottom.push(b);
     }
     return { top, bottom };
+  }
+
+  /** 標題畫面的提醒：畫面有晃動、閃爍效果，可以在設定裡關閉（題材包沒有效果時不顯示）。 */
+  private motionNote(): HTMLElement {
+    const open = el('button', { type: 'button', 'data-ui': 'title-settings' }, ['設定']);
+    open.onclick = (e) => {
+      e.stopPropagation();
+      this.openSettings();
+    };
+    const note = el('p', { class: 'motion-note', 'data-ui': 'motion-note' }, [
+      settings.calm ? '已減少畫面晃動與閃爍。' : '遊戲裡有畫面晃動、模糊與閃爍的效果，可以在',
+      open,
+      settings.calm ? '' : '裡關閉。',
+    ]);
+    note.hidden = !currentPack().effects?.length;
+    return note;
   }
 
   /** 標題畫面的「製作名單」按鈕（meta.credits 有內容時才有）。 */
@@ -904,6 +951,13 @@ export class AdvView implements View {
     box.onclick = (e) => e.stopPropagation();
     this.stage.append(overlay);
     close.focus();
+  }
+
+  /** 無障礙設定：文字大小、減少晃動與閃爍、色弱友善。 */
+  applyAccessibility(): void {
+    this.stage.style.setProperty('--text-scale', String(settings.textScale || 1));
+    this.stage.classList.toggle('calm', settings.calm);
+    this.stage.classList.toggle('color-assist', settings.colorAssist);
   }
 
   /** 介面樣式（meta.uiStyle）：classic、box、paper。 */
