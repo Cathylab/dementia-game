@@ -22,6 +22,8 @@ import { el, shuffle, sleep, T } from './util';
 /** 聲音模組需提供的介面（見 audio.ts）。 */
 export interface AudioLike {
   setMuffle(on: boolean): void;
+  /** 物件的循環音效：只留這些名稱，其餘停止。 */
+  setSfxLoops(names: string[]): void;
   setDegradation(d: number): void;
   setVolume(v: number): void;
   playMusic(name: string | null | undefined): void;
@@ -50,6 +52,12 @@ export interface AudioLike {
 }
 
 /** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
+/** overlayWidth 限制在 0.03～0.3；沒寫或不是數字＝不疊圖。 */
+function overlayWidthOf(obj: SceneObject): number {
+  const w = obj.overlayWidth;
+  return typeof w === 'number' && w > 0 ? Math.min(0.3, Math.max(0.03, w)) : 0;
+}
+
 function placeSpot(b: HTMLElement, x = 0.5, y = 0.5, r = 0.04): void {
   b.style.left = `${x * 100}%`;
   b.style.top = `${y * 100}%`;
@@ -123,6 +131,16 @@ export class AdvView implements View {
   readonly edgeLeft = el('div', { class: 'edge-hint left', 'aria-hidden': 'true' }, ['‹']);
   readonly edgeRight = el('div', { class: 'edge-hint right', 'aria-hidden': 'true' }, ['›']);
   readonly swipeHint = el('div', { class: 'swipe-hint', 'aria-hidden': 'true' }, ['← 左右滑動看看 →']);
+  /** 「找找看」時刻：提示文字＋「繼續」按鈕（點背景不會往下）。 */
+  readonly exploreText = el('p', { class: 'explore-text' });
+  readonly exploreSwipe = el('p', { class: 'explore-swipe' }, ['← 左右滑動看看 →']);
+  readonly exploreNext = el('button', { class: 'explore-next', type: 'button', 'data-explore': 'next' }, ['繼續']);
+  readonly exploreBar = el('div', { class: 'explore-bar', role: 'status' }, [
+    this.exploreText,
+    el('div', { class: 'explore-row' }, [this.exploreSwipe, this.exploreNext]),
+  ]);
+  private nudgeTimer = 0;
+  private quickPanTimer = 0;
   /** 目前的視線平移（舞台寬度的百分比）。 */
   private pan = 0;
   /** 手機直式拖曳背景的狀態。 */
@@ -213,6 +231,7 @@ export class AdvView implements View {
       this.dialog,
       // 熱點疊在台詞區之上：背景圖下方桌上的東西也點得到
       this.objectsLayer,
+      this.exploreBar,
       this.monologue,
       this.choices,
       this.toolbar,
@@ -230,6 +249,11 @@ export class AdvView implements View {
     this.root.replaceChildren(this.stage);
 
     this.stage.addEventListener('click', () => this.onStageClick());
+    this.exploreNext.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.engine.next(true);
+    });
+    this.exploreBar.addEventListener('click', (e) => e.stopPropagation());
     this.bindDrag();
     this.inspectEl.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -416,6 +440,10 @@ export class AdvView implements View {
     const tick = () => {
       if (!this.skip) return;
       if (this.engine.phase === 'choice' || this.engine.phase === 'ending' || this.engine.phase === 'title') {
+        this.stopSkip();
+        return;
+      }
+      if (this.engine.phase === 'text' && this.engine.blocked) {
         this.stopSkip();
         return;
       }
@@ -630,6 +658,9 @@ export class AdvView implements View {
     this.stopAuto();
     this.stopSkip();
     this.audio?.stopVoice();
+    this.audio?.setSfxLoops([]);
+    this.stage.classList.remove('exploring', 'required-pending');
+    this.exploreBar.classList.remove('show');
     this.closeOverlays();
     this.typer.stop();
     clearTimeout(this.monologueTimer);
@@ -672,6 +703,9 @@ export class AdvView implements View {
   async enterScene(scene: Scene, opts: { restoring: boolean }): Promise<void> {
     this.typer.stop();
     this.audio?.stopVoice();
+    this.audio?.setSfxLoops([]);
+    // 物件圖先載入（第一次點開說明卡、疊圖不會慢半拍）
+    for (const o of scene.objects ?? []) if (o.image) void resolveImage('fg', o.image);
     this.fx.clearScene();
     const bgUrl = scene.background ? await resolveImage('bg', scene.background) : '';
     const fgUrl = scene.foreground ? await resolveImage('fg', scene.foreground) : '';
@@ -855,6 +889,7 @@ export class AdvView implements View {
     this.fx.clearLine();
     this.fx.applyGlobal();
     this.renderObjects();
+    this.updateBlocked(true);
     if (line.music !== undefined) this.audio?.playMusic(line.music);
     if (line.sfx && !this.skip) this.audio?.playSfx(line.sfx);
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
@@ -933,6 +968,8 @@ export class AdvView implements View {
   private startMonologueTimer(): void {
     clearTimeout(this.monologueTimer);
     this.monologue.classList.remove('fading');
+    // 找找看、還沒點的 required 物件：獨白留在畫面上，不自動往下
+    if (this.engine.blocked) return;
     const token = this.engine.token;
     const stay = this.monologueStay;
     this.monologueTimer = window.setTimeout(async () => {
@@ -1010,9 +1047,21 @@ export class AdvView implements View {
         el('span', { class: 'glow', 'aria-hidden': 'true' }),
         el('span', { class: 'label' }, [obj.label]),
       ]);
-      b.classList.toggle('seen', this.engine.seen.includes(obj.id));
+      const seen = this.engine.seen.includes(obj.id);
+      b.classList.toggle('seen', seen);
+      b.classList.toggle('required', !!obj.required && !seen);
+      if (obj.attention && !seen) b.dataset.attention = obj.attention;
       // 座標是背景圖上的位置（0–1），半徑相對背景圖寬度
       placeSpot(b, obj.x, obj.y, obj.r);
+      // 物件圖疊在背景上（像一張示意照片），寬度相對背景圖寬度
+      const ow = overlayWidthOf(obj);
+      if (ow && obj.image) {
+        b.classList.add('has-overlay');
+        b.style.setProperty('--ow', String(ow));
+        const img = el('img', { class: 'object-overlay', alt: '', draggable: 'false', 'data-name': obj.image });
+        void resolveImage('fg', obj.image).then((url) => (img.src = url));
+        b.prepend(img);
+      }
       bindPress(
         b,
         () => this.engine.inspect(obj.id),
@@ -1022,7 +1071,68 @@ export class AdvView implements View {
       return b;
     });
     this.objectsBg.replaceChildren(...spots);
+    this.syncObjectSfx();
     requestAnimationFrame(() => this.updateEdgeHints());
+  }
+
+  /** 物件的循環音效：出現、還沒點過的物件有 sfx 就循環播放，點了就停。 */
+  private syncObjectSfx(): void {
+    const names = this.engine.phase === 'text' || this.engine.phase === 'inspect'
+      ? (this.engine.scene?.objects ?? [])
+          .filter((o) => o.sfx && !this.engine.seen.includes(o.id) && (o.appearAt ?? 0) <= this.engine.index && this.engine.test(o.if))
+          .map((o) => o.sfx!)
+      : [];
+    this.audio?.setSfxLoops(this.skip ? [] : names);
+  }
+
+  /**
+   * 依引擎「為什麼不能往下」更新畫面：找找看時刻顯示提示與「繼續」；
+   * 一定要點的物件出現時，手機直式自動平移到它。entering＝剛換到這句。
+   */
+  updateBlocked(entering = false): void {
+    const exploring = this.engine.exploring;
+    const line = this.engine.currentLine;
+    this.stage.classList.toggle('exploring', exploring);
+    // 找找看的提示列自己有「左右滑動看看」，場景開頭的滑動提示收起來
+    if (exploring) this.swipeHint.classList.remove('show');
+    this.exploreBar.classList.toggle('show', exploring);
+    if (exploring && line && 'explore' in line) {
+      this.exploreText.textContent = line.explore ?? '';
+      this.exploreSwipe.hidden = !this.isPortrait();
+    }
+    const req = this.engine.pendingRequired;
+    this.stage.classList.toggle('required-pending', !!req);
+    if (req && entering) this.panToObject(req);
+  }
+
+  /** 手機直式：把背景平移到讓這個物件在畫面中間（橫式整張背景都看得到，不用動）。 */
+  private panToObject(obj: SceneObject): void {
+    if (!this.isPortrait()) return;
+    const w = this.stage.clientWidth || 1;
+    const h = this.stage.clientHeight;
+    const aspect = Number(getComputedStyle(this.stage).getPropertyValue('--bg-aspect')) || 16 / 9;
+    const imgW = Math.max(1.2 * w, h * aspect);
+    // 平常的視線平移很慢（9 秒）；這裡要讓玩家馬上看到，用較快的平移
+    this.stage.classList.add('quick-pan');
+    clearTimeout(this.quickPanTimer);
+    this.quickPanTimer = window.setTimeout(() => this.stage.classList.remove('quick-pan'), 1500);
+    this.panTo(((0.5 - obj.x) * imgW * 100) / w);
+    this.swipeHint.classList.remove('show');
+  }
+
+  /** 玩家想往下但被擋住：一定要點的物件晃一下（並平移過去），或「繼續」按鈕亮一下。 */
+  nudgeBlocked(reason: 'required' | 'explore'): void {
+    clearTimeout(this.nudgeTimer);
+    const target =
+      reason === 'required'
+        ? this.objectsBg.querySelector<HTMLElement>(`.object-spot[data-object="${CSS.escape(this.engine.pendingRequired?.id ?? '')}"]`)
+        : this.exploreNext;
+    if (reason === 'required' && this.engine.pendingRequired) this.panToObject(this.engine.pendingRequired);
+    if (!target) return;
+    target.classList.remove('nudge');
+    void target.offsetWidth;
+    target.classList.add('nudge');
+    this.nudgeTimer = window.setTimeout(() => target.classList.remove('nudge'), 900);
   }
 
   /** 物件說明：暫停遊戲，點一下關閉。 */
@@ -1036,10 +1146,24 @@ export class AdvView implements View {
     const spans = [...obj.description].map((ch) => el('span', { class: 'ch on' }, [ch]));
     const desc = el('p', { class: 'inspect-desc' }, spans);
     const card = el('div', { class: 'inspect-card' });
+    const close = el('button', { class: 'inspect-close', type: 'button', 'aria-label': '關閉' }, ['×']);
+    close.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.closeInspect();
+    });
+    card.append(close);
     if (obj.image) {
-      const img = el('img', { class: 'inspect-image', alt: '', 'data-name': obj.image });
+      const img = el('img', { class: 'inspect-image', alt: obj.label, 'data-name': obj.image });
       void resolveImage('fg', obj.image).then((url) => (img.src = url));
-      card.append(img);
+      // 「放大」：照片佔滿畫面，再按一次縮回（不關閉說明卡）
+      const zoom = el('button', { class: 'inspect-zoom', type: 'button', 'aria-label': '放大照片' }, ['放大']);
+      zoom.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const on = this.inspectEl.classList.toggle('zoomed');
+        zoom.textContent = on ? '縮小' : '放大';
+        zoom.setAttribute('aria-label', on ? '縮小照片' : '放大照片');
+      });
+      card.append(el('div', { class: 'inspect-photo' }, [img, zoom]));
     }
     card.append(label, desc, el('p', { class: 'inspect-hint' }, ['點一下關閉']));
     const fx = activeFx(obj.fx);
@@ -1050,21 +1174,25 @@ export class AdvView implements View {
     this.inspectEl.replaceChildren(card);
     this.inspectEl.dataset.object = obj.id;
     this.inspectEl.classList.add('open');
+    this.syncObjectSfx();
   }
 
   closeInspect(): void {
     if (!this.inspectOpen()) return;
     clearInterval(this.inspectTimer);
-    this.inspectEl.classList.remove('open');
+    this.inspectEl.classList.remove('open', 'zoomed');
     this.stage.dataset.phase = 'text';
     this.engine.closeInspect();
     this.renderObjects();
+    this.updateBlocked();
     if (this.stage.classList.contains('monologue-on')) this.startMonologueTimer();
     if (this.auto && this.engine.textFinished) this.scheduleAuto();
   }
 
   showChoice(line: ChoiceLine, options: ShownOption[], onPick: (opt: ChoiceOption, i: number) => void): void {
     this.objectsBg.replaceChildren();
+    this.audio?.setSfxLoops([]);
+    this.updateBlocked();
     this.stage.dataset.phase = 'choice';
     this.stopSkip();
     // prompt 有配音就播；沒有的話，前一句的聲音讓它播完
@@ -1151,6 +1279,8 @@ export class AdvView implements View {
     this.stopSkip();
     this.stage.dataset.phase = 'ending';
     this.objectsBg.replaceChildren();
+    this.audio?.setSfxLoops([]);
+    this.updateBlocked();
     this.memoryCard.classList.remove('open');
     // page 模式：結局畫面之後多一頁記憶對照
     const withPage = settings.memoryReview === 'page' && this.engine.sceneHasMemoryReview;
@@ -1164,6 +1294,7 @@ export class AdvView implements View {
     this.endingScreen.replaceChildren(
       el('p', { class: 'ending-label' }, ['— 結局 —']),
       el('h2', { class: 'ending-title' }, [ending?.title ?? '']),
+      ...(ending?.description ? [el('p', { class: 'ending-desc' }, [ending.description])] : []),
       again,
     );
     this.endingScreen.classList.add('open');

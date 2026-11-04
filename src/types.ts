@@ -47,6 +47,17 @@ export interface Meta {
    * 題材包代號（packs/{pack}/pack.json）。省略＝dementia（相容舊腳本）；null 或 "plain"＝一般故事，沒有特殊效果。
    */
   pack?: string | null;
+  /** 素材出處（音效等），標題畫面「製作名單」顯示。 */
+  credits?: Credit[];
+}
+
+/** 一筆素材出處。file 是素材名稱（例如音效 phone_ring）。 */
+export interface Credit {
+  file?: string;
+  title?: string;
+  author?: string;
+  license?: string;
+  url?: string;
 }
 
 export type TransitionStyle = 'blink' | 'blink_soft' | 'fade' | 'focus';
@@ -95,6 +106,11 @@ export interface TextLine {
   voice?: string;
   /** 這句出現時播一次的音效：{專案}/assets/sfx/{sfx}.mp3（或 .ogg）。 */
   sfx?: string;
+  /**
+   * 「找找看」時刻：這句出現後顯示這段提示，物件柔和發亮；點畫面不會往下，要按「繼續」。
+   * 放在沒有角色立繪、物件都已經出現的地方。
+   */
+  explore?: string;
   /** 引擎內部用：記憶對照產生的台詞，附帶物件圖與當時的說明。腳本裡不要寫。 */
   memory?: { objectId: string; label: string; description: string; image?: string };
 }
@@ -177,6 +193,16 @@ export interface SceneObject {
   truthVoice?: string;
   /** 套在說明上的效果，只支援 text_blur、name_fade。 */
   fx?: FxTag[];
+  /** 條件：不成立時這個物件不出現（和台詞的 if 一樣）。 */
+  if?: string;
+  /** 一定要點：劇情停在 appearAt 那一句，點過（關掉說明卡）才能往下。 */
+  required?: boolean;
+  /** 提醒動畫：ring＝震動＋發亮（手機、門鈴），glow＝柔和發亮。可以不搭配 required。 */
+  attention?: 'ring' | 'glow';
+  /** 物件出現時循環播放的音效（assets/sfx/{名稱}），點了就停。 */
+  sfx?: string;
+  /** 把物件圖（image）疊在背景上，寬度是背景寬的比例（0.03～0.3）。 */
+  overlayWidth?: number;
 }
 
 export interface Scene {
@@ -207,6 +233,8 @@ export interface Ending {
   title: string;
   condition: string;
   scene: string;
+  /** 結局畫面標題下方的說明（一到三句）。 */
+  description?: string;
 }
 
 export interface Script {

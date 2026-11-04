@@ -700,6 +700,60 @@ export class AudioEngine implements AudioLike {
     this.sfxBuffers.delete(name);
   }
 
+  /** 正在循環的音效（物件的 sfx）：名稱 → 停止。 */
+  private readonly sfxLoops = new Map<string, () => void>();
+
+  /**
+   * 物件的循環音效：只留 names 裡的，其餘停止；新出現的開始循環。缺檔安靜略過。
+   * 和一次性的音效一樣走音樂的音軌（受音樂音量與 muffle 影響）。
+   */
+  setSfxLoops(names: string[]): void {
+    const want = new Set(names.filter(Boolean));
+    for (const [name, stop] of this.sfxLoops) {
+      if (want.has(name)) continue;
+      stop();
+      this.sfxLoops.delete(name);
+    }
+    this.statusEl.dataset.sfxLoops = [...want].join(' ');
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    for (const name of want) {
+      if (this.sfxLoops.has(name)) continue;
+      let stopped = false;
+      let stopNow = () => {};
+      this.sfxLoops.set(name, () => {
+        stopped = true;
+        stopNow();
+      });
+      if (FILE_MODE && !this.sfxBuffers.has(name)) {
+        void this.findAudio('sfx', name).then((url) => {
+          if (!url || stopped) return;
+          const el = new Audio(url);
+          el.loop = true;
+          el.volume = clamp(this.volume * (this.muffled ? 0.4 : 1), 0, 1);
+          stopNow = () => el.pause();
+          void el.play().catch(() => {});
+        });
+        continue;
+      }
+      void this.loadSfx(name).then((buffer) => {
+        if (!buffer || stopped) return;
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.loop = true;
+        src.connect(this.bus);
+        stopNow = () => {
+          try {
+            src.stop();
+          } catch {
+            /* 已經停了 */
+          }
+        };
+        src.start();
+      });
+    }
+  }
+
   private loadSfx(name: string): Promise<AudioBuffer | null> {
     let p = this.sfxBuffers.get(name);
     if (!p) {

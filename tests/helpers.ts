@@ -73,3 +73,24 @@ export function currentText(page: Page) {
 export function engineValue<T>(page: Page, key: string): Promise<T> {
   return page.evaluate((k) => (window as unknown as { __vn: { engine: Record<string, unknown> } }).__vn.engine[k], key) as Promise<T>;
 }
+
+/**
+ * 自動玩的迴圈用：找找看時刻按「繼續」、有還沒點的 required 物件就點它（再關掉說明卡）。
+ * 有處理就回傳 true。
+ */
+export async function unblock(page: Page): Promise<boolean> {
+  const reason = await page.evaluate(() => {
+    const e = (window as unknown as { __vn: { engine: { blocked: string | null; pendingRequired?: { id: string } } } }).__vn.engine;
+    return { blocked: e.blocked, id: e.pendingRequired?.id ?? '' };
+  });
+  if (reason.blocked === 'explore') {
+    await page.locator('.explore-next').click();
+    return true;
+  }
+  if (reason.blocked === 'required') {
+    await page.locator(`.object-spot[data-object="${reason.id}"]`).click({ force: true });
+    await page.locator('.inspect.open').click();
+    return true;
+  }
+  return false;
+}

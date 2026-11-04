@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import type { Script } from '../src/types';
+import { unblock } from './helpers';
 import { reachableEndings } from './simulate';
 
 const demo = JSON.parse(readFileSync(new URL('../examples/寫給未來的我/script.json', import.meta.url), 'utf8')) as Script;
@@ -55,7 +56,7 @@ async function playToEnding(page: Page, plan: Plan) {
       const index = plan.pick(scene, line);
       const target = page.locator(`.choices.open [data-index="${index}"]:not(.vanishing):not(:disabled)`);
       await ((await target.count()) > 0 ? target : items.first()).click({ timeout: 2000 });
-    } else {
+    } else if (!(await unblock(page))) {
       await stage.click({ position: { x: 190, y: 620 } });
     }
     await page.waitForTimeout(60);

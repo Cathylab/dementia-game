@@ -219,27 +219,27 @@ test.describe('腳本檢查：配音', () => {
     expect(problems).toContain('（警告）expr_scene.lines[0]：配音編號 "wrong_name" 不符合');
   });
 
-  test('正式腳本：66 個配音編號、不重複', async () => {
+  test('正式腳本：65 個配音編號、不重複', async () => {
     const real = JSON.parse(await readFile(new URL('../examples/寫給未來的我/script.json', import.meta.url), 'utf8')) as Script;
     const entries = voiceEntries(real);
-    expect(entries).toHaveLength(66);
-    expect(new Set(entries.map((e) => e.id)).size).toBe(66);
+    expect(entries).toHaveLength(65);
+    expect(new Set(entries.map((e) => e.id)).size).toBe(65);
     expect(validateScript(real)).toEqual([]);
   });
 });
 
 test.describe('開發者頁面：配音總表', () => {
-  test('正式腳本：66 句，有無音檔與 examples/寫給未來的我/assets/voice 裡的檔案一致', async ({ page }) => {
+  test('正式腳本：65 句，有無音檔與 examples/寫給未來的我/assets/voice 裡的檔案一致', async ({ page }) => {
     const files = (await readdir(new URL('../examples/寫給未來的我/assets/voice/', import.meta.url))).filter((f) => /\.(mp3|ogg)$/.test(f));
     const has = new Set(files.map((f) => f.replace(/\.(mp3|ogg)$/, '')));
     const real = JSON.parse(await readFile(new URL('../examples/寫給未來的我/script.json', import.meta.url), 'utf8')) as Script;
     const present = voiceEntries(real).filter((e) => has.has(e.id)).length;
     await page.goto('./play.html?voice=1');
     await expect(page.locator('.voice-desk')).toHaveAttribute('data-ready', '1', { timeout: 30000 });
-    await expect(page.locator('.vd-table tbody tr')).toHaveCount(66);
-    await expect(page.locator('[data-count=total]')).toHaveText('共 66 句');
+    await expect(page.locator('.vd-table tbody tr')).toHaveCount(65);
+    await expect(page.locator('[data-count=total]')).toHaveText('共 65 句');
     await expect(page.locator('[data-count=has]')).toHaveText(`有音檔 ${present}`);
-    await expect(page.locator('[data-count=missing]')).toHaveText(`缺檔 ${66 - present}`);
+    await expect(page.locator('[data-count=missing]')).toHaveText(`缺檔 ${65 - present}`);
   });
 
   test('探測、統計、篩選、試聽、匯出', async ({ page }) => {

@@ -13,7 +13,7 @@ test('素材清單：Demo 的每種素材都列出來，附用在哪裡與描述
   const items = assetCatalog(demo);
   const count = (k: string) => items.filter((x) => x.kind === k).length;
   expect(count('bg')).toBe(11);
-  expect(count('voice')).toBe(66);
+  expect(count('voice')).toBe(65);
   expect(count('char')).toBeGreaterThanOrEqual(12);
   expect(count('music')).toBe(9);
   const kitchen = items.find((x) => x.kind === 'bg' && x.name === 'kitchen_morning')!;
