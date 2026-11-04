@@ -52,6 +52,10 @@ export interface AudioLike {
 }
 
 /** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */
+function round3(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
+
 /** overlayWidth 限制在 0.03～0.3；沒寫或不是數字＝不疊圖。 */
 function overlayWidthOf(obj: SceneObject): number {
   const w = obj.overlayWidth;
@@ -140,6 +144,11 @@ export class AdvView implements View {
     el('div', { class: 'explore-row' }, [this.exploreSwipe, this.exploreNext]),
   ]);
   private nudgeTimer = 0;
+  /**
+   * 開發者面板「物件位置」：編輯中時畫出場景裡所有物件（不管 appearAt、if），
+   * 拖曳改位置、點一下選取，不會打開說明卡。
+   */
+  objectEdit: { selected: string | null; onSelect: (id: string) => void; onMove: (obj: SceneObject) => void } | null = null;
   private quickPanTimer = 0;
   /** 目前的視線平移（舞台寬度的百分比）。 */
   private pan = 0;
@@ -1042,7 +1051,10 @@ export class AdvView implements View {
   renderObjects(): void {
     const d = this.engine.degradation;
     this.objectsLayer.style.setProperty('--obj-alpha', (0.85 - 0.72 * d).toFixed(2));
-    const spots = this.engine.availableObjects.map((obj) => {
+    const editing = this.objectEdit;
+    this.stage.classList.toggle('obj-edit', !!editing);
+    const list = editing ? this.engine.scene?.objects ?? [] : this.engine.availableObjects;
+    const spots = list.map((obj) => {
       const b = el('button', { class: 'object-spot', type: 'button', 'data-object': obj.id, 'aria-label': obj.label }, [
         el('span', { class: 'glow', 'aria-hidden': 'true' }),
         el('span', { class: 'label' }, [obj.label]),
@@ -1062,6 +1074,12 @@ export class AdvView implements View {
         void resolveImage('fg', obj.image).then((url) => (img.src = url));
         b.prepend(img);
       }
+      if (editing) {
+        b.classList.toggle('editing-selected', editing.selected === obj.id);
+        b.dataset.appearAt = String(obj.appearAt ?? 0);
+        this.bindObjectDrag(b, obj);
+        return b;
+      }
       bindPress(
         b,
         () => this.engine.inspect(obj.id),
@@ -1073,6 +1091,36 @@ export class AdvView implements View {
     this.objectsBg.replaceChildren(...spots);
     this.syncObjectSfx();
     requestAnimationFrame(() => this.updateEdgeHints());
+  }
+
+  /** 編輯物件位置：拖曳改 x、y（背景圖上的位置），點一下選取。 */
+  private bindObjectDrag(b: HTMLElement, obj: SceneObject): void {
+    b.addEventListener('click', (e) => e.stopPropagation());
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // 選取：只換外框，不重畫（重畫會換掉正在拖曳的元素）
+      if (this.objectEdit) this.objectEdit.selected = obj.id;
+      for (const s of this.objectsBg.querySelectorAll('.object-spot')) s.classList.toggle('editing-selected', s === b);
+      this.objectEdit?.onSelect(obj.id);
+      b.setPointerCapture(e.pointerId);
+      const move = (ev: PointerEvent) => {
+        const r = this.objectsBg.getBoundingClientRect();
+        obj.x = round3(Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)));
+        obj.y = round3(Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height)));
+        placeSpot(b, obj.x, obj.y, obj.r);
+        this.objectEdit?.onMove(obj);
+      };
+      const up = () => {
+        b.removeEventListener('pointermove', move);
+        b.removeEventListener('pointerup', up);
+        b.removeEventListener('pointercancel', up);
+        this.renderObjects();
+      };
+      b.addEventListener('pointermove', move);
+      b.addEventListener('pointerup', up);
+      b.addEventListener('pointercancel', up);
+    });
   }
 
   /** 物件的循環音效：出現、還沒點過的物件有 sfx 就循環播放，點了就停。 */

@@ -9,6 +9,7 @@ import {
   type Distance,
   type FxTag,
   type Gaze,
+  type SceneObject,
   type TransitionStyle,
 } from './types';
 import { buildUploadSection } from './devupload';
@@ -78,6 +79,8 @@ export class DevPanel {
     private readonly project?: ProjectSession,
     /** 打開故事編輯器。 */
     private readonly openStory?: () => void,
+    /** 儲存腳本，允許改結構（新增、刪除物件），回傳結果訊息。 */
+    private readonly saveStructure?: () => Promise<string>,
   ) {
     this.build();
     document.body.append(this.root);
@@ -229,6 +232,7 @@ export class DevPanel {
       this.section('目前狀態', this.status, this.stats),
       this.section('跳到場景', el('div', { class: 'dev-row' }, [this.sceneSelect, jump])),
       this.buildPresentation(),
+      this.buildObjects(),
       this.section('上傳素材', buildUploadSection(e, this.view, this.project?.mode === 'local')),
       this.section('觸發效果', el('div', { class: 'dev-grid' }, fxButtons)),
       this.section(
@@ -586,6 +590,213 @@ export class DevPanel {
   }
 
   private syncProject: () => void = () => {};
+  private syncObjects: () => void = () => {};
+
+  /**
+   * 可以點的物件（目前場景）：新增、刪除、在畫面上拖曳位置，調大小、疊圖寬度、第幾句出現、
+   * 一定要點、提醒動畫、循環音效。只保證電腦上好操作。按「儲存物件」寫回 script.json。
+   */
+  private buildObjects(): HTMLElement {
+    const e = this.engine;
+    const v = this.view;
+    const select = el('select', { name: 'dev-object' });
+    const editing = el('input', { type: 'checkbox', name: 'dev-object-edit' });
+    const fields = el('div', { class: 'dev-object-fields', 'data-dev': 'object-fields' });
+    const msg = el('p', { class: 'dev-note', 'data-dev': 'object-status', 'aria-live': 'polite' });
+    let sceneId = '';
+    let selected: string | null = null;
+
+    const objects = (): SceneObject[] => e.scene?.objects ?? [];
+    const current = (): SceneObject | undefined => objects().find((o) => o.id === selected);
+    const redraw = () => {
+      if (v.objectEdit) v.objectEdit.selected = selected;
+      if (e.phase === 'text' || v.objectEdit) v.renderObjects();
+    };
+    const setEditing = (on: boolean) => {
+      editing.checked = on;
+      v.objectEdit = on
+        ? {
+            selected,
+            onSelect: (id) => {
+              selected = id;
+              select.value = id;
+              renderFields();
+            },
+            onMove: () => renderFields(true),
+          }
+        : null;
+      v.renderObjects();
+    };
+    editing.onchange = () => setEditing(editing.checked);
+
+    const num = (label: string, key: 'x' | 'y', obj: SceneObject) =>
+      el('span', { class: 'dev-object-xy', 'data-dev': `object-${key}` }, [`${label} ${obj[key].toFixed(3)}`]);
+    const range = (name: string, min: number, max: number, step: number, value: number, onInput: (n: number) => void) => {
+      const r = el('input', { type: 'range', name, min: String(min), max: String(max), step: String(step), value: String(value) });
+      r.oninput = () => onInput(Number(r.value));
+      return r;
+    };
+
+    const renderFields = (onlyXY = false) => {
+      const obj = current();
+      if (!obj) {
+        fields.replaceChildren(el('p', { class: 'dev-note' }, [objects().length ? '選一個物件。' : '這個場景還沒有物件。']));
+        return;
+      }
+      if (onlyXY) {
+        fields.querySelector('[data-dev=object-x]')?.replaceWith(num('x', 'x', obj));
+        fields.querySelector('[data-dev=object-y]')?.replaceWith(num('y', 'y', obj));
+        return;
+      }
+      const lines = e.scene?.lines.length ?? 1;
+      const rOut = el('output', {}, [(obj.r ?? 0.04).toFixed(3)]);
+      const owOut = el('output', {}, [obj.overlayWidth ? obj.overlayWidth.toFixed(2) : '不疊圖']);
+      const at = el('input', { type: 'number', name: 'dev-object-appear', min: '0', max: String(lines - 1), value: String(obj.appearAt ?? 0) });
+      at.onchange = () => {
+        obj.appearAt = Math.max(0, Math.min(lines - 1, Math.round(Number(at.value) || 0)));
+        at.value = String(obj.appearAt);
+        redraw();
+      };
+      const here = this.button('目前這句', () => {
+        obj.appearAt = e.index;
+        at.value = String(obj.appearAt);
+        redraw();
+      }, { 'data-dev': 'object-appear-here' });
+      const required = el('input', { type: 'checkbox', name: 'dev-object-required' });
+      required.checked = !!obj.required;
+      required.onchange = () => {
+        if (required.checked) obj.required = true;
+        else delete obj.required;
+        redraw();
+      };
+      const attention = el('select', { name: 'dev-object-attention' }, [
+        el('option', { value: '' }, ['沒有']),
+        el('option', { value: 'glow' }, ['柔和發亮（glow）']),
+        el('option', { value: 'ring' }, ['震動＋發亮（ring）']),
+      ]);
+      attention.value = obj.attention ?? '';
+      attention.onchange = () => {
+        if (attention.value) obj.attention = attention.value as 'glow' | 'ring';
+        else delete obj.attention;
+        redraw();
+      };
+      const sfx = el('input', { type: 'text', name: 'dev-object-sfx', value: obj.sfx ?? '', placeholder: '音效名稱（例如 phone_ring）' });
+      sfx.onchange = () => {
+        const name = sfx.value.trim();
+        if (name) obj.sfx = name;
+        else delete obj.sfx;
+      };
+      const label = el('input', { type: 'text', name: 'dev-object-label', value: obj.label });
+      label.onchange = () => {
+        obj.label = label.value.trim() || obj.label;
+        refreshList();
+        redraw();
+      };
+      fields.replaceChildren(
+        el('div', { class: 'dev-row' }, [num('x', 'x', obj), num('y', 'y', obj)]),
+        el('label', { class: 'dev-row' }, ['名稱', label]),
+        el('label', { class: 'dev-row' }, [
+          '大小',
+          range('dev-object-r', 0.02, 0.15, 0.005, obj.r ?? 0.04, (n) => {
+            obj.r = n;
+            rOut.textContent = n.toFixed(3);
+            redraw();
+          }),
+          rOut,
+        ]),
+        el('label', { class: 'dev-row' }, [
+          '疊圖寬',
+          range('dev-object-overlay', 0, 0.3, 0.01, obj.overlayWidth ?? 0, (n) => {
+            if (n >= 0.03) obj.overlayWidth = n;
+            else delete obj.overlayWidth;
+            owOut.textContent = obj.overlayWidth ? n.toFixed(2) : '不疊圖';
+            redraw();
+          }),
+          owOut,
+        ]),
+        el('div', { class: 'dev-row' }, [el('label', {}, ['第幾句出現（0 起算）', at]), here]),
+        el('label', { class: 'dev-row' }, [required, '一定要點（required）']),
+        el('label', { class: 'dev-row' }, ['提醒動畫', attention]),
+        el('label', { class: 'dev-row' }, ['循環音效', sfx]),
+      );
+    };
+
+    const refreshList = () => {
+      const list = objects();
+      if (!list.some((o) => o.id === selected)) selected = list[0]?.id ?? null;
+      select.replaceChildren(...list.map((o) => el('option', { value: o.id }, [`${o.label}（${o.id}）`])));
+      if (selected) select.value = selected;
+      select.disabled = !list.length;
+    };
+    select.onchange = () => {
+      selected = select.value;
+      renderFields();
+      redraw();
+    };
+
+    const add = this.button(
+      '新增物件',
+      () => {
+        const scene = e.scene;
+        if (!scene) return;
+        const used = new Set(e.script.scenes.flatMap((s) => (s.objects ?? []).map((o) => o.id)));
+        let n = 1;
+        while (used.has(`${scene.id}_obj${n}`)) n++;
+        const obj: SceneObject = { id: `${scene.id}_obj${n}`, label: '新物件', x: 0.5, y: 0.5, r: 0.05, appearAt: e.index, description: '（請寫說明）' };
+        (scene.objects ??= []).push(obj);
+        e.reindex();
+        selected = obj.id;
+        refreshList();
+        renderFields();
+        setEditing(true);
+        msg.textContent = `已新增「${obj.id}」。說明文字請在文字編輯器或故事編輯器改。`;
+      },
+      { 'data-dev': 'object-add' },
+    );
+    const remove = this.button(
+      '刪除',
+      () => {
+        const scene = e.scene;
+        const obj = current();
+        if (!scene || !obj || !confirm(`刪除物件「${obj.label}」？`)) return;
+        scene.objects = (scene.objects ?? []).filter((o) => o !== obj);
+        if (!scene.objects.length) delete scene.objects;
+        e.reindex();
+        refreshList();
+        renderFields();
+        redraw();
+      },
+      { 'data-dev': 'object-delete' },
+    );
+    const save = this.button(
+      '儲存物件',
+      () => {
+        msg.textContent = '儲存中…';
+        void (this.saveStructure ?? this.saveScript)?.().then((m) => (msg.textContent = m));
+      },
+      { 'data-dev': 'object-save' },
+    );
+
+    this.syncObjects = () => {
+      const id = e.scene?.id ?? '';
+      if (id === sceneId) return;
+      sceneId = id;
+      selected = null;
+      refreshList();
+      renderFields();
+      if (v.objectEdit) v.objectEdit.selected = selected;
+    };
+
+    return this.section(
+      '可以點的物件',
+      el('p', { class: 'dev-note' }, ['勾「在畫面上拖曳」後，畫面上會顯示這個場景的所有物件（右上角數字是第幾句出現），直接拖曳移動。手機上可以看，拖曳請用電腦。']),
+      el('div', { class: 'dev-row' }, [select, add, remove]),
+      el('label', { class: 'dev-row' }, [editing, '在畫面上拖曳']),
+      fields,
+      el('div', { class: 'dev-row' }, [save]),
+      msg,
+    );
+  }
   private syncSpriteChar: () => void = () => {};
   private syncMusic: () => void = () => {};
 
@@ -653,6 +864,7 @@ export class DevPanel {
     }
     this.syncSpriteChar();
     this.syncProject();
+    this.syncObjects();
     this.degRange.value = String(e.degradation);
     this.degOut.textContent = e.degradation.toFixed(2);
     const pose = e.lastChar ? e.poses[e.lastChar] : null;

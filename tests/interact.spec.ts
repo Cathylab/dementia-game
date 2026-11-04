@@ -209,3 +209,50 @@ test('正式腳本：6 個找找看、會響的手機，新欄位都通過檢查
   expect(phone).toMatchObject({ required: true, attention: 'ring', sfx: 'phone_ring' });
   expect(validateScript(demo).filter((p) => !p.startsWith('（警告）'))).toEqual([]);
 });
+
+test.describe('開發者面板：可以點的物件', () => {
+  test('拖曳移動、調大小與第幾句出現、新增物件，儲存寫進劇本', async ({ page }) => {
+    await openWithTestScript(page);
+    await jumpTo(page, 'obj_scene');
+    await page.keyboard.press('Backquote');
+    const section = page.locator('details[data-section=可以點的物件]');
+    await expect(section.locator('select[name=dev-object]')).toHaveValue('o_phone');
+    await section.locator('input[name=dev-object-edit]').check();
+    // 編輯時畫出場景裡所有物件（o_cup 第 2 句才出現，也畫出來）
+    await expect(spot(page, 'o_cup')).toHaveAttribute('data-appear-at', '2');
+    // 拖曳杯子（拖曳時自動選取）到背景中間附近
+    const bg = (await page.locator('.objects-bg').boundingBox())!;
+    const from = (await spot(page, 'o_cup').boundingBox())!;
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(bg.x + bg.width * 0.4, bg.y + bg.height * 0.6, { steps: 5 });
+    await page.mouse.up();
+    await expect(section.locator('select[name=dev-object]')).toHaveValue('o_cup');
+    const cup = await page.evaluate(() => (window as unknown as { __vn: { engine: { getObject(id: string): { x: number; y: number } } } }).__vn.engine.getObject('o_cup'));
+    expect(cup.x).toBeCloseTo(0.4, 1);
+    expect(cup.y).toBeCloseTo(0.6, 1);
+    await expect(section.locator('[data-dev=object-x]')).toContainText(cup.x.toFixed(3));
+    // 沒有打開說明卡、沒有推進劇情
+    await expect(page.locator('.inspect')).not.toHaveClass(/open/);
+    await expect(currentText(page)).toHaveText('物件第一句。');
+    // 大小、第幾句出現、一定要點
+    await section.locator('input[name=dev-object-r]').fill('0.08');
+    await section.locator('input[name=dev-object-appear]').fill('1');
+    await section.locator('input[name=dev-object-appear]').press('Tab');
+    await section.locator('input[name=dev-object-required]').check();
+    await section.locator('select[name=dev-object-attention]').selectOption('ring');
+    // 新增物件
+    await section.locator('[data-dev=object-add]').click();
+    await expect(section.locator('select[name=dev-object]')).toHaveValue('obj_scene_obj1');
+    await expect(spot(page, 'obj_scene_obj1')).toBeVisible();
+    // 儲存（網站版：下載 script.json）
+    const [download] = await Promise.all([page.waitForEvent('download'), section.locator('[data-dev=object-save]').click()]);
+    const saved = JSON.parse(await (await import('node:fs/promises')).readFile(await download.path(), 'utf8')) as Script;
+    const objs = scene(saved, 'obj_scene').objects!;
+    expect(objs[2]).toMatchObject({ id: 'o_cup', r: 0.08, appearAt: 1, required: true, attention: 'ring' });
+    expect(objs.map((o) => o.id)).toContain('obj_scene_obj1');
+    // 關掉編輯：回到一般的物件（o_cup 還沒出現）
+    await section.locator('input[name=dev-object-edit]').uncheck();
+    await expect(spot(page, 'o_cup')).toHaveCount(0);
+  });
+});
