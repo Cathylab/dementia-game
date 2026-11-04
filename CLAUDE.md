@@ -26,6 +26,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 ## 架構
 
 - 頁面：`index.html`＝引導網站（`src/guide/`，`data-page="guide"`），`play.html`＝遊戲。首頁收到遊戲參數會轉到 `play.html`。**測試開遊戲要用 `./play.html?…`**。離線版另有 `開始.html`。
+- 引導流程：`src/guide/steps.ts`（九步定義）、`stepviews.ts`（每步畫面，`registerStep`）、`prompts.ts`（提示詞，含前面答案、題材包 `guide.md`／`cautions.md`）、`format.ts`（給 AI 的劇本格式）。題材包文件離線時在 `EMBED.packs[id]._docs`。
 - `src/main.ts`（遊戲頁）：載入腳本 → `Engine` + `AdvView` + `AudioEngine` + `TextEditor` + `StoryEditor` + `DevPanel`。網址參數 `?voice=1` 改為渲染開發者頁面「配音總表」（`voicedesk.ts`），不啟動遊戲。`window.__vn = { engine, view, dev, editor, story, project }` 供測試與除錯。
 - `src/engine.ts`：純流程與狀態（stats、flags、seen、history 快照、repeat_line 佇列、記憶對照展開的虛擬台詞）。透過 `View` 介面呼叫畫面，`engine.token` 每換句／換場景遞增，非同步流程用它判斷是否過期。`phase`：title／busy／text／choice／inspect／ending。
 - `src/view.ts`：ADV 介面、轉場（`blink()`，樣式由 `meta.transition` 決定）、打字、獨白、選項與 hotspot、可點物件與說明卡、記憶對照、對話紀錄、設定、手機直式拖曳背景。`src/fx.ts` 實作 11 個效果標籤與退化係數（act 1→0、2→0.5、3 以上→1）。

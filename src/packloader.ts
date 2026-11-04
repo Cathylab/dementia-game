@@ -45,3 +45,23 @@ export async function listPacks(): Promise<PackEntry[]> {
   }
   return [];
 }
+
+/** 題材包的說明文件內容（readme、guide、cautions）。讀不到的就沒有。 */
+export async function loadPackDocs(id: string): Promise<Record<string, string>> {
+  const embedded = EMBED?.packs?.[id] as { _docs?: Record<string, string> } | undefined;
+  if (EMBED) return embedded?._docs ?? {};
+  const pack = await loadPack(id);
+  const out: Record<string, string> = {};
+  for (const [key, file] of Object.entries(pack.docs ?? {})) {
+    if (!file) continue;
+    try {
+      const res = await fetch(`${PACKS_URL}/${encodeURIComponent(id)}/${file.split('/').map(encodeURIComponent).join('/')}`, { cache: 'no-cache' });
+      const type = res.headers.get('content-type') ?? '';
+      if (res.ok && !type.includes('text/html')) out[key] = await res.text();
+    } catch {
+      /* 讀不到 */
+    }
+  }
+  return out;
+}
+

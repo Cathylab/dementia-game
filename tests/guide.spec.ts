@@ -62,7 +62,9 @@ test('引導流程：從空白開始，看得到第幾步；上一步、跳過�
   await expect(page.locator('.g-step h1')).toHaveText('1. 選題材包與主題');
   await expect(page.locator('.g-project')).toHaveText('《我的遊戲》');
   await expect(page.locator('[data-guide=prev]')).toBeDisabled();
-
+  // 第 1 步要寫下想讓玩家體會的事，才能下一步
+  await expect(page.locator('[data-guide=next]')).toBeDisabled();
+  await page.locator('textarea[name=guide-goal]').fill('讓玩家體會一件事');
   await page.click('[data-guide=next]');
   await expect(progress).toContainText('第 2 步');
   await page.click('[data-guide=skip]');
@@ -111,6 +113,7 @@ test('離線版「開始.html」：引導網站照樣能用，連結指到離線
   await page.click('[data-guide=begin]');
   await page.click('[data-guide=start-blank]');
   await expect(page.locator('[data-guide=progress]')).toContainText('第 1 步，共 9 步');
+  await page.locator('textarea[name=guide-goal]').fill('離線的目標');
   await page.click('[data-guide=next]');
   await page.goto(pathToFileURL(join(OUT, '開始.html')).href);
   await expect(page.locator('[data-guide=resume]')).toContainText('第 2 步');

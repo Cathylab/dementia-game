@@ -53,6 +53,19 @@ export function offlinePlugin(): Plugin {
       }
 
       const packs = await readPacks(root);
+      // 題材包的說明文件（寫作準則、注意事項）也放進去：引導流程的提示詞會用
+      for (const [id, p] of Object.entries(packs)) {
+        const docs = (p.docs ?? {}) as Record<string, string>;
+        const texts: Record<string, string> = {};
+        for (const [key, file] of Object.entries(docs)) {
+          try {
+            texts[key] = await readFile(join(root, 'packs', id, file), 'utf8');
+          } catch {
+            /* 沒有這個檔案就算了 */
+          }
+        }
+        p._docs = texts;
+      }
 
       // 去掉原本的 <script type="module" src> 與 <link rel="stylesheet|modulepreload">
       const base = String(html.source)

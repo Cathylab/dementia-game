@@ -110,7 +110,12 @@ export class StoryEditor {
       const issue = (ev as CustomEvent<Issue>).detail;
       if (issue?.scene) this.jumpTo(issue.scene, issue.line);
     });
-    if (urlParam('story')) this.open();
+    // ?story=1 打開故事編輯器；?story=assets 等直接打開某個分頁
+    const tab = urlParam('story');
+    if (tab) {
+      if (['scenes', 'characters', 'endings', 'assets', 'paste'].includes(tab)) this.tab = tab as Tab;
+      this.open();
+    }
   }
 
   get isOpen(): boolean {
