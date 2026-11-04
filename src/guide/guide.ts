@@ -310,6 +310,7 @@ export class Guide {
     const out: HTMLElement[] = [];
     if (stepId === 'theme') out.push(this.toolDetails('sources', '查證：資料來源表（每個症狀或處境都要有來源）', 'sources-alt', state, project));
     if (stepId === 'script') out.push(this.toolDetails('grid', '不用 AI：照格子填一個短篇（2～3 個場景）', 'grid-alt', state, project));
+    if (stepId === 'assets') out.push(this.toolDetails('drawings', '手繪拍照上傳・從小圖庫選', 'drawings-alt', state, project));
     if (stepId === 'playtest') out.push(this.toolDetails('stereotype', '有沒有寫成刻板印象？檢查清單', 'stereotype-alt', state, project));
     return out;
   }

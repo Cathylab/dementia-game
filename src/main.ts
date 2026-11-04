@@ -8,6 +8,7 @@ import { Guide } from './guide/guide';
 import './guide/stepviews';
 import './guide/gridview';
 import './guide/inquiry';
+import './guide/drawings';
 import { GAME_PARAMS, gameHref } from './guide/links';
 import { projectDir, scriptUrl } from './paths';
 import { loadScript } from './script';

@@ -700,3 +700,60 @@ html[data-page='guide'] #app {
   }
 }
 
+
+/* 手繪拍照上傳・小圖庫 */
+.g-drawing {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--g-line, #ddd3c1);
+}
+.g-drawing h4 {
+  margin: 0 0 4px;
+}
+.g-thumb {
+  display: grid;
+  place-items: center;
+  min-height: 100px;
+  border-radius: 8px;
+  background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 0 0 / 16px 16px;
+  overflow: hidden;
+  text-align: center;
+  padding: 4px;
+}
+.g-thumb img {
+  max-width: 100%;
+  max-height: 180px;
+  display: block;
+}
+.g-thumb .g-meta {
+  font-size: 0.8em;
+}
+.g-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.g-gallery-item {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--g-line, #ddd3c1);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85em;
+}
+.g-gallery-item img {
+  width: 100%;
+  aspect-ratio: 2304 / 1080;
+  object-fit: contain;
+}
+@media (max-width: 560px) {
+  .g-drawing {
+    grid-template-columns: 1fr;
+  }
+}
