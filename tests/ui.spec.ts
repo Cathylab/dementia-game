@@ -12,7 +12,7 @@ test('ADV 介面：人名、台詞、功能列七個按鈕', async ({ page }) =>
   await advance(page);
   await expect(page.locator('.namebox .name')).toHaveText('阿明哥');
   await expect(page.locator('.sprite')).toBeVisible();
-  for (const key of ['back', 'auto', 'skip', 'log', 'hide', 'settings', 'title']) {
+  for (const key of ['back', 'auto', 'skip', 'log', 'hide', 'settings', 'pause']) {
     await expect(page.locator(`.tool-${key}`)).toBeVisible();
     await expect(page.locator(`.tool-${key}`)).toBeEnabled();
   }
@@ -63,7 +63,8 @@ test('回上一句、對話紀錄、隱藏介面、設定、回標題', async ({
   await expect(page.locator('input[name=volume]')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await page.click('.tool-title');
+  await page.click('.tool-pause');
+  await page.click('[data-pause=title]');
   await expect(page.locator('.title-screen')).toBeVisible();
 });
 

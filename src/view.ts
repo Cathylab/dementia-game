@@ -3,6 +3,7 @@ import { Effects, fadeText, glitchSpans } from './fx';
 import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
 import { activeFx, currentPack } from './pack';
+import { saveTimeLabel, type SaveData, type SaveStore } from './saves';
 import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
 import type {
@@ -108,7 +109,7 @@ const TOOLBAR: { key: UiKey; label: string }[] = [
   { key: 'log', label: '紀錄' },
   { key: 'hide', label: '隱藏' },
   { key: 'settings', label: '設定' },
-  { key: 'title', label: '標題' },
+  { key: 'pause', label: '暫停' },
 ];
 
 /** 經典 ADV 版面：全螢幕背景、置中立繪、下方三分之一的漸層台詞區、底部功能列。 */
@@ -174,6 +175,10 @@ export class AdvView implements View {
   readonly chapterCard = el('div', { class: 'chapter-card', 'aria-live': 'polite' });
   readonly logOverlay = el('div', { class: 'overlay log-overlay', role: 'dialog' });
   readonly settingsOverlay = el('div', { class: 'overlay settings-overlay', role: 'dialog' });
+  /** 暫停選單：繼續、存檔、讀檔、設定、回到標題。 */
+  readonly pauseOverlay = el('div', { class: 'overlay pause-overlay', role: 'dialog', 'aria-label': '暫停' });
+  /** 存檔簿（main.ts 設定）；沒有就不顯示存檔、讀檔。 */
+  saves: SaveStore | null = null;
   readonly titleScreen = el('div', { class: 'screen title-screen' });
   readonly endingScreen = el('div', { class: 'screen ending-screen' });
   readonly buttons = new Map<UiKey, HTMLButtonElement>();
@@ -255,6 +260,7 @@ export class AdvView implements View {
       this.chapterCard,
       this.logOverlay,
       this.settingsOverlay,
+      this.pauseOverlay,
       this.endingScreen,
       this.memoryPage,
       this.titleScreen,
@@ -312,6 +318,11 @@ export class AdvView implements View {
       return;
     }
     if (e.key === 'Escape') {
+      // 沒有開著的視窗時，Esc 打開暫停選單
+      if (!this.overlayOpen() && (this.engine.phase === 'text' || this.engine.phase === 'choice')) {
+        this.openPause();
+        return;
+      }
       this.closeOverlays();
       this.stage.classList.remove('ui-hidden', 'menu-open');
       return;
@@ -328,7 +339,12 @@ export class AdvView implements View {
   }
 
   overlayOpen(): boolean {
-    return this.logOverlay.classList.contains('open') || this.settingsOverlay.classList.contains('open') || this.inspectOpen();
+    return (
+      this.logOverlay.classList.contains('open') ||
+      this.settingsOverlay.classList.contains('open') ||
+      this.pauseOverlay.classList.contains('open') ||
+      this.inspectOpen()
+    );
   }
 
   inspectOpen(): boolean {
@@ -338,6 +354,8 @@ export class AdvView implements View {
   closeOverlays(): void {
     this.logOverlay.classList.remove('open');
     this.settingsOverlay.classList.remove('open');
+    this.pauseOverlay.classList.remove('open');
+    this.stage.querySelector('.credits-overlay')?.remove();
   }
 
   // ───────────────────────── 功能列 ─────────────────────────
@@ -374,6 +392,105 @@ export class AdvView implements View {
         this.stopSkip();
         this.engine.toTitle();
         break;
+      case 'pause':
+        this.openPause();
+        break;
+    }
+  }
+
+  // ───────────────────────── 暫停選單與存檔 ─────────────────────────
+
+  /** 暫停：停下自動與快轉，打開選單。 */
+  openPause(view: 'menu' | 'save' | 'load' = 'menu'): void {
+    this.stopAuto();
+    this.stopSkip();
+    this.closeOverlays();
+    this.stage.classList.remove('menu-open');
+    const close = () => {
+      this.pauseOverlay.classList.remove('open');
+      if (this.stage.classList.contains('monologue-on')) this.startMonologueTimer();
+    };
+    const btn = (label: string, onClick: () => void, attrs: Record<string, string> = {}) => {
+      const b = el('button', { type: 'button', class: 'pause-button', ...attrs }, [label]);
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onClick();
+      });
+      return b;
+    };
+    const playing = this.engine.phase !== 'title' && this.engine.phase !== 'ending';
+    let body: HTMLElement[];
+    if (view === 'menu') {
+      const titleMode = this.uiMode('title');
+      const toTitle = btn('回到標題', () => {
+        close();
+        this.engine.toTitle();
+      }, { 'data-pause': 'title' });
+      toTitle.disabled = titleMode === 'disabled';
+      body = [
+        el('h2', {}, ['暫停']),
+        btn('繼續', close, { 'data-pause': 'resume' }),
+        ...(this.saves && playing ? [btn('存檔', () => this.openPause('save'), { 'data-pause': 'save' })] : []),
+        ...(this.saves ? [btn('讀檔', () => this.openPause('load'), { 'data-pause': 'load' })] : []),
+        btn('設定', () => {
+          close();
+          this.openSettings();
+        }, { 'data-pause': 'settings' }),
+        ...(titleMode === 'hidden' ? [] : [toTitle]),
+      ];
+    } else {
+      body = [el('h2', {}, [view === 'save' ? '存檔' : '讀檔']), ...this.saveSlots(view, close), btn('返回', () => this.openPause('menu'), { 'data-pause': 'back' })];
+    }
+    this.pauseOverlay.replaceChildren(el('div', { class: 'pause-menu' }, body));
+    this.pauseOverlay.dataset.view = view;
+    this.pauseOverlay.classList.add('open');
+    this.pauseOverlay.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+  }
+
+  /** 存檔或讀檔的欄位：自動存檔（只能讀）＋3 個手動欄位。 */
+  private saveSlots(mode: 'save' | 'load', close: () => void): HTMLElement[] {
+    const saves = this.saves!;
+    const book = saves.load();
+    const rows: HTMLElement[] = [];
+    const row = (name: string, data: SaveData | null, slot: number | 'auto') => {
+      const info = data ? `${data.label}（${saveTimeLabel(data.savedAt)}）` : '（空的）';
+      const b = el('button', { type: 'button', class: 'save-slot', 'data-slot': String(slot) }, [
+        el('strong', {}, [name]),
+        el('span', {}, [info]),
+      ]);
+      b.disabled = mode === 'load' ? !data : slot === 'auto';
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (mode === 'save' && typeof slot === 'number') {
+          const d = this.engine.saveData();
+          if (!d) return;
+          if (data && !confirm(`覆蓋「${name}」？`)) return;
+          if (!saves.saveSlot(slot, d)) alert('沒有存成功（瀏覽器的空間可能不夠，或是在私密瀏覽模式）。');
+          this.openPause('save');
+          this.pauseOverlay.querySelector(`[data-slot="${slot}"]`)?.classList.add('just-saved');
+        } else if (mode === 'load' && data) {
+          close();
+          void this.loadGame(data);
+        }
+      });
+      rows.push(b);
+    };
+    row('自動存檔', book.auto, 'auto');
+    book.slots.forEach((d, i) => row(`存檔 ${i + 1}`, d, i));
+    return rows;
+  }
+
+  /** 讀檔（標題畫面的「繼續」也用這個）。 */
+  async loadGame(data: SaveData): Promise<void> {
+    this.titleScreen.classList.remove('open');
+    this.endingScreen.classList.remove('open');
+    this.memoryPage.classList.remove('open');
+    this.audio?.unlock();
+    try {
+      await this.engine.loadSave(data);
+    } catch (err) {
+      alert(`讀不到這個存檔：${(err as Error).message}`);
+      this.engine.toTitle();
     }
   }
 
@@ -696,14 +813,103 @@ export class AdvView implements View {
       this.onStart();
     };
     this.applyCover();
+    this.applyUiStyle();
+    const saveButtons = this.titleSaveButtons(start);
     this.titleScreen.replaceChildren(
       el('h1', {}, [meta.title]),
       el('p', { class: 'subtitle' }, [meta.durationMinutes ? `約 ${meta.durationMinutes} 分鐘 ・ 建議戴上耳機` : '建議戴上耳機']),
+      ...saveButtons.top,
       start,
+      ...saveButtons.bottom,
+      ...(this.creditsButton() ?? []),
       ...(this.titleNote ? [el('p', { class: 'project-badge' }, [this.titleNote])] : []),
     );
     this.titleScreen.classList.add('open');
     this.stage.dataset.phase = 'title';
+  }
+
+  /**
+   * 標題畫面的存檔按鈕：有自動存檔時，「繼續」放在最上面、「開始」改叫「從頭開始」；
+   * 有手動存檔時，下方多一個「讀取存檔」。
+   */
+  private titleSaveButtons(start: HTMLButtonElement): { top: HTMLElement[]; bottom: HTMLElement[] } {
+    const top: HTMLElement[] = [];
+    const bottom: HTMLElement[] = [];
+    if (!this.saves) return { top, bottom };
+    const book = this.saves.load();
+    if (book.auto) {
+      const auto = book.auto;
+      const b = el('button', { class: 'continue-button', type: 'button', 'data-ui': 'continue', title: auto.label }, ['繼續']);
+      b.onclick = (e) => {
+        e.stopPropagation();
+        void this.loadGame(auto);
+      };
+      top.push(b, el('p', { class: 'continue-note' }, [`${auto.label}（${saveTimeLabel(auto.savedAt)}）`]));
+      start.textContent = '從頭開始';
+    }
+    if (book.slots.some(Boolean)) {
+      const b = el('button', { class: 'credits-button', type: 'button', 'data-ui': 'load' }, ['讀取存檔']);
+      b.onclick = (e) => {
+        e.stopPropagation();
+        this.openPause('load');
+      };
+      bottom.push(b);
+    }
+    return { top, bottom };
+  }
+
+  /** 標題畫面的「製作名單」按鈕（meta.credits 有內容時才有）。 */
+  private creditsButton(): HTMLElement[] | null {
+    const credits = this.engine.script.meta.credits;
+    if (!Array.isArray(credits) || !credits.length) return null;
+    const b = el('button', { class: 'credits-button', type: 'button', 'data-ui': 'credits' }, ['製作名單']);
+    b.onclick = (e) => {
+      e.stopPropagation();
+      this.openCredits();
+    };
+    return [b];
+  }
+
+  /** 製作名單：素材出處（meta.credits），連結在新分頁開啟。 */
+  openCredits(): void {
+    const credits = (this.engine.script.meta.credits ?? []).filter((c) => c && typeof c === 'object');
+    const close = el('button', { class: 'credits-close', type: 'button' }, ['關閉']);
+    const box = el('div', { class: 'credits-box', role: 'dialog', 'aria-label': '製作名單' }, [
+      el('h2', {}, ['製作名單']),
+      el('p', { class: 'credits-note' }, ['素材出處']),
+      el(
+        'ul',
+        { class: 'credits-list' },
+        credits.map((c) =>
+          el('li', { 'data-file': c.file ?? '' }, [
+            el('strong', {}, [c.title || c.file || '（未命名）']),
+            ...(c.author ? [el('span', {}, [`　${c.author}`])] : []),
+            ...(c.license ? [el('span', { class: 'credits-license' }, [`　${c.license}`])] : []),
+            ...(c.url ? [el('a', { href: c.url, target: '_blank', rel: 'noopener noreferrer' }, ['出處'])] : []),
+          ]),
+        ),
+      ),
+      close,
+    ]);
+    const overlay = el('div', { class: 'credits-overlay open', 'data-ui': 'credits-overlay' }, [box]);
+    const shut = () => overlay.remove();
+    close.onclick = (e) => {
+      e.stopPropagation();
+      shut();
+    };
+    overlay.onclick = (e) => {
+      e.stopPropagation();
+      if (e.target === overlay) shut();
+    };
+    box.onclick = (e) => e.stopPropagation();
+    this.stage.append(overlay);
+    close.focus();
+  }
+
+  /** 介面樣式（meta.uiStyle）：classic、box、paper。 */
+  applyUiStyle(): void {
+    const s = this.engine.script.meta.uiStyle;
+    this.stage.dataset.uiStyle = s === 'box' || s === 'paper' ? s : 'classic';
   }
 
   /** 封面圖：meta.cover（手機直式用 coverPortrait，沒有就用 cover，以中間為主裁切）。 */

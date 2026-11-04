@@ -1,4 +1,5 @@
 import { activeFx, currentPack, degradationForAct } from './pack';
+import type { SaveData } from './saves';
 import { ENDING_TARGET, evalCondition, pickEnding, type CondContext } from './script';
 import { settings } from './settings';
 import {
@@ -115,6 +116,8 @@ export class Engine {
   token = 0;
   /** 目前顯示的是重播或記憶對照產生的台詞（不是 lines[index] 本身）。 */
   private forced = false;
+  /** 每播一句（台詞或選項）之後呼叫：自動存檔用。 */
+  onCheckpoint?: () => void;
   textFinished = false;
   /** 目前顯示中的選項。 */
   shown: ShownOption[] = [];
@@ -310,6 +313,45 @@ export class Engine {
       this.view.showText(line, { repeated: !!forced?.repeated, character, pose });
     }
     this.view.stateChanged();
+    if (!forced) this.onCheckpoint?.();
+  }
+
+  /** 目前的進度（存檔用）；標題畫面、結局、轉場中回傳 null。 */
+  saveData(): SaveData | null {
+    if (!this.scene || !['text', 'choice', 'inspect'].includes(this.phase)) return null;
+    const line = this.scene.lines[this.index];
+    const text = line && isText(line) ? line.text : line && isChoice(line) ? line.prompt ?? '（選項）' : '';
+    const act = this.scene.act ?? 1;
+    return {
+      sceneId: this.scene.id,
+      index: this.index,
+      stats: { ...this.stats },
+      flags: [...this.flags],
+      seen: [...this.seen],
+      poses: structuredClone(this.poses),
+      lastChar: this.lastChar,
+      desat: this.desat,
+      savedAt: Date.now(),
+      // 場景 title 常有給作者看的記號（例如 ★），只顯示第幾幕和那一句
+      label: `第${act}幕${text ? `：${text.slice(0, 20)}${text.length > 20 ? '…' : ''}` : ''}`,
+    };
+  }
+
+  /** 讀檔：恢復數值、旗標、點過的物件，從存檔的那一句重新開始（不顯示章節卡）。 */
+  async loadSave(d: SaveData): Promise<void> {
+    if (!this.scenes.has(d.sceneId)) throw new Error(`存檔的場景「${d.sceneId}」已經不在劇本裡`);
+    this.stats = { ...(this.script.meta.stats ?? {}), ...d.stats };
+    this.flags = [...d.flags];
+    this.seen = [...d.seen];
+    this.poses = structuredClone(d.poses ?? {});
+    this.lastChar = d.lastChar;
+    this.desat = d.desat ?? 0;
+    this.history = [];
+    this.log = [];
+    this.repeats = [];
+    this.ending = null;
+    const scene = this.scenes.get(d.sceneId)!;
+    await this.gotoScene(d.sceneId, { restoring: true, index: Math.max(0, Math.min(d.index, scene.lines.length - 1)) });
   }
 
   /** 記憶對照的資料：點過、有 truth 的物件，依第一次點的順序，最多 4 件。 */

@@ -145,7 +145,6 @@ export class DevPanel {
 
   private build(): void {
     const e = this.engine;
-    const close = this.button('×', () => this.toggle(false), { class: 'dev-close', 'aria-label': '關閉' });
     const fold = this.button('', () => this.collapse(), { class: 'dev-fold', 'data-dev': 'collapse', 'aria-label': '收合／展開開發者面板' });
     const foldAll = this.button('全部摺疊', () => {
       const sections = [...this.root.querySelectorAll<HTMLDetailsElement>('details.dev-section')];
@@ -218,7 +217,7 @@ export class DevPanel {
     ]);
 
     this.root.append(
-      el('header', {}, [title, foldAll, fold, close]),
+      el('header', {}, [title, foldAll, fold]),
       ...(FILE_MODE
         ? [
             el('div', { class: 'dev-offline', 'data-dev': 'offline' }, [
@@ -527,9 +526,20 @@ export class DevPanel {
     chapterStyle.onchange = applyChapter;
     chapterScale.oninput = applyChapter;
     const previewChapter = this.button('預覽', () => void v.previewChapterCard(), { 'data-dev': 'preview-chapter' });
+    const uiStyle = el('select', { name: 'dev-ui-style' }, [
+      el('option', { value: 'classic' }, ['經典（全幅漸層）']),
+      el('option', { value: 'box' }, ['對話框（有邊框）']),
+      el('option', { value: 'paper' }, ['紙張（米白、深色字）']),
+    ]);
+    uiStyle.value = meta.uiStyle ?? 'classic';
+    uiStyle.onchange = () => {
+      meta.uiStyle = uiStyle.value as 'classic' | 'box' | 'paper';
+      v.applyUiStyle();
+    };
 
     return this.section(
       '呈現調整',
+      el('label', { class: 'dev-row' }, ['介面樣式', uiStyle]),
       el('label', { class: 'dev-row' }, ['遊戲名稱', titleInput]),
       el('label', { class: 'dev-row' }, ['封面', coverInput]),
       el('label', { class: 'dev-row' }, ['直式封面', coverPortraitInput]),

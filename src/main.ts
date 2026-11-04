@@ -15,6 +15,7 @@ import { loadScript } from './script';
 import { currentPack, packIdOf, setCurrentPack } from './pack';
 import { loadPack } from './packloader';
 import { ProjectSession, reloadWithProject } from './project';
+import { SaveStore } from './saves';
 import { BrowserProjectStore } from './projectstore';
 import { showcaseDb } from './guide/review';
 import { StoryEditor } from './storyeditor';
@@ -107,6 +108,13 @@ async function boot() {
     view.audio = new AudioEngine(settings.volume, view.stage);
     view.audio.setVoiceVolume(settings.voiceVolume);
     engine.view = view;
+    // 存檔：每個遊戲（專案、本機專案或班級作品、遊戲名稱）各自一份，存在這個瀏覽器
+    const saves = new SaveStore([projectDir(), started.session.mode, showcase ?? '', EMBED?.player ? 'player' : '', script.meta.title].join('|'));
+    view.saves = saves;
+    engine.onCheckpoint = () => {
+      const d = engine.saveData();
+      if (d) saves.saveAuto(d);
+    };
     const editor = new TextEditor(engine, view);
     const project = session;
     if (project.mode === 'local') {

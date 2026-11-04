@@ -712,7 +712,8 @@ button {
   font-size: clamp(15px, 3cqh, 22px);
 }
 
-.start-button {
+.start-button,
+.continue-button {
   min-width: 200px;
   min-height: 56px;
   padding: 0.4em 2.4em;
@@ -726,7 +727,9 @@ button {
 }
 
 .start-button:hover,
-.start-button:focus-visible {
+.start-button:focus-visible,
+.continue-button:hover,
+.continue-button:focus-visible {
   border-color: var(--accent);
   color: var(--accent);
   outline: none;
@@ -1394,11 +1397,6 @@ button {
 
 .devpanel button:hover {
   border-color: #8fd3ff;
-}
-
-.dev-close {
-  width: 36px;
-  font-size: 18px !important;
 }
 
 .dev-status {
@@ -3385,4 +3383,303 @@ body.voice-desk-page #app {
 
 .chapter-card[data-style='quiet'] .chapter-time {
   font-size: calc(clamp(34px, min(13cqh, 12cqw), 104px) * var(--chapter-scale, 1));
+}
+
+/* ───────────── 製作名單（meta.credits） ───────────── */
+
+.credits-button {
+  min-height: 44px;
+  padding: 0.2em 1.4em;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: clamp(14px, 2.4cqh, 18px);
+  letter-spacing: 0.2em;
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+}
+
+.credits-button:hover,
+.credits-button:focus-visible {
+  color: var(--ink);
+}
+
+.credits-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4%;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.credits-box {
+  width: min(640px, 100%);
+  max-height: 90%;
+  overflow: auto;
+  padding: 1.2em 1.4em;
+  border-radius: 14px;
+  background: var(--panel);
+  font-size: clamp(14px, 2.4cqh, 18px);
+  line-height: 1.7;
+}
+
+.credits-box h2 {
+  margin: 0;
+  font-size: 1.3em;
+  letter-spacing: 0.2em;
+}
+
+.credits-note {
+  margin: 0.2em 0 0.8em;
+  color: var(--ink-dim);
+  font-size: 0.85em;
+}
+
+.credits-list {
+  margin: 0 0 1em;
+  padding-left: 1.2em;
+}
+
+.credits-list li {
+  margin: 0.3em 0;
+}
+
+.credits-license {
+  color: var(--ink-dim);
+}
+
+.credits-list a {
+  margin-left: 0.8em;
+  color: var(--accent);
+}
+
+.credits-close {
+  min-height: 44px;
+  padding: 0.2em 1.6em;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ───────────── 暫停選單與存檔 ───────────── */
+
+.pause-overlay {
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 7;
+}
+
+.pause-overlay.open {
+  display: flex;
+}
+
+.pause-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6em;
+  width: min(30em, 92%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 1.2em 1.4em;
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.pause-menu h2 {
+  margin: 0 0 0.3em;
+  font-size: 1.1em;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.pause-button,
+.save-slot {
+  min-height: 48px;
+  padding: 0.4em 1.2em;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pause-button {
+  border-radius: 999px;
+  letter-spacing: 0.2em;
+}
+
+.pause-button:hover,
+.pause-button:focus-visible,
+.save-slot:hover:not(:disabled),
+.save-slot:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+.pause-button:disabled,
+.save-slot:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.save-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1em;
+  text-align: left;
+}
+
+.save-slot span {
+  color: var(--ink-dim);
+  font-size: 0.8em;
+}
+
+.save-slot.just-saved {
+  border-color: var(--accent);
+}
+
+.continue-note {
+  margin: -0.4em 0 0;
+  max-width: 90%;
+  color: var(--ink-dim);
+  font-size: clamp(13px, 2.2cqh, 16px);
+}
+
+.title-screen .pause-overlay {
+  z-index: 9;
+}
+
+/* ───────────── UI 樣式（meta.uiStyle，開發者面板切換） ───────────── */
+/* classic（預設）：全幅漸層台詞區，上面那些規則。
+   box：對話框是一個有邊框的半透明框（傳統視覺小說）。
+   paper：米白色紙張般的對話框、深色字（明亮、好讀）。 */
+
+/* box */
+.stage[data-ui-style='box'] .dialog {
+  left: 4%;
+  right: 4%;
+  bottom: calc(5cqh + 44px);
+  min-height: 0;
+  padding: 1.1em 1.6em 1.3em;
+  border: 1px solid rgba(242, 201, 138, 0.45);
+  border-radius: 14px;
+  background: rgba(14, 12, 10, 0.82);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.stage[data-ui-style='box'] .namebox:not(.hidden) .name {
+  display: inline-block;
+  padding: 0.1em 0.8em;
+  border-radius: 6px;
+  background: rgba(242, 201, 138, 0.18);
+}
+
+.stage[data-ui-style='box'] .choice {
+  border-radius: 10px;
+  border-color: rgba(242, 201, 138, 0.45);
+}
+
+@media (orientation: portrait) {
+  .stage[data-ui-style='box'] .dialog {
+    left: 3%;
+    right: 3%;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    padding: 0.9em 1.1em 1em;
+  }
+}
+
+/* paper */
+.stage[data-ui-style='paper'] .dialog {
+  left: 5%;
+  right: 5%;
+  bottom: calc(5cqh + 44px);
+  min-height: 0;
+  padding: 1em 1.6em 1.2em;
+  border-radius: 6px;
+  background: rgba(247, 241, 228, 0.94);
+  color: #2b2620;
+  text-shadow: none;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.stage[data-ui-style='paper'] .namebox {
+  color: #8a5a2b;
+}
+
+.stage[data-ui-style='paper'] .namebox .trait {
+  color: #7a7062;
+}
+
+.stage[data-ui-style='paper'] .next-indicator {
+  color: #8a5a2b;
+}
+
+.stage[data-ui-style='paper'] .choice {
+  border-radius: 6px;
+  border-color: rgba(43, 38, 32, 0.25);
+  background: rgba(247, 241, 228, 0.94);
+  color: #2b2620;
+  backdrop-filter: none;
+}
+
+.stage[data-ui-style='paper'] .choice:hover,
+.stage[data-ui-style='paper'] .choice:focus-visible {
+  background: #fffaf0;
+  border-color: #8a5a2b;
+  color: #5b3a18;
+}
+
+.stage[data-ui-style='paper'] .choices.fx-flat-options .choice {
+  background: rgba(200, 196, 188, 0.94);
+  color: #4a4640;
+}
+
+.stage[data-ui-style='paper'].fx-desaturate .choice:not(.locked) {
+  background: rgba(247, 241, 228, 0.96);
+}
+
+@media (orientation: portrait) {
+  .stage[data-ui-style='paper'] .dialog {
+    left: 3%;
+    right: 3%;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    padding: 0.9em 1.1em 1em;
+  }
+}
+
+.stage[data-ui-style='box'] .next-indicator,
+.stage[data-ui-style='paper'] .next-indicator {
+  right: 1.2em;
+  bottom: 0.5em;
+}
+
+/* box／paper：對話框比較高（有框），選項要放在框的上面 */
+.stage:is([data-ui-style='box'], [data-ui-style='paper']) .text {
+  min-height: 2.5em;
+}
+
+@media (orientation: landscape) {
+  .stage:is([data-ui-style='box'], [data-ui-style='paper']) .choices[data-layout='right'] {
+    bottom: calc(5cqh + 44px + 30cqh);
+  }
+}
+
+@media (orientation: portrait) {
+  .stage:is([data-ui-style='box'], [data-ui-style='paper']) .choices[data-mode='list'] {
+    bottom: calc(72px + env(safe-area-inset-bottom) + 24cqh);
+  }
 }
