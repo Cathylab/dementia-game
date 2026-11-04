@@ -622,3 +622,8 @@ docs/                 規格文件與本需求書
 - 選用的內容檔（`survey.json`、`publish.json`）由 `src/extras.ts` 讀；`vite-plugin-content.ts` 的 `EXTRA_FILES` 決定 `projects.json` 的 `extras`。
 - 匯出可以玩的版本時，`exportPlayable` 的 `extras` 帶問卷與發佈資訊，標誌圖一起打包。
 
+### 階段二 B-2：專家審閱
+
+- `src/reviewdoc.ts` 的 `reviewText(script, checklist)` 產生純文字審閱文件；簽核清單是題材包 `docs.review`（`packs/dementia/review.md`，內容待顧問或內容 AI 撰寫，目前是標示「草稿」的範例），沒有就用通用四項。
+- 入口：開發者面板「專家審閱」。離線版從 `EMBED.packs[id]._docs.review` 讀清單。
+

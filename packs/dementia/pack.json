@@ -22,6 +22,6 @@
   "docs": {
     "readme": "README.md",
     "guide": "guide.md",
-    "cautions": "cautions.md"
+    "cautions": "cautions.md", "review": "review.md"
   }
 }

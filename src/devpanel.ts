@@ -16,6 +16,7 @@ import { buildUploadSection } from './devupload';
 import { PROJECT_EXT } from './projectfile';
 import { downloadBlob, reloadWithProject, timeLabel, type ProjectSession } from './project';
 import { surveyCsv, surveyStats } from './survey';
+import { reviewFileName, reviewText } from './reviewdoc';
 import { exportPlayable } from './exporter';
 import { localFiles } from './localfiles';
 import { assetFolderLabel, projectUrl } from './paths';
@@ -23,7 +24,7 @@ import { FILE_MODE, OFFLINE_LIMITS } from './embed';
 import { checkScript } from './checks';
 import { issueSummary, renderIssues } from './issueview';
 import { currentPack, setCurrentPack } from './pack';
-import { listPacks, loadPack } from './packloader';
+import { listPacks, loadPack, loadPackDocs } from './packloader';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -234,6 +235,7 @@ export class DevPanel {
       this.buildPresentation(),
       this.buildObjects(),
       ...(this.view.survey ? [this.buildSurvey()] : []),
+      this.buildReview(),
       this.section('上傳素材', buildUploadSection(e, this.view, this.project?.mode === 'local')),
       this.section('觸發效果', el('div', { class: 'dev-grid' }, fxButtons)),
       this.section(
@@ -682,6 +684,26 @@ export class DevPanel {
   private syncProject: () => void = () => {};
   private syncObjects: () => void = () => {};
   private syncSurvey: () => void = () => {};
+
+  /** 專家審閱：下載審閱用劇本（純文字：簽核清單＋每個場景的台詞、選項、物件、結局，每段可以寫意見）。 */
+  private buildReview(): HTMLElement {
+    const msg = el('p', { class: 'dev-note', 'aria-live': 'polite' });
+    const download = this.button('下載審閱用劇本', () => {
+      void loadPackDocs(currentPack().id)
+        .catch(() => ({}) as Record<string, string>)
+        .then((docs) => {
+          const text = reviewText(this.engine.script, docs.review);
+          downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), reviewFileName(this.engine.script));
+          msg.textContent = `已下載 ${reviewFileName(this.engine.script)}`;
+        });
+    }, { 'data-dev': 'review-download' });
+    return this.section(
+      '專家審閱',
+      el('p', { class: 'dev-note' }, ['給病友、家屬或顧問看的純文字劇本：最前面是簽核清單（題材包的 review.md），每個場景後面可以寫意見，最後簽核。可以用 Word 打開或印出來。']),
+      el('div', { class: 'dev-row' }, [download]),
+      msg,
+    );
+  }
 
   /** 成效評估問卷的結果：這台電腦上的回答數、量表平均、單選人數；匯出 CSV、清除。 */
   private buildSurvey(): HTMLElement {
