@@ -38,6 +38,12 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/main.ts`（遊戲頁）：載入腳本 → `Engine` + `AdvView` + `AudioEngine` + `TextEditor` + `StoryEditor` + `DevPanel`。網址參數 `?voice=1` 改為渲染開發者頁面「配音總表」（`voicedesk.ts`），不啟動遊戲。`window.__vn = { engine, view, dev, editor, story, project }` 供測試與除錯。
 - `src/engine.ts`：純流程與狀態（stats、flags、seen、history 快照、repeat_line 佇列、記憶對照展開的虛擬台詞）。透過 `View` 介面呼叫畫面，`engine.token` 每換句／換場景遞增，非同步流程用它判斷是否過期。`phase`：title／busy／text／choice／inspect／ending。
 - `src/view.ts`：ADV 介面、轉場（`blink()`，樣式由 `meta.transition` 決定）、打字、獨白、選項與 hotspot、可點物件與說明卡、記憶對照、對話紀錄、設定、手機直式拖曳背景。`src/fx.ts` 實作 11 個效果標籤與退化係數（act 1→0、2→0.5、3 以上→1）。
+- 存檔：`src/saves.ts`（`SaveStore`，1 個自動＋3 個手動，localStorage）；`Engine.saveData()`／`loadSave()`、`onCheckpoint`（每播一句，`main.ts` 寫自動存檔）。功能列最後一個是「暫停」（`AdvView.openPause`），`ui.title` 控制暫停選單裡的「回到標題」。標題畫面的「繼續」是 `.continue-button`（不是 `.start-button`）。
+- 試玩回饋第一輪的互動：`Engine.blocked`（`required`／`explore`）擋住 `next()`，畫面提示用 `View.nudgeBlocked`；自動玩的測試迴圈要呼叫 `tests/helpers.ts` 的 `unblock`。物件循環音效 `AudioEngine.setSfxLoops`。開發者面板拖曳物件：`AdvView.objectEdit`。
+- 呈現設定（開發者面板可調、`stripPresentation` 會去掉，不算結構）：`meta.transition`、`objectHighlight`、`sprite`、`pack`、`choiceStyle`、`chapterStyle`、`uiStyle`、`cover`、`coverPortrait`、`title`。
+- 無障礙設定（`settings.ts`）：`textScale`、`calm`（預設跟著系統「減少動態」，`#stage.calm`、`blink()` 改 fade）、`colorAssist`；`AdvView.applyAccessibility`。
+- 選用的內容檔（和 `script.json` 同一層，內容由其他 AI 或單位寫）：`survey.json`（成效評估問卷，`src/survey.ts`、`surveyview.ts`，`docs/survey-format.md`）、`publish.json`（製作單位與結尾資源頁，`src/publish.ts`，`docs/publish-format.md`）。由 `src/extras.ts` 讀；網站版看 `projects.json` 的 `extras`（`vite-plugin-content.ts` 的 `EXTRA_FILES`）才發請求，避免 404。本機專案沒有。
+- 專家審閱：`src/reviewdoc.ts`（純文字審閱文件），簽核清單是題材包 `docs.review`（`packs/dementia/review.md`）。
 - `src/script.ts`：`validateScript`（所有腳本檢查規則，警告以「（警告）」開頭）、`if`／結局條件（`new Function`，可用數值名稱、`has()`、`seen()`、`flags`）、`sceneReachability`。
 - `src/audio.ts`：音樂（找不到 `.ogg`／`.mp3` 時用 Web Audio 合成，退化時走音）與配音（另一條音軌，只受 `muffle` 影響）。配音只請求 `assets/voice/manifest.json` 列出的檔案，避免缺檔產生 404。音效（台詞的 `sfx`，`{專案}/assets/sfx/`，只播一次）同樣有 `assets/sfx/manifest.json`，走音樂的 bus。
 - `src/main.ts` 啟動時經 `ProjectSession.start`（`src/project.ts`）決定模式：`site`＝網站的 `script.json`；`local`＝瀏覽器 IndexedDB 裡的本機專案（`src/projectstore.ts` 的 `ProjectStore` 介面，之後做雲端就換實作）。**預設永遠是 `site`**；只有 `?local=1`（引導網站的 `gameHref` 自動帶）或 `?showcase=` 才讀本機專案，`?site=1` 優先。開啟／關閉本機專案後用 `reloadWithProject` 換網址。測試要開本機專案記得加 `local=1`。
