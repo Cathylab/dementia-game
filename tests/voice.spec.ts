@@ -234,7 +234,7 @@ test.describe('開發者頁面：配音總表', () => {
     const has = new Set(files.map((f) => f.replace(/\.(mp3|ogg)$/, '')));
     const real = JSON.parse(await readFile(new URL('../examples/寫給未來的我/script.json', import.meta.url), 'utf8')) as Script;
     const present = voiceEntries(real).filter((e) => has.has(e.id)).length;
-    await page.goto('./?voice=1');
+    await page.goto('./play.html?voice=1');
     await expect(page.locator('.voice-desk')).toHaveAttribute('data-ready', '1', { timeout: 30000 });
     await expect(page.locator('.vd-table tbody tr')).toHaveCount(66);
     await expect(page.locator('[data-count=total]')).toHaveText('共 66 句');
@@ -245,7 +245,7 @@ test.describe('開發者頁面：配音總表', () => {
   test('探測、統計、篩選、試聽、匯出', async ({ page }) => {
     await serveVoices(page, { 't_start_01_amin.mp3': 1, 'mr_o_phone_amin.ogg': 1 });
     await page.route('**/script.json', async (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(testScript()) }));
-    await page.goto('./?voice=1');
+    await page.goto('./play.html?voice=1');
     await expect(page.locator('.voice-desk')).toHaveAttribute('data-ready', '1');
     await expect(page.locator('.vd-table tbody tr')).toHaveCount(4);
     await expect(page.locator('[data-count=has]')).toHaveText('有音檔 2');
@@ -280,7 +280,7 @@ test.describe('開發者頁面：配音總表', () => {
   test('整場試聽：依序播放該場景有音檔的句子', async ({ page }) => {
     await serveVoices(page, { 't_start_01_amin.mp3': 0.4, 't_start_02_player.mp3': 0.4 });
     await page.route('**/script.json', async (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(testScript()) }));
-    await page.goto('./?voice=1');
+    await page.goto('./play.html?voice=1');
     await expect(page.locator('.voice-desk')).toHaveAttribute('data-ready', '1');
     await page.selectOption('select[name=vd-play-scene]', 't_start');
     await page.click('[data-vd=play-scene]');

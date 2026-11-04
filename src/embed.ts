@@ -12,6 +12,10 @@ export interface EmbeddedProject {
 }
 
 export interface Embed {
+  /** 這個 html 是引導網站還是遊戲。 */
+  page?: 'guide' | 'game';
+  /** 每個專案用哪個 html 開，例如 examples/寫給未來的我 → 玩 Demo.html。 */
+  pages?: Record<string, string>;
   /** 沒有 ?project= 時載入哪一個，例如 examples/寫給未來的我。 */
   defaultProject: string;
   projects: Record<string, EmbeddedProject>;

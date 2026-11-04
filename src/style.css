@@ -2852,3 +2852,48 @@ body.voice-desk-page #app {
   }
 }
 
+/* ───────────── 試玩片段結束（引導網站首頁的 iframe） ───────────── */
+
+.clip-end {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 1em;
+  background: radial-gradient(ellipse at center, rgba(28, 25, 21, 0.92) 0%, rgba(0, 0, 0, 0.96) 75%);
+  color: var(--ink);
+  text-align: center;
+  font-size: clamp(14px, 3.2cqh, 22px);
+}
+
+.clip-end.open {
+  display: flex;
+}
+
+.clip-end-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 2em;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+
+.clip-end-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1em;
+}
+
+.clip-end a.start-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  text-decoration: none;
+}
+

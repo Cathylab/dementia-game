@@ -58,7 +58,7 @@ test.describe('格式', () => {
 
 test.describe('遊戲裡', () => {
   test('Demo 用失智症包；第二幕退化係數 0.5', async ({ page }) => {
-    await page.goto('./?timescale=0.2');
+    await page.goto('./play.html?timescale=0.2');
     await expect(page.locator('.title-screen h1')).toHaveText('寫給未來的我');
     expect((await pack(page)).id).toBe('dementia');
     await page.click('.start-button');

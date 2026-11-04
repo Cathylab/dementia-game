@@ -8,12 +8,15 @@
 
 | 用途 | 連結 |
 | --- | --- |
-| 玩遊戲（給試玩者） | <https://cathylab.github.io/dementia-game/> |
-| 開發者版本（開著開發者面板：跳場景、看數值、呈現調整） | <https://cathylab.github.io/dementia-game/?dev=1> |
-| 文字編輯器（改台詞，線上版會下載修改後的 script.json） | <https://cathylab.github.io/dementia-game/?edit=1> |
-| 故事編輯器（新增場景、台詞、選項分支、角色、結局） | <https://cathylab.github.io/dementia-game/?story=1> |
-| 空白範本（從零開始做；可以加 `&story=1` 直接打開故事編輯器） | <https://cathylab.github.io/dementia-game/?project=templates/空白> |
-| 配音總表（每句配音有沒有音檔、試聽、匯出缺檔清單） | <https://cathylab.github.io/dementia-game/?voice=1> |
+| 首頁：引導網站（試玩片段、開始做自己的遊戲、流程說明） | <https://cathylab.github.io/dementia-game/> |
+| 玩《寫給未來的我》（給試玩者） | <https://cathylab.github.io/dementia-game/play.html> |
+| 開發者版本（開著開發者面板：跳場景、看數值、呈現調整） | <https://cathylab.github.io/dementia-game/play.html?dev=1> |
+| 文字編輯器（改台詞，線上版會下載修改後的 script.json） | <https://cathylab.github.io/dementia-game/play.html?edit=1> |
+| 故事編輯器（新增場景、台詞、選項分支、角色、結局、素材） | <https://cathylab.github.io/dementia-game/play.html?story=1> |
+| 空白範本（從零開始做；可以加 `&story=1` 直接打開故事編輯器） | <https://cathylab.github.io/dementia-game/play.html?project=templates/空白> |
+| 配音總表（每句配音有沒有音檔、試聽、匯出缺檔清單） | <https://cathylab.github.io/dementia-game/play.html?voice=1> |
+
+以前分享的連結（首頁加 `?dev=1`、`?story=1` 等參數）會自動轉到 `play.html`，照樣能用。**只有沒有參數的首頁網址改成引導網站**；要給試玩者直接玩，請用 `play.html` 的連結。
 
 開發者版本和文字編輯器只是在網址後面多一段，給試玩者的連結不會出現這些工具。
 
@@ -44,6 +47,17 @@ npm run dev
 | `npm run typecheck` | 只做型別檢查（含測試檔） |
 | `npm test` | 跑 Playwright 測試（會自動建置並啟動預覽伺服器） |
 
+### 引導網站
+
+首頁（`index.html`，離線版是 `開始.html`）是給「想做自己的遊戲」的人看的：
+
+- 一段可以直接玩的《寫給未來的我》片段（婚禮當天的休息室，選項會一個個消失），用遊戲頁的 `?clip=場景&from=第幾句` 做成：按開始直接從那裡開始，離開那個場景時顯示「片段結束」。
+- 一句話說明、「開始做我的遊戲」、流程總覽（九個步驟、大約多久、需不需要 AI）、題材包與範例、製作紀錄（`guide/making-of.md`）。
+- 「開始做我的遊戲」：從空白或從範例開始，建立本機專案，進入一步一步的引導流程。畫面上方永遠看得到「第幾步、還剩幾步」，可以回上一步、先跳過、打開故事編輯器或試玩；做到哪一步存在本機專案裡，關掉瀏覽器再打開，首頁會有「繼續」。
+- 各步驟的操作畫面（提示詞產生器）在下一個 PR 加入。
+
+遊戲本身在 `play.html`。兩頁用同一份程式（`src/main.ts` 依 `<html data-page>` 決定）。
+
 ### 專案資料夾
 
 引擎和遊戲內容是分開的：
@@ -71,6 +85,7 @@ npm run dev
 
 - `dist/`：網站版（GitHub Pages）。
 - `dist-offline/`：離線版。把整個資料夾複製到任何電腦（隨身碟、沒有網路的教室），直接雙擊 html 就能玩，不用安裝、不用網路：
+  - `開始.html`：引導網站。
   - `玩 Demo.html`：《寫給未來的我》。
   - `空白範本.html`：空白範本。
   - 兩個檔案都可以在網址加 `?project=…`、`?dev=1`、`?story=1` 等參數。
@@ -544,6 +559,10 @@ docs/
   script-format-v2.md  v2 腳本格式（給劇本 AI 與引擎 AI）
   script-format-v3-voice.md  v3 配音
   product-requirements.md    產品需求書（產品化的總規格與實作順序）
+index.html             引導網站（首頁）
+play.html              遊戲
+guide/
+  making-of.md         引導網站的製作紀錄
 examples/
   寫給未來的我/        Demo 遊戲：script.json（故事腳本）＋ assets/bg|char|fg|voice|music|sfx/（素材）
 templates/
@@ -552,6 +571,7 @@ packs/
   dementia/            失智症題材包：pack.json、README、寫作準則 guide.md、注意事項 cautions.md
   plain/               一般故事（沒有特殊效果）
 src/
+  guide/               引導網站：guide.ts（首頁、開始、步驟頁）、steps.ts（九個步驟）、state.ts（做到哪裡）、links.ts（連到遊戲的網址）
   paths.ts             目前載入哪個專案、素材在哪裡（?project=…）
   embed.ts             離線版內嵌的劇本、音檔清單、題材包，離線模式的限制
   checks.ts            白話的檢查訊息、兩級、抓出 JSON、修正提示詞
