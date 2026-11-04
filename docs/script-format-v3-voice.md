@@ -1,6 +1,8 @@
 # 腳本格式補充說明 v3：配音
 
-這份文件說明 `public/script.json` 在 v1、v2 之上**新增**的配音欄位。v1、v2 的欄位與規則全部保留不變，沒有 `voice` 欄位的腳本照常執行、只是沒有聲音。
+> **路徑說明**：`{專案}` 是專案資料夾。Demo《寫給未來的我》是 `examples/寫給未來的我/`，空白範本是 `templates/空白/`。每個專案資料夾裡有 `script.json` 和 `assets/`。
+
+這份文件說明 `{專案}/script.json` 在 v1、v2 之上**新增**的配音欄位。v1、v2 的欄位與規則全部保留不變，沒有 `voice` 欄位的腳本照常執行、只是沒有聲音。
 
 讀者有兩位：
 
@@ -23,7 +25,7 @@
 
 | 欄位 | 位置 | 說明 |
 | --- | --- | --- |
-| `voice` | 台詞（任何 speaker） | 這句台詞的音檔編號，對應 `public/assets/voice/{voice}.mp3` |
+| `voice` | 台詞（任何 speaker） | 這句台詞的音檔編號，對應 `{專案}/assets/voice/{voice}.mp3` |
 | `voice` | choice 那一行 | `prompt` 的音檔編號（prompt 是角色說的話時才用） |
 | `truthVoice` | 物件 | 記憶對照時由 `memoryReview.speaker` 唸出 `truth` 的音檔編號 |
 | `settingsDefaults.voiceVolume` | meta | 配音音量預設值 |
@@ -46,7 +48,7 @@
 
 ### 檔案位置
 
-`public/assets/voice/{voice}.mp3`，找不到時再找 `.ogg`（規則與音樂相同）。單聲道、44.1 kHz 或 48 kHz，每句一個檔，句尾不留長靜音（由引擎控制停頓）。
+`{專案}/assets/voice/{voice}.mp3`，找不到時再找 `.ogg`（規則與音樂相同）。單聲道、44.1 kHz 或 48 kHz，每句一個檔，句尾不留長靜音（由引擎控制停頓）。
 
 ### 播放行為
 
@@ -121,7 +123,7 @@
 
 ### 要有的東西
 
-1. **總表**：每一列是一句有 `voice`（或 `truthVoice`、choice 的 `voice`）的台詞，欄位：編號、場景 id、角色、台詞文字、檔案狀態（有／缺）、播放鈕。檔案狀態用 `HEAD` 或 `fetch` 探測 `public/assets/voice/{voice}.mp3` 與 `.ogg`。
+1. **總表**：每一列是一句有 `voice`（或 `truthVoice`、choice 的 `voice`）的台詞，欄位：編號、場景 id、角色、台詞文字、檔案狀態（有／缺）、播放鈕。檔案狀態用 `HEAD` 或 `fetch` 探測 `{專案}/assets/voice/{voice}.mp3` 與 `.ogg`。
 2. **統計**：總句數、已有音檔數、缺檔數，依角色分開統計。
 3. **篩選**：依角色、依場景、只看缺檔。
 4. **匯出配音清單**：一顆按鈕，下載 `voice-lines.json`，內容是陣列，每筆 `{ "id", "scene", "speaker", "text" }`，只含缺檔的句子（可以切換成全部）。這個檔會拿去餵語音生成工具。
@@ -129,7 +131,7 @@
 
 ### 不用做的
 
-不用在這一頁上傳音檔、不用做錄音功能、不用接任何語音服務。音檔由外部工具產生後放進 `public/assets/voice/` 即可。
+不用在這一頁上傳音檔、不用做錄音功能、不用接任何語音服務。音檔由外部工具產生後放進 `{專案}/assets/voice/` 即可。
 
 ---
 
@@ -166,7 +168,7 @@
 
 ### 找檔案
 
-- 建置時（以及 `npm run dev` 時）引擎會自動產生 `assets/voice/manifest.json`，列出 `public/assets/voice/` 裡實際存在的 `.mp3`、`.ogg`。遊戲只請求清單上有的檔案，所以缺檔時**完全不發請求**，主控台不會出現 404 紅字。
+- 建置時（以及 `npm run dev` 時）引擎會自動產生 `{專案}/assets/voice/manifest.json`，列出 `{專案}/assets/voice/` 裡實際存在的 `.mp3`、`.ogg`。遊戲只請求清單上有的檔案，所以缺檔時**完全不發請求**，主控台不會出現 404 紅字。
 - 放進新的音檔後：本機開發立即生效；線上版重新部署（合併到 main）後生效。
 - 萬一沒有 manifest（例如把 `dist/` 以外的東西直接放上主機），才退回逐一用 `HEAD` 試 `.mp3`、`.ogg`。
 

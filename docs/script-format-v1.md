@@ -1,12 +1,14 @@
 # 腳本格式 v1
 
-這份文件說明 `public/script.json` 的基本格式（與 README「如何換腳本」相同）。v2 新增的欄位見 [`script-format-v2.md`](script-format-v2.md)。
+> **路徑說明**：`{專案}` 是專案資料夾。Demo《寫給未來的我》是 `examples/寫給未來的我/`，空白範本是 `templates/空白/`。每個專案資料夾裡有 `script.json` 和 `assets/`。
+
+這份文件說明 `{專案}/script.json` 的基本格式（與 README「如何換腳本」相同）。v2 新增的欄位見 [`script-format-v2.md`](script-format-v2.md)。
 
 讀者有兩位：照這份文件實作或維護播放器的**引擎 AI**，以及照這份文件撰寫劇本 JSON 的**劇本 AI**。
 
 ## 檔案
 
-整個故事就是 `public/script.json` 這一個檔案。直接覆蓋它即可。
+整個故事就是 `{專案}/script.json` 這一個檔案。直接覆蓋它即可。
 
 ### 格式
 
@@ -131,21 +133,21 @@
 
 ## 素材檔名約定
 
-把圖片放進 `public/assets/` 底下對應資料夾，檔名對上就會自動取代佔位圖。副檔名依序找 `.webp`、`.png`、`.jpg`，**建議用 `.webp`**：同樣畫質，檔案小十倍以上，手機才載得快（背景建議 500 KB 以內）。找不到檔案時才用佔位圖，所以可以一張一張慢慢換。
+把圖片放進 `{專案}/assets/` 底下對應資料夾，檔名對上就會自動取代佔位圖。副檔名依序找 `.webp`、`.png`、`.jpg`，**建議用 `.webp`**：同樣畫質，檔案小十倍以上，手機才載得快（背景建議 500 KB 以內）。找不到檔案時才用佔位圖，所以可以一張一張慢慢換。
 
 | 種類 | 路徑 | 建議 |
 | --- | --- | --- |
-| 背景 | `public/assets/bg/{background}.webp` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時一次只看得到中間一段，玩家可以左右拖曳看整張圖 |
-| 立繪 | `public/assets/char/{角色id}_{expression}.webp` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.webp`、`daughter_smile.webp` |
-| 前景（手持物件） | `public/assets/fg/{name}.webp` | 透明背景，物件貼齊圖片下緣，寬約 900 |
-| 錯置物件 | `public/assets/fg/wrong_object.webp` 或 `wrongObject` 指定的名稱 | 透明背景，會被縮到畫面寬度約 14% 疊在背景上 |
-| 換掉的手持物件 | `public/assets/fg/{foreground}_wrong.webp` 或 `wrongObject` 指定的名稱 | 同前景 |
+| 背景 | `{專案}/assets/bg/{background}.webp` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時一次只看得到中間一段，玩家可以左右拖曳看整張圖 |
+| 立繪 | `{專案}/assets/char/{角色id}_{expression}.webp` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.webp`、`daughter_smile.webp` |
+| 前景（手持物件） | `{專案}/assets/fg/{name}.webp` | 透明背景，物件貼齊圖片下緣，寬約 900 |
+| 錯置物件 | `{專案}/assets/fg/wrong_object.webp` 或 `wrongObject` 指定的名稱 | 透明背景，會被縮到畫面寬度約 14% 疊在背景上 |
+| 換掉的手持物件 | `{專案}/assets/fg/{foreground}_wrong.webp` 或 `wrongObject` 指定的名稱 | 同前景 |
 
 `background` 與 `expression` 的名稱就是腳本裡寫的字串，不必另外註冊。
 
 ## 音樂
 
-場景的 `music` 欄位對應 `public/assets/music/{music}.ogg`。
+場景的 `music` 欄位對應 `{專案}/assets/music/{music}.ogg`。
 
 - 找不到 `.ogg` 時會再找 `.mp3`（Safari 舊版不支援 ogg，可兩種都放）。
 - 兩者都沒有時，改用 Web Audio 程式合成的環境音：依曲名決定調性的長音和弦、低頻持續音、輕微房間底噪與偶爾的高音。

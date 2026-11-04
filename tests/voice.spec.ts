@@ -28,7 +28,7 @@ function wav(seconds: number): Buffer {
   return b;
 }
 
-/** 假裝 public/assets/voice 裡有這些檔案（manifest 與檔案本身）。 */
+/** 假裝 examples/寫給未來的我/assets/voice 裡有這些檔案（manifest 與檔案本身）。 */
 async function serveVoices(page: Page, files: Record<string, number>) {
   await page.route('**/assets/voice/manifest.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(Object.keys(files)) }));
   for (const [file, seconds] of Object.entries(files)) {
@@ -220,7 +220,7 @@ test.describe('腳本檢查：配音', () => {
   });
 
   test('正式腳本：66 個配音編號、不重複', async () => {
-    const real = JSON.parse(await readFile(new URL('../public/script.json', import.meta.url), 'utf8')) as Script;
+    const real = JSON.parse(await readFile(new URL('../examples/寫給未來的我/script.json', import.meta.url), 'utf8')) as Script;
     const entries = voiceEntries(real);
     expect(entries).toHaveLength(66);
     expect(new Set(entries.map((e) => e.id)).size).toBe(66);
@@ -229,10 +229,10 @@ test.describe('腳本檢查：配音', () => {
 });
 
 test.describe('開發者頁面：配音總表', () => {
-  test('正式腳本：66 句，有無音檔與 public/assets/voice 裡的檔案一致', async ({ page }) => {
-    const files = (await readdir(new URL('../public/assets/voice/', import.meta.url))).filter((f) => /\.(mp3|ogg)$/.test(f));
+  test('正式腳本：66 句，有無音檔與 examples/寫給未來的我/assets/voice 裡的檔案一致', async ({ page }) => {
+    const files = (await readdir(new URL('../examples/寫給未來的我/assets/voice/', import.meta.url))).filter((f) => /\.(mp3|ogg)$/.test(f));
     const has = new Set(files.map((f) => f.replace(/\.(mp3|ogg)$/, '')));
-    const real = JSON.parse(await readFile(new URL('../public/script.json', import.meta.url), 'utf8')) as Script;
+    const real = JSON.parse(await readFile(new URL('../examples/寫給未來的我/script.json', import.meta.url), 'utf8')) as Script;
     const present = voiceEntries(real).filter((e) => has.has(e.id)).length;
     await page.goto('./?voice=1');
     await expect(page.locator('.voice-desk')).toHaveAttribute('data-ready', '1', { timeout: 30000 });

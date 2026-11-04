@@ -3,6 +3,7 @@ import { AudioEngine } from './audio';
 import { DevPanel } from './devpanel';
 import { TextEditor } from './editor';
 import { Engine } from './engine';
+import { scriptUrl } from './paths';
 import { ProjectSession } from './project';
 import { BrowserProjectStore } from './projectstore';
 import { StoryEditor } from './storyeditor';
@@ -17,7 +18,7 @@ async function boot() {
   let session: ProjectSession | null = null;
   try {
     // 開過專案檔就用瀏覽器裡的專案；網址加 ?site=1 可以暫時略過，看網站原本的遊戲
-    const started = await ProjectSession.start(store, `${import.meta.env.BASE_URL}script.json`, !!urlParam('site'));
+    const started = await ProjectSession.start(store, scriptUrl(), !!urlParam('site'));
     session = started.session;
     const script = started.script;
     document.title = script.meta.title;

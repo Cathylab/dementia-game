@@ -87,9 +87,9 @@ export interface TextLine {
   if?: string;
   /** 播到這句時換音樂：字串＝換成該曲；null＝停止；省略＝不變（v2）。 */
   music?: string | null;
-  /** 配音編號：public/assets/voice/{voice}.mp3（或 .ogg）（v3）。 */
+  /** 配音編號：{專案}/assets/voice/{voice}.mp3（或 .ogg）（v3）。 */
   voice?: string;
-  /** 這句出現時播一次的音效：public/assets/sfx/{sfx}.mp3（或 .ogg）。 */
+  /** 這句出現時播一次的音效：{專案}/assets/sfx/{sfx}.mp3（或 .ogg）。 */
   sfx?: string;
   /** 引擎內部用：記憶對照產生的台詞，附帶物件圖與當時的說明。腳本裡不要寫。 */
   memory?: { objectId: string; label: string; description: string; image?: string };
@@ -164,7 +164,7 @@ export interface SceneObject {
   r?: number;
   /** 從本場景第幾句（0 起算）開始可以點。 */
   appearAt?: number;
-  /** 物件圖：public/assets/fg/{image}.png。 */
+  /** 物件圖：{專案}/assets/fg/{image}.png。 */
   image?: string;
   description: string;
   /** 真相，用於記憶對照。 */

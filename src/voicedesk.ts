@@ -1,10 +1,10 @@
 // 開發者頁面「配音總表」（v3）：網址加 ?voice=1 打開，不出現在遊戲選單裡。
 // 從 script.json 直接讀：列出所有配音句、探測音檔有無、試聽、整場試聽、匯出缺檔清單 voice-lines.json。
+import { assetBase, assetFolderLabel } from './paths';
 import type { Script } from './types';
 import { el } from './util';
 import { voiceEntries, type VoiceEntry } from './voice';
 
-const VOICE_BASE = `${import.meta.env.BASE_URL}assets/voice`;
 const EXTENSIONS = ['mp3', 'ogg'];
 
 type Status = 'checking' | 'has' | 'missing';
@@ -90,7 +90,7 @@ export class VoiceDesk {
         el('header', {}, [
           el('h1', {}, ['配音總表']),
           el('p', { class: 'vd-note' }, [
-            `${this.script.meta.title}。音檔放在 public/assets/voice/{編號}.mp3（或 .ogg）。這一頁不會出現在遊戲選單裡。`,
+            `${this.script.meta.title}。音檔放在 ${assetFolderLabel('voice')}{編號}.mp3（或 .ogg）。這一頁不會出現在遊戲選單裡。`,
           ]),
         ]),
         this.summary,
@@ -115,7 +115,7 @@ export class VoiceDesk {
   /** 用 HEAD 探測 .mp3、.ogg；開發伺服器找不到檔案時會回 index.html，所以也檢查內容類型。 */
   private async probe(id: string): Promise<string | null> {
     for (const ext of EXTENSIONS) {
-      const url = `${VOICE_BASE}/${id}.${ext}`;
+      const url = `${assetBase()}/voice/${id}.${ext}`;
       try {
         const res = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
         if (res.ok && !(res.headers.get('content-type') ?? '').includes('text/html')) return url;

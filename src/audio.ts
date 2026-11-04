@@ -2,10 +2,9 @@
 // 走音機制（音高漂移、節奏不穩、偶爾靜音、音量不穩、濾波）同時套用在兩種來源上，強度由退化係數決定。
 import { clamp, rand, seeded } from './util';
 import { localFileUrl } from './localfiles';
+import { assetBase } from './paths';
 import type { AudioLike } from './view';
 
-const MUSIC_BASE = `${import.meta.env.BASE_URL}assets/music`;
-const ASSET_BASE = `${import.meta.env.BASE_URL}assets`;
 /** 配音依序找的副檔名。 */
 export const VOICE_EXTENSIONS = ['mp3', 'ogg'];
 export const MUSIC_EXTENSIONS = ['ogg', 'mp3'];
@@ -438,10 +437,10 @@ export class AudioEngine implements AudioLike {
     const manifest = await this.manifestFor(folder);
     if (manifest) {
       const ext = VOICE_EXTENSIONS.find((e) => manifest.has(`${id}.${e}`));
-      return ext ? `${ASSET_BASE}/${folder}/${id}.${ext}` : null;
+      return ext ? `${assetBase()}/${folder}/${id}.${ext}` : null;
     }
     for (const ext of VOICE_EXTENSIONS) {
-      const url = `${ASSET_BASE}/${folder}/${id}.${ext}`;
+      const url = `${assetBase()}/${folder}/${id}.${ext}`;
       try {
         const res = await fetch(url, { method: 'HEAD' });
         if (res.ok && !(res.headers.get('content-type') ?? '').includes('text/html')) return url;
@@ -459,7 +458,7 @@ export class AudioEngine implements AudioLike {
   private manifestFor(folder: string): Promise<Set<string> | null> {
     let p = this.manifests.get(folder);
     if (!p) {
-      p = fetch(`${ASSET_BASE}/${folder}/manifest.json`, { cache: 'no-cache' })
+      p = fetch(`${assetBase()}/${folder}/manifest.json`, { cache: 'no-cache' })
         .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('json') ? r.json() : null))
         .then((list: unknown) => (Array.isArray(list) ? new Set(list.map(String)) : null))
         .catch(() => null);
@@ -631,7 +630,7 @@ export class AudioEngine implements AudioLike {
     if (!p) {
       p = (async () => {
         const local = localFileUrl('music', name, EXTENSIONS);
-        const urls = local ? [local] : EXTENSIONS.map((ext) => `${MUSIC_BASE}/${name}.${ext}`);
+        const urls = local ? [local] : EXTENSIONS.map((ext) => `${assetBase()}/music/${name}.${ext}`);
         for (const url of urls) {
           try {
             const res = await fetch(url);

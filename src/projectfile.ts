@@ -22,7 +22,7 @@ export interface ProjectInfo {
 
 export interface Project {
   script: Script;
-  /** 路徑同 public/assets/ 底下，例如 bg/kitchen_morning.webp。 */
+  /** 路徑同 {專案}/assets/ 底下，例如 bg/kitchen_morning.webp。 */
   files: Map<string, Blob>;
 }
 

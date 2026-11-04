@@ -3,7 +3,7 @@ import type { Script } from './types';
 
 export interface StoredProject {
   script: Script;
-  /** 路徑同 public/assets/ 底下，例如 bg/kitchen_morning.webp。 */
+  /** 路徑同 {專案}/assets/ 底下，例如 bg/kitchen_morning.webp。 */
   files: Map<string, Blob>;
   savedAt: number;
 }

@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import type { Script } from '../src/types';
 import { reachableEndings } from './simulate';
 
-const demo = JSON.parse(readFileSync(new URL('../public/script.json', import.meta.url), 'utf8')) as Script;
+const demo = JSON.parse(readFileSync(new URL('../examples/寫給未來的我/script.json', import.meta.url), 'utf8')) as Script;
 
 // 完整走一輪的測試依腳本長度而定，給足時間
 test.describe.configure({ timeout: 300_000 });

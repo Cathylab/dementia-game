@@ -14,6 +14,7 @@ import {
 import { buildUploadSection } from './devupload';
 import { PROJECT_EXT } from './projectfile';
 import { timeLabel, type ProjectSession } from './project';
+import { assetFolderLabel, projectUrl } from './paths';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -262,7 +263,7 @@ export class DevPanel {
         const img = new Image();
         img.onload = () => resolve(true);
         img.onerror = () => resolve(false);
-        img.src = `${import.meta.env.BASE_URL}${path}`;
+        img.src = `${projectUrl()}${path}`;
       });
     const warnings = await spriteWarnings(this.engine.script, exists);
     const total = neededSprites(this.engine.script).length;
@@ -383,7 +384,7 @@ export class DevPanel {
       const ok = await v.audio.useFile(name, f);
       if (ok) v.audio.playMusic(name);
       musicStatus.textContent = ok
-        ? `正在用「${f.name}」試聽「${name}」（只在這次開啟的頁面有效）。確定要用的話，把檔案改名為 ${name}.mp3 或 ${name}.ogg 放進 public/assets/music/。`
+        ? `正在用「${f.name}」試聽「${name}」（只在這次開啟的頁面有效）。確定要用的話，把檔案改名為 ${name}.mp3 或 ${name}.ogg 放進 ${assetFolderLabel('music')}。`
         : `這個檔案瀏覽器無法播放：${f.name}`;
       file.value = '';
     };

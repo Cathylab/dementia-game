@@ -1,4 +1,4 @@
-// 開發模式專用：讓瀏覽器裡的文字編輯器把修改寫回 public/script.json。
+// 開發模式專用：讓瀏覽器裡的編輯器把修改寫回目前專案的 script.json（例如 examples/寫給未來的我/script.json）。
 // 文字編輯器只接受「只改文字、沒改結構」的腳本（故事編輯器加 ?structure=1 才允許改結構）；正式建置不包含這個端點（線上版改成下載檔案）。
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -7,6 +7,7 @@ import { formatScript, structureOf } from './src/editable.ts';
 import type { Script } from './src/types.ts';
 
 export const SAVE_ENDPOINT = '/__editor/save-script';
+const DEFAULT_PROJECT = 'examples/寫給未來的我';
 
 export interface SaveResult {
   status: number;
@@ -42,13 +43,12 @@ export async function saveScript(file: string, text: string, allowStructure = fa
 }
 
 export function scriptSavePlugin(): Plugin {
-  let file = '';
+  let root = '';
   return {
     name: 'dementia-script-save',
     apply: 'serve',
     configResolved(config) {
-      // 測試時可以用環境變數改寫入位置，避免動到真正的腳本
-      file = process.env.SCRIPT_SAVE_PATH ?? resolve(config.publicDir, 'script.json');
+      root = config.root;
     },
     configureServer(server) {
       server.middlewares.use(SAVE_ENDPOINT, (req, res) => {
@@ -60,7 +60,17 @@ export function scriptSavePlugin(): Plugin {
         const chunks: Buffer[] = [];
         req.on('data', (c: Buffer) => chunks.push(c));
         req.on('end', () => {
-          const allow = new URL(req.url ?? '', 'http://x').searchParams.get('structure') === '1';
+          const params = new URL(req.url ?? '', 'http://x').searchParams;
+          const allow = params.get('structure') === '1';
+          const project = params.get('project') ?? DEFAULT_PROJECT;
+          if (!/^(examples|templates)\/[^/\\.][^/\\]*$/.test(project)) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ ok: false, message: `不認得的專案資料夾：${project}` }));
+            return;
+          }
+          // 測試時可以用環境變數改寫入位置，避免動到真正的腳本
+          const file = process.env.SCRIPT_SAVE_PATH ?? resolve(root, project, 'script.json');
           void saveScript(file, Buffer.concat(chunks).toString('utf8'), allow).then(({ status, body }) => {
             res.statusCode = status;
             res.setHeader('Content-Type', 'application/json; charset=utf-8');

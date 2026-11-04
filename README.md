@@ -12,6 +12,7 @@
 | 開發者版本（開著開發者面板：跳場景、看數值、呈現調整） | <https://cathylab.github.io/dementia-game/?dev=1> |
 | 文字編輯器（改台詞，線上版會下載修改後的 script.json） | <https://cathylab.github.io/dementia-game/?edit=1> |
 | 故事編輯器（新增場景、台詞、選項分支、角色、結局） | <https://cathylab.github.io/dementia-game/?story=1> |
+| 空白範本（從零開始做；可以加 `&story=1` 直接打開故事編輯器） | <https://cathylab.github.io/dementia-game/?project=templates/空白> |
 | 配音總表（每句配音有沒有音檔、試聽、匯出缺檔清單） | <https://cathylab.github.io/dementia-game/?voice=1> |
 
 開發者版本和文字編輯器只是在網址後面多一段，給試玩者的連結不會出現這些工具。
@@ -43,6 +44,18 @@ npm run dev
 | `npm run typecheck` | 只做型別檢查（含測試檔） |
 | `npm test` | 跑 Playwright 測試（會自動建置並啟動預覽伺服器） |
 
+### 專案資料夾
+
+引擎和遊戲內容是分開的：
+
+- `examples/寫給未來的我/`：Demo 遊戲（`script.json` ＋ `assets/`）。
+- `templates/空白/`：空白範本。
+- `packs/`：題材包（之後加入）。
+
+網址沒有參數時載入 Demo；加 `?project=templates/空白` 載入空白範本（只接受 `examples/`、`templates/` 底下的資料夾）。可以和其他參數一起用，例如 `?project=templates/空白&story=1`。開過本機專案時，本機專案優先（`?site=1` 略過）。
+
+建置時這三個資料夾原樣複製到 `dist/`，並為每個專案產生 `assets/voice/manifest.json`、`assets/sfx/manifest.json`，以及列出所有專案的 `projects.json`。
+
 第一次在自己電腦跑測試前，需要先下載瀏覽器：
 
 ```bash
@@ -53,7 +66,7 @@ npx playwright install chromium
 
 ## 如何換腳本
 
-整個故事就是 `public/script.json` 這一個檔案。直接覆蓋它即可。
+整個故事就是專案資料夾裡的 `script.json` 這一個檔案（Demo 是 `examples/寫給未來的我/script.json`）。直接覆蓋它即可。
 
 ### 格式
 
@@ -217,7 +230,7 @@ npx playwright install chromium
 | `label` | 是 | 物件名稱 |
 | `x`、`y`、`r` | 是 | 物件在**背景圖上**的位置與半徑（0–1，半徑相對背景圖寬度）。熱點會跟著背景平移。`x` 請在 0.1～0.9（背景圖左右邊緣平常在畫面外）、`y` 在 0.92 以下（最下面是功能列） |
 | `appearAt` | 否 | 從本場景第幾句（0 起算）開始可以點，持續到場景結束 |
-| `image` | 否 | 說明卡上的圖，`public/assets/fg/{image}.webp`（或 .png、.jpg），找不到時用佔位圖 |
+| `image` | 否 | 說明卡上的圖，`{專案}/assets/fg/{image}.webp`（或 .png、.jpg），找不到時用佔位圖 |
 | `description` | 是 | 說明卡文字 |
 | `truth` | 否 | 真相，給記憶對照用 |
 | `fx` | 否 | 只支援 `text_blur`、`name_fade`（名稱變成「那個東西」） |
@@ -294,7 +307,7 @@ npx playwright install chromium
 
 完整規格見 [`docs/script-format-v3-voice.md`](docs/script-format-v3-voice.md)。
 
-- 台詞的 `voice`、choice 的 `voice`（唸 `prompt`）、物件的 `truthVoice`（記憶對照時唸 `truth`）對應 `public/assets/voice/{編號}.mp3`，找不到再找 `.ogg`。
+- 台詞的 `voice`、choice 的 `voice`（唸 `prompt`）、物件的 `truthVoice`（記憶對照時唸 `truth`）對應 `{專案}/assets/voice/{編號}.mp3`，找不到再找 `.ogg`。
 - **缺檔不是錯誤**：安靜播過，主控台也不會有錯誤。音檔可以分批補。
 - 聲音不退化，只有 `muffle` 會讓它變悶。設定畫面有獨立的「配音音量」（`settingsDefaults.voiceVolume`，預設 0.9；0 等於關閉）。
 - 自動模式會等聲音播完；快轉不播；回上一句會重播；對話紀錄裡有音檔的句子可以點喇叭重播。
@@ -315,27 +328,27 @@ npx playwright install chromium
   - 台詞的 `expression` 不在該角色的 `expressions` 清單裡
   - 另有「立繪檢查」：需要的立繪檔還不存在（警告，不算錯誤）
   - 配音編號重複、choice 有 `voice` 卻沒有 `prompt`、`truthVoice` 掛在沒有 `truth` 的物件上；編號格式不對（警告）
-- `npm test` 裡的「腳本檢查」測試會驗證 `public/script.json` 格式正確，並窮舉所有選擇組合（包含每個物件點或不點），確認**每一個結局都有路線可以走到**；狀態太多時改用隨機抽樣五千次。
+- `npm test` 裡的「腳本檢查」測試會驗證 `examples/寫給未來的我/script.json` 格式正確，並窮舉所有選擇組合（包含每個物件點或不點），確認**每一個結局都有路線可以走到**；狀態太多時改用隨機抽樣五千次。
 
 ---
 
 ## 如何換圖（檔名約定）
 
-把圖片放進 `public/assets/` 底下對應資料夾，檔名對上就會自動取代佔位圖。副檔名依序找 `.webp`、`.png`、`.jpg`，**建議用 `.webp`**：同樣畫質，檔案小十倍以上，手機才載得快（背景建議 500 KB 以內）。找不到檔案時才用佔位圖，所以可以一張一張慢慢換。
+把圖片放進專案資料夾的 `assets/` 底下對應資料夾（以下寫成 `{專案}/assets/`；Demo 是 `examples/寫給未來的我/assets/`），檔名對上就會自動取代佔位圖。副檔名依序找 `.webp`、`.png`、`.jpg`，**建議用 `.webp`**：同樣畫質，檔案小十倍以上，手機才載得快（背景建議 500 KB 以內）。找不到檔案時才用佔位圖，所以可以一張一張慢慢換。
 
 | 種類 | 路徑 | 建議 |
 | --- | --- | --- |
-| 背景 | `public/assets/bg/{background}.webp` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時一次只看得到中間一段，玩家可以左右拖曳看整張圖 |
-| 立繪 | `public/assets/char/{角色id}_{expression}.webp` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.webp`、`daughter_smile.webp`。缺圖時先改用 `{角色id}_neutral` |
-| 前景（手持物件） | `public/assets/fg/{name}.webp` | 透明背景，物件貼齊圖片下緣，寬約 900 |
-| 錯置物件 | `public/assets/fg/wrong_object.webp` 或 `wrongObject` 指定的名稱 | 透明背景，會被縮到畫面寬度約 14% 疊在背景上 |
-| 換掉的手持物件 | `public/assets/fg/{foreground}_wrong.webp` 或 `wrongObject` 指定的名稱 | 同前景 |
+| 背景 | `{專案}/assets/bg/{background}.webp` | 2304×1080（畫面寬度的 1.2 倍，留給視線平移）。16:9 也可以，只是上下會被裁掉一點。手機直式時一次只看得到中間一段，玩家可以左右拖曳看整張圖 |
+| 立繪 | `{專案}/assets/char/{角色id}_{expression}.webp` | 透明背景直式圖，例如 1000×1800，腳底貼齊圖片下緣。例：`daughter_neutral.webp`、`daughter_smile.webp`。缺圖時先改用 `{角色id}_neutral` |
+| 前景（手持物件） | `{專案}/assets/fg/{name}.webp` | 透明背景，物件貼齊圖片下緣，寬約 900 |
+| 錯置物件 | `{專案}/assets/fg/wrong_object.webp` 或 `wrongObject` 指定的名稱 | 透明背景，會被縮到畫面寬度約 14% 疊在背景上 |
+| 換掉的手持物件 | `{專案}/assets/fg/{foreground}_wrong.webp` 或 `wrongObject` 指定的名稱 | 同前景 |
 
 `background` 與 `expression` 的名稱就是腳本裡寫的字串，不必另外註冊。
 
 ## 如何換音樂
 
-場景的 `music` 欄位對應 `public/assets/music/{music}.ogg`。
+場景的 `music` 欄位對應 `{專案}/assets/music/{music}.ogg`。
 
 - 找不到 `.ogg` 時會再找 `.mp3`（Safari 舊版不支援 ogg，可兩種都放）。
 - 兩者都沒有時，改用 Web Audio 程式合成的環境音：依曲名決定調性的長音和弦、低頻持續音、輕微房間底噪與偶爾的高音。
@@ -348,7 +361,7 @@ npx playwright install chromium
 
 音效是「某句台詞出現時響一次」的聲音（門鈴、杯子放下、手機震動），不循環，可以和音樂、配音同時出現。
 
-- 台詞加上 `"sfx": "door_bell"`，檔案放在 `public/assets/sfx/door_bell.mp3`（或 `.ogg`）。名稱只能用英文字母、數字、底線、連字號。
+- 台詞加上 `"sfx": "door_bell"`，檔案放在 `{專案}/assets/sfx/door_bell.mp3`（或 `.ogg`）。名稱只能用英文字母、數字、底線、連字號。
 - 故事編輯器：每句台詞的「♪ 聲音」→「音效」填名稱，「▶ 聽」可以試聽。
 - 開發者面板「上傳素材」選類型「音效」可以先放進遊戲試聽。
 - 音量跟著設定裡的「音樂與音效音量」，muffle 效果時也會變悶；不受退化走音影響。快轉時不播。
@@ -399,7 +412,7 @@ npx playwright install chromium
 | 物件提示 | 物品本身發亮（預設）或圓圈 | `meta.objectHighlight` |
 | 角色大小、上下 | 選角色後拉桿調整，畫面即時變化；「套用到所有角色」設成全部角色的預設 | 角色的 `sprite`、`meta.sprite` |
 | 音樂 | 改這個場景要播的曲名 | 場景的 `music` |
-| 試聽檔案 | 選電腦裡的音樂檔，暫時當成某個曲名來播（只在這次開啟的頁面有效）。確定後把檔案改名為 `{曲名}.mp3` 或 `.ogg` 放進 `public/assets/music/` | 不存檔 |
+| 試聽檔案 | 選電腦裡的音樂檔，暫時當成某個曲名來播（只在這次開啟的頁面有效）。確定後把檔案改名為 `{曲名}.mp3` 或 `.ogg` 放進 `{專案}/assets/music/` | 不存檔 |
 
 `sprite` 的 `scale` 是相對原本全身高度的倍數，`y` 是上下位移（畫面高度的 %，負數往下）。目前的劇本預設是腰上構圖：`{ "scale": 2.2, "y": -95 }`。
 
@@ -414,7 +427,7 @@ npx playwright install chromium
 - **關閉本機專案**：刪掉瀏覽器裡的專案，回到網站上的遊戲。先匯出專案檔再關。
 - 網址加 `?site=1` 可以暫時略過本機專案，看網站原本的遊戲。
 - 本機專案只在這台電腦的這個瀏覽器；換電腦、換瀏覽器或清除網站資料時看不到，要用專案檔帶過去。
-- 本機專案缺的素材，會再去網站的 `public/assets/` 找同名檔案。
+- 本機專案缺的素材，會再去網站上目前專案的 `assets/` 找同名檔案。
 
 專案檔內容：
 
@@ -449,8 +462,8 @@ assets/bg/…  assets/char/…  assets/fg/…  assets/voice/…  assets/music/�
 - 修改立即套用到遊戲；每句旁邊的「▶ 試播」可以從那一句開始播。
 - 「復原」「重做」按鈕，或 Ctrl+Z、Ctrl+Shift+Z、Ctrl+Y。
 - **儲存**（或 Ctrl+S）：
-  - 本機 `npm run dev`：直接寫回 `public/script.json`（會重新排版）。若磁碟上的檔案結構在別處被改過，會拒絕寫入。
-  - 線上版：下載修改後的 `script.json`，再用它取代 `public/script.json`。
+  - 本機 `npm run dev`：直接寫回目前專案的 `script.json`（例如 `examples/寫給未來的我/script.json`，會重新排版）。若磁碟上的檔案結構在別處被改過，會拒絕寫入。
+  - 線上版：下載修改後的 `script.json`，再用它取代專案資料夾裡的 `script.json`。
 
 ## 故事編輯
 
@@ -469,7 +482,7 @@ assets/bg/…  assets/char/…  assets/fg/…  assets/voice/…  assets/music/�
 - **結局**：名稱、條件、結局場景，可以調優先順序；「新增結局」會同時建立一個 `end_` 開頭的結局場景。
 - 上方的「腳本檢查」即時列出問題。
 - 復原／重做（Ctrl+Z、Ctrl+Shift+Z）、Ctrl+S 儲存、Esc 關閉。
-- **儲存**和文字編輯一樣：本機專案存進瀏覽器裡的專案；`npm run dev` 寫回 `public/script.json`（故事編輯允許改結構）；線上版下載 `script.json`。
+- **儲存**和文字編輯一樣：本機專案存進瀏覽器裡的專案；`npm run dev` 寫回目前專案的 `script.json`（故事編輯允許改結構）；線上版下載 `script.json`。
 - 還沒有：物件位置的拖曳、效果與條件的編輯（請用文字編輯或請劇本 AI 改 JSON）。
 
 ## 部署
@@ -491,10 +504,14 @@ docs/
   script-format-v1.md  v1 腳本格式（與本 README「如何換腳本」相同）
   script-format-v2.md  v2 腳本格式（給劇本 AI 與引擎 AI）
   script-format-v3-voice.md  v3 配音
-public/
-  script.json          故事腳本（換這個）
-  assets/bg|char|fg|music/   素材（放真實檔案後取代佔位）
+  product-requirements.md    產品需求書（產品化的總規格與實作順序）
+examples/
+  寫給未來的我/        Demo 遊戲：script.json（故事腳本）＋ assets/bg|char|fg|voice|music|sfx/（素材）
+templates/
+  空白/                空白範本（最少的可執行專案）
+packs/                 題材包（之後的 PR）
 src/
+  paths.ts             目前載入哪個專案、素材在哪裡（?project=…）
   types.ts             腳本格式型別
   script.ts            載入、驗證、結局條件
   engine.ts            流程與狀態：台詞、選項、跳轉、回上一句、repeat_line
@@ -517,11 +534,11 @@ src/
   voicedesk.ts         開發者頁面「配音總表」（?voice=1）
   editable.ts          可編輯欄位、結構比對、JSON 排版（瀏覽器與開發伺服器共用）
 vite-plugin-script-save.ts   開發模式下把編輯結果寫回 script.json
-vite-plugin-voice-manifest.ts   產生 assets/voice/manifest.json（實際存在的配音檔清單）
+vite-plugin-content.ts   提供與複製 examples/、templates/、packs/；產生每個專案的音檔清單與 projects.json
   style.css            全部樣式
 tests/
   script.spec.ts       腳本檢查與結局可達性
-  play.spec.ts         用 public/script.json 實際走到每個結局
+  play.spec.ts         用 Demo 的 script.json 實際走到每個結局
   fx.spec.ts           每個效果對應的 class／DOM 變化
   ui.spec.ts           介面、ui 覆寫、第一視角元素、音樂、手機版
   validate.spec.ts     v2 腳本檢查規則

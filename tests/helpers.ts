@@ -10,7 +10,7 @@ export function testScript(): Script {
 }
 
 /**
- * 讓文字瞬間顯示，並用測試腳本取代 public/script.json。
+ * 讓文字瞬間顯示，並用測試腳本取代 examples/寫給未來的我/script.json。
  * mutate 可以在送出前修改腳本；settings 可以覆寫預先存好的設定；skipSettings 表示不預寫設定。
  */
 export async function openWithTestScript(
