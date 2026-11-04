@@ -12,6 +12,8 @@ import type { Script } from '../types';
 import { el } from '../util';
 import { gameHref } from './links';
 import { loadGuideState, newGuideState, saveGuideState, type GuideState } from './state';
+import { LESSON_MINUTES, LESSONS } from './lessons';
+import { flushPending } from './pending';
 import { STEPS, type StepDef } from './steps';
 import './guide.css';
 
@@ -108,7 +110,10 @@ export class Guide {
     private readonly store: ProjectStore,
   ) {
     root.classList.add('guide');
-    window.addEventListener('hashchange', () => void this.route());
+    window.addEventListener('hashchange', () => {
+      flushPending();
+      void this.route();
+    });
   }
 
   async start(): Promise<void> {
@@ -124,13 +129,17 @@ export class Guide {
   private async route(): Promise<void> {
     const hash = location.hash.replace(/^#\/?/, '');
     const m = hash.match(/^step\/(\d+)$/);
+    const l = hash.match(/^lesson\/(\d+)$/);
     window.scrollTo(0, 0);
     if (m && this.state && this.project) return this.renderStep(Math.min(STEPS.length, Math.max(1, Number(m[1]))));
+    if (l && this.state && this.project) return this.renderLesson(Math.min(LESSONS.length, Math.max(1, Number(l[1]))));
     if (hash === 'start') return this.renderStart();
     return this.renderHome();
   }
 
   private go(hash: string): void {
+    // 換頁前把延遲中的存檔寫出去
+    flushPending();
     if (location.hash === `#/${hash}`) void this.route();
     else location.hash = `#/${hash}`;
   }
@@ -141,9 +150,13 @@ export class Guide {
     const s = this.state;
     const resume =
       s && this.project
-        ? el('a', { class: 'g-btn primary', href: `#/step/${s.step}`, 'data-guide': 'resume' }, [
-            `繼續做《${this.project.script.meta.title}》（第 ${s.step} 步）`,
-          ])
+        ? s.mode === 'class'
+          ? el('a', { class: 'g-btn primary', href: `#/lesson/${s.lesson ?? 1}`, 'data-guide': 'resume' }, [
+              `繼續做《${this.project.script.meta.title}》（第 ${s.lesson ?? 1} 堂）`,
+            ])
+          : el('a', { class: 'g-btn primary', href: `#/step/${s.step}`, 'data-guide': 'resume' }, [
+              `繼續做《${this.project.script.meta.title}》（第 ${s.step} 步）`,
+            ])
         : null;
     const begin = el('a', { class: `g-btn ${resume ? '' : 'primary'}`, href: '#/start', 'data-guide': 'begin' }, [resume ? '開始一個新的遊戲' : '開始做我的遊戲']);
     const playFull = el('a', { class: 'g-btn', href: gameHref({ project: DEFAULT_PROJECT, site: '1' }), 'data-guide': 'play-demo' }, ['玩《寫給未來的我》完整版']);
@@ -195,6 +208,7 @@ export class Guide {
           '玩家用第一人稱經歷一種處境（失智、聽損、轉學……），介面會跟著處境一起「崩壞」。不用會寫程式、不用有圖或配音，每一步都有保底的做法。',
         ]),
         el('div', { class: 'g-actions' }, [...(resume ? [resume] : []), begin, playFull]),
+        el('p', { class: 'g-meta', 'data-guide': 'class-hint' }, ['老師帶學生？按「開始做我的遊戲」後選「課堂模式」：6 堂課，每堂一張可以列印的任務卡。']),
       ]),
       el('section', { class: 'g-section' }, [
         el('h2', {}, ['先玩一分鐘']),
@@ -218,23 +232,26 @@ export class Guide {
 
   private renderStart(): void {
     const existing = this.project;
-    const choose = async (from: GuideState['startFrom']) => {
+    const choose = async (from: GuideState['startFrom'], mode: GuideState['mode'] = 'full') => {
       if (existing && !confirm(`這個瀏覽器裡已經有一個專案《${existing.script.meta.title}》。開始新的會取代它（沒有匯出專案檔的話會不見）。確定嗎？`)) return;
       msg.textContent = '準備中…';
       try {
         const script = await loadProjectScript(from === 'blank' ? BLANK : DEFAULT_PROJECT);
         await this.store.save({ script, files: new Map(), savedAt: Date.now() });
-        const state = newGuideState(from);
+        const state = newGuideState(from, mode);
         await saveGuideState(this.store, state);
         await this.reload();
-        this.go('step/1');
+        this.go(mode === 'class' ? 'lesson/1' : 'step/1');
       } catch (err) {
         msg.textContent = `沒有成功：${(err as Error)?.message ?? err}`;
       }
     };
-    const card = (from: GuideState['startFrom'], title: string, desc: string) => {
-      const b = el('button', { type: 'button', class: 'g-choice', 'data-guide': `start-${from}` }, [el('strong', {}, [title]), el('span', {}, [desc])]);
-      b.onclick = () => void choose(from);
+    const card = (from: GuideState['startFrom'], title: string, desc: string, mode: GuideState['mode'] = 'full') => {
+      const b = el('button', { type: 'button', class: 'g-choice', 'data-guide': mode === 'class' ? 'start-class' : `start-${from}` }, [
+        el('strong', {}, [title]),
+        el('span', {}, [desc]),
+      ]);
+      b.onclick = () => void choose(from, mode);
       return b;
     };
     const msg = el('p', { class: 'g-msg', 'aria-live': 'polite' });
@@ -246,10 +263,135 @@ export class Guide {
         el('div', { class: 'g-choices' }, [
           card('blank', '從空白開始', '一個只有兩個場景的空白故事，一步一步填。適合有自己想說的故事。'),
           card('example', '從範例開始', '以《寫給未來的我》的完整劇本為底，改成你的故事。適合想先看看完整作品怎麼組成。'),
+          card(
+            'blank',
+            '課堂模式（老師帶學生）',
+            `${LESSONS.length} 堂課、每堂一張任務卡（約 ${LESSON_MINUTES} 分鐘）。做一個約 5 分鐘、2～3 個場景的小作品，每一步都可以不用 AI。`,
+            'class',
+          ),
         ]),
         ...(existing ? [el('p', { class: 'g-warn' }, [`注意：這個瀏覽器裡已經有《${existing.script.meta.title}》，開始新的會取代它。`])] : []),
         msg,
       ]),
+    );
+  }
+
+  // ───────── 課堂模式 ─────────
+
+  /** 把某一步的畫面嵌進任務卡（課堂模式不擋「下一堂」）。 */
+  private embedStep(id: string, state: GuideState, project: StoredProject): HTMLElement | null {
+    const k = STEPS.findIndex((x) => x.id === id);
+    const body = bodies.get(id);
+    if (k < 0 || !body) return null;
+    const ctx: StepContext = {
+      step: STEPS[k],
+      index: k + 1,
+      state,
+      store: this.store,
+      project,
+      save: () => saveGuideState(this.store, state),
+      refresh: () => void this.route(),
+      setReady: () => {},
+      applyScript: async (script) => {
+        await this.store.saveScript(script);
+        project.script = JSON.parse(JSON.stringify(script)) as Script;
+      },
+    };
+    return el('section', { class: 'g-embed g-noprint', 'data-embed': id }, [el('h3', {}, [`工具：${STEPS[k].title}`]), el('p', { class: 'g-meta' }, [STEPS[k].what]), body(ctx)]);
+  }
+
+  private renderLesson(n: number): void {
+    const state = this.state!;
+    const project = this.project!;
+    const lesson = LESSONS[n - 1];
+    if (state.mode !== 'class' || state.lesson !== n) {
+      state.mode = 'class';
+      state.lesson = n;
+      void saveGuideState(this.store, state);
+    }
+    state.done ??= [];
+    const save = () => saveGuideState(this.store, state);
+    const goTo = (k: number) => {
+      flushPending();
+      state.lesson = k;
+      void save().then(() => this.go(`lesson/${k}`));
+    };
+    const pills = el(
+      'ol',
+      { class: 'g-pills lessons' },
+      LESSONS.map((ls, i) => {
+        const k = i + 1;
+        const allDone = ls.tasks.every((t) => state.done!.includes(`${ls.id}.${t.id}`));
+        return el('li', {}, [
+          el('a', { href: `#/lesson/${k}`, title: ls.title, class: `${k === n ? 'current' : ''} ${allDone ? 'done' : ''}`.trim() }, [
+            el('span', {}, [String(k)]),
+            el('small', {}, [ls.title]),
+          ]),
+        ]);
+      }),
+    );
+    const total = lesson.tasks.reduce((sum, t) => sum + t.minutes, 0);
+    const tasks = el(
+      'ul',
+      { class: 'g-tasks' },
+      lesson.tasks.map((t) => {
+        const key = `${lesson.id}.${t.id}`;
+        const box = el('input', { type: 'checkbox', name: 'lesson-task', 'data-task': key });
+        box.checked = state.done!.includes(key);
+        box.onchange = () => {
+          state.done = state.done!.filter((x) => x !== key);
+          if (box.checked) state.done.push(key);
+          void save();
+        };
+        return el('li', {}, [
+          el('label', { class: 'g-radio' }, [
+            box,
+            el('span', {}, [t.text]),
+            el('small', { class: 'g-task-meta' }, [`${t.minutes} 分鐘${t.role ? `・${t.role}` : ''}`]),
+          ]),
+        ]);
+      }),
+    );
+    const print = el('button', { type: 'button', class: 'g-btn g-noprint', 'data-guide': 'print' }, ['列印任務卡']);
+    print.onclick = () => window.print();
+    const prev = el('button', { type: 'button', class: 'g-btn', 'data-guide': 'prev' }, ['← 上一堂']);
+    prev.disabled = n === 1;
+    prev.onclick = () => goTo(n - 1);
+    const next = el('button', { type: 'button', class: 'g-btn primary', 'data-guide': 'next' }, [n < LESSONS.length ? '下一堂 →' : '完成']);
+    next.onclick = () => (n < LESSONS.length ? goTo(n + 1) : void save().then(() => this.go('')));
+    const toFull = el('a', { href: `#/step/${state.step}`, class: 'g-link', 'data-guide': 'to-full' }, ['改用完整的九個步驟']);
+    toFull.onclick = () => {
+      state.mode = 'full';
+      void save();
+    };
+    const embeds = lesson.steps.map((id) => this.embedStep(id, state, project)).filter((x): x is HTMLElement => !!x);
+
+    this.root.replaceChildren(
+      el('div', { class: 'g-sticky g-noprint' }, [
+        el('nav', { class: 'g-crumbs' }, [
+          el('a', { href: '#/' }, ['← 首頁']),
+          el('span', { class: 'g-project' }, [`《${project.script.meta.title}》`]),
+          el('a', { href: gameHref({ story: '1' }), class: 'g-link', 'data-guide': 'open-editor' }, ['打開故事編輯器']),
+          el('a', { href: gameHref({}), class: 'g-link', 'data-guide': 'playtest' }, ['試玩']),
+        ]),
+        el('div', { class: 'g-progress', 'data-guide': 'progress' }, [
+          el('strong', {}, [`第 ${n} 堂，共 ${LESSONS.length} 堂`]),
+          el('span', {}, [n < LESSONS.length ? `還剩 ${LESSONS.length - n} 堂` : '最後一堂']),
+          toFull,
+        ]),
+        pills,
+      ]),
+      el('section', { class: 'g-section g-card-lesson', 'data-lesson': lesson.id }, [
+        el('p', { class: 'g-kicker' }, [`任務卡・第 ${n} 堂${lesson.optional ? '（可以省略）' : ''}・約 ${total} 分鐘`]),
+        el('h1', {}, [lesson.title]),
+        el('div', { class: 'g-explain' }, [el('p', {}, [el('strong', {}, ['這堂課的目標：']), lesson.goal])]),
+        el('h3', {}, ['任務']),
+        tasks,
+        el('details', { class: 'g-teacher', open: '' }, [el('summary', {}, ['給老師']), el('p', {}, [lesson.teacher])]),
+        el('div', { class: 'g-actions g-noprint' }, [print]),
+      ]),
+      ...embeds,
+      el('div', { class: 'g-nav g-noprint' }, [prev, next]),
     );
   }
 
@@ -266,6 +408,7 @@ export class Guide {
     }
     const save = () => saveGuideState(this.store, state);
     const goTo = (k: number) => {
+      flushPending();
       state.step = k;
       state.maxStep = Math.max(state.maxStep, k);
       void save().then(() => this.go(`step/${k}`));

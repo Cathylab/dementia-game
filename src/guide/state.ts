@@ -12,13 +12,31 @@ export interface GuideState {
   skipped: number[];
   /** 每一步填的內容（之後的步驟會用到）。 */
   answers: Record<string, unknown>;
+  /** full＝完整的九個步驟；class＝課堂模式（任務卡）。舊資料沒有這個欄位＝full。 */
+  mode?: 'full' | 'class';
+  /** 課堂模式：目前在第幾堂（1 起算）。 */
+  lesson?: number;
+  /** 課堂模式：任務卡打勾的項目（「l1.theme」這種代號）。 */
+  done?: string[];
   updatedAt: number;
 }
 
 const KEY = 'guide';
 
-export function newGuideState(startFrom: GuideState['startFrom']): GuideState {
-  return { version: 1, step: 1, maxStep: 1, startFrom, skipped: [], answers: {}, updatedAt: Date.now() };
+export function newGuideState(startFrom: GuideState['startFrom'], mode: GuideState['mode'] = 'full'): GuideState {
+  return {
+    version: 1,
+    step: 1,
+    maxStep: 1,
+    startFrom,
+    skipped: [],
+    // 課堂模式預設短篇
+    answers: mode === 'class' ? { theme: { title: '', pack: 'plain', goal: '', length: 'short' } } : {},
+    mode,
+    lesson: 1,
+    done: [],
+    updatedAt: Date.now(),
+  };
 }
 
 export async function loadGuideState(store: ProjectStore): Promise<GuideState | null> {
