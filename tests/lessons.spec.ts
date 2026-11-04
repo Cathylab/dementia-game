@@ -6,7 +6,8 @@ import { STEPS } from '../src/guide/steps';
 test('任務卡的設計：4 到 6 堂，每堂在一節課內做得完，用到的步驟都存在', () => {
   expect(LESSONS.length).toBeGreaterThanOrEqual(4);
   expect(LESSONS.length).toBeLessThanOrEqual(6);
-  const stepIds = new Set(STEPS.map((s) => s.id));
+  // 九個步驟，加上不在步驟裡的工具（照格子填）
+  const stepIds = new Set([...STEPS.map((s) => s.id), 'grid']);
   for (const l of LESSONS) {
     const total = l.tasks.reduce((sum, t) => sum + t.minutes, 0);
     expect(total, l.title).toBeLessThanOrEqual(LESSON_MINUTES);

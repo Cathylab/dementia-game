@@ -46,6 +46,14 @@ export function registerStep(id: string, body: StepBody): void {
   bodies.set(id, body);
 }
 
+/** 不在九個步驟裡、但可以嵌進任務卡或步驟頁的工具（例如「照格子填」）。 */
+const tools = new Map<string, StepDef>();
+
+export function registerTool(def: StepDef, body: StepBody): void {
+  tools.set(def.id, def);
+  bodies.set(def.id, body);
+}
+
 interface ProjectEntry {
   dir: string;
   kind: 'example' | 'template';
@@ -276,15 +284,28 @@ export class Guide {
     );
   }
 
+  /** 第 5 步的另一條路：不用 AI，照格子填。 */
+  private gridAlternative(state: GuideState, project: StoredProject): HTMLElement {
+    const box = el('details', { class: 'g-alt', 'data-guide': 'grid-alt' }, [el('summary', {}, ['不用 AI：照格子填一個短篇（2～3 個場景）'])]);
+    box.addEventListener('toggle', () => {
+      if (box.open && box.children.length === 1) {
+        const embed = this.embedStep('grid', state, project);
+        if (embed) box.append(embed);
+      }
+    });
+    return box;
+  }
+
   // ───────── 課堂模式 ─────────
 
   /** 把某一步的畫面嵌進任務卡（課堂模式不擋「下一堂」）。 */
   private embedStep(id: string, state: GuideState, project: StoredProject): HTMLElement | null {
     const k = STEPS.findIndex((x) => x.id === id);
+    const def = k >= 0 ? STEPS[k] : tools.get(id);
     const body = bodies.get(id);
-    if (k < 0 || !body) return null;
+    if (!def || !body) return null;
     const ctx: StepContext = {
-      step: STEPS[k],
+      step: def,
       index: k + 1,
       state,
       store: this.store,
@@ -297,7 +318,7 @@ export class Guide {
         project.script = JSON.parse(JSON.stringify(script)) as Script;
       },
     };
-    return el('section', { class: 'g-embed g-noprint', 'data-embed': id }, [el('h3', {}, [`工具：${STEPS[k].title}`]), el('p', { class: 'g-meta' }, [STEPS[k].what]), body(ctx)]);
+    return el('section', { class: 'g-embed g-noprint', 'data-embed': id }, [el('h3', {}, [`工具：${def.title}`]), el('p', { class: 'g-meta' }, [def.what]), body(ctx)]);
   }
 
   private renderLesson(n: number): void {
@@ -493,6 +514,7 @@ export class Guide {
           el('p', {}, [el('strong', {}, ['為什麼：']), step.why]),
         ]),
         body,
+        ...(step.id === 'script' ? [this.gridAlternative(state, project)] : []),
         el('div', { class: 'g-nav' }, [prev, skip, next]),
         nextHint,
       ]),
