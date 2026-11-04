@@ -9,6 +9,10 @@ export interface EmbeddedProject {
   script: Script;
   /** 各素材資料夾（voice、sfx、music）實際存在的檔案。 */
   manifests: Record<string, string[]>;
+  /** 成效評估問卷（專案的 survey.json，沒有就省略）。 */
+  survey?: unknown;
+  /** 正式發佈資訊（專案的 publish.json：單位、結尾資源頁）。 */
+  publish?: unknown;
 }
 
 export interface Embed {

@@ -604,3 +604,26 @@ docs/                 規格文件與本需求書
 - 製作名單：`meta.credits` 有內容時標題畫面多一個按鈕，打開 `.credits-overlay`。開發者面板拿掉關閉按鈕。
 - 介面樣式：`#stage[data-ui-style]`（`AdvView.applyUiStyle`，標題畫面時套用）；box／paper 的對話框是框，選項的位置另外往上移。
 
+### 階段二 B-8：無障礙
+
+- 設定多三項（`settings.ts`）：`textScale`（--text-scale 乘上 --text-size）、`calm`（`#stage.calm`；預設跟著 `prefers-reduced-motion`；`blink()` 改用 fade）、`colorAssist`（`#stage.color-assist`）。`AdvView.applyAccessibility` 在標題畫面與改設定時套用。
+- 標題畫面的提醒（`[data-ui=motion-note]`）只在題材包有效果時出現；設定視窗 z-index 9，可以疊在標題畫面上。
+- 「字幕」：所有台詞與配音本來就有文字；音效字幕還沒做（需要每個音效的中文說明，劇本格式要先定）。
+
+### 階段二 B-7：成效評估
+
+- 題目在專案的 `survey.json`（`docs/survey-format.md`），內容由其他 AI 或單位寫。純邏輯在 `src/survey.ts`（格式檢查、`SurveyStore`、統計、CSV），讀檔在 `src/extras.ts`，畫面在 `src/surveyview.ts`。
+- 只有網站上的專案、離線版、匯出的版本有問卷；本機專案沒有。`projects.json` 的 `extras` 避免 404。
+- 回答 localStorage `vn-survey:{專案|player|遊戲名稱}`，每次按「開始」一筆；CSV 開頭加 BOM 讓 Excel 正確讀中文。
+
+### 階段二 B-6：正式發佈
+
+- 內容在專案的 `publish.json`（`docs/publish-format.md`）：`organization`（標題畫面下方）、`resources`（結局後、回到標題前的一頁；有玩後問卷時在問卷之後）。格式檢查在 `src/publish.ts`。
+- 選用的內容檔（`survey.json`、`publish.json`）由 `src/extras.ts` 讀；`vite-plugin-content.ts` 的 `EXTRA_FILES` 決定 `projects.json` 的 `extras`。
+- 匯出可以玩的版本時，`exportPlayable` 的 `extras` 帶問卷與發佈資訊，標誌圖一起打包。
+
+### 階段二 B-2：專家審閱
+
+- `src/reviewdoc.ts` 的 `reviewText(script, checklist)` 產生純文字審閱文件；簽核清單是題材包 `docs.review`（`packs/dementia/review.md`，內容待顧問或內容 AI 撰寫，目前是標示「草稿」的範例），沒有就用通用四項。
+- 入口：開發者面板「專家審閱」。離線版從 `EMBED.packs[id]._docs.review` 讀清單。
+

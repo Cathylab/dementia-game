@@ -4,6 +4,9 @@ import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
 import { activeFx, currentPack } from './pack';
 import { saveTimeLabel, type SaveData, type SaveStore } from './saves';
+import { hasQuestions, newSession, type Survey, type SurveySession, type SurveyStore } from './survey';
+import { showSurveyForm } from './surveyview';
+import { telHref, type Publish } from './publish';
 import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
 import type {
@@ -179,6 +182,12 @@ export class AdvView implements View {
   readonly pauseOverlay = el('div', { class: 'overlay pause-overlay', role: 'dialog', 'aria-label': '暫停' });
   /** 存檔簿（main.ts 設定）；沒有就不顯示存檔、讀檔。 */
   saves: SaveStore | null = null;
+  /** 成效評估問卷（專案有 survey.json 時，main.ts 設定）。 */
+  survey: { survey: Survey; store: SurveyStore } | null = null;
+  /** 正式發佈資訊（單位、結尾資源頁；專案有 publish.json 時 main.ts 設定）。 */
+  publish: Publish | null = null;
+  /** 這一次遊玩的問卷回答。 */
+  private surveySession: SurveySession | null = null;
   readonly titleScreen = el('div', { class: 'screen title-screen' });
   readonly endingScreen = el('div', { class: 'screen ending-screen' });
   readonly buttons = new Map<UiKey, HTMLButtonElement>();
@@ -688,6 +697,28 @@ export class AdvView implements View {
       setSetting('hiddenHints', hints.checked);
       this.choices.querySelectorAll<HTMLElement>('.locked').forEach((b) => this.updateLockedLabel(b));
     };
+    const scale = (value: number, text: string) => {
+      const radio = el('input', { type: 'radio', name: 'textScale', value: String(value) });
+      radio.checked = settings.textScale === value;
+      radio.onchange = () => {
+        if (!radio.checked) return;
+        setSetting('textScale', value);
+        this.applyAccessibility();
+      };
+      return el('label', { class: 'radio' }, [radio, text]);
+    };
+    const calm = el('input', { type: 'checkbox', name: 'calm', class: 'toggle' });
+    calm.checked = settings.calm;
+    calm.onchange = () => {
+      setSetting('calm', calm.checked);
+      this.applyAccessibility();
+    };
+    const colorAssist = el('input', { type: 'checkbox', name: 'colorAssist', class: 'toggle' });
+    colorAssist.checked = settings.colorAssist;
+    colorAssist.onchange = () => {
+      setSetting('colorAssist', colorAssist.checked);
+      this.applyAccessibility();
+    };
     const review = (value: MemoryReviewMode, text: string) => {
       const radio = el('input', { type: 'radio', name: 'memoryReview', value });
       radio.checked = settings.memoryReview === value;
@@ -712,6 +743,12 @@ export class AdvView implements View {
           el('span', {}, ['記憶對照']),
           el('div', { class: 'radios' }, [review('inline', '融入結局'), review('page', '結局後獨立一頁')]),
         ]),
+        el('div', { class: 'setting setting-choice', role: 'radiogroup', 'aria-label': '文字大小' }, [
+          el('span', {}, ['文字大小']),
+          el('div', { class: 'radios' }, [scale(1, '標準'), scale(1.2, '大'), scale(1.4, '特大')]),
+        ]),
+        el('label', { class: 'setting setting-toggle' }, [el('span', {}, ['減少晃動與閃爍']), calm]),
+        el('label', { class: 'setting setting-toggle' }, [el('span', {}, ['色弱友善（提示加框線與圖示）']), colorAssist]),
       ]),
     );
     this.settingsOverlay.onclick = (ev) => ev.stopPropagation();
@@ -734,7 +771,8 @@ export class AdvView implements View {
    * blink 眨眼、blink_soft 柔和的眨眼、fade 淡入淡出、focus 模糊對焦。
    */
   async blink(mid?: () => void | Promise<void>, hold = 140): Promise<void> {
-    const style = this.transitionStyle;
+    // 減少晃動與閃爍：眨眼改成淡入淡出
+    const style = settings.calm ? 'fade' : this.transitionStyle;
     const dur = { blink: 320, blink_soft: 700, fade: 600, focus: 700 }[style];
     this.applyTransitionStyle();
     this.stage.classList.add('transitioning');
@@ -814,6 +852,7 @@ export class AdvView implements View {
     };
     this.applyCover();
     this.applyUiStyle();
+    this.applyAccessibility();
     const saveButtons = this.titleSaveButtons(start);
     this.titleScreen.replaceChildren(
       el('h1', {}, [meta.title]),
@@ -822,6 +861,8 @@ export class AdvView implements View {
       start,
       ...saveButtons.bottom,
       ...(this.creditsButton() ?? []),
+      this.motionNote(),
+      ...this.organizationLine(),
       ...(this.titleNote ? [el('p', { class: 'project-badge' }, [this.titleNote])] : []),
     );
     this.titleScreen.classList.add('open');
@@ -856,6 +897,22 @@ export class AdvView implements View {
       bottom.push(b);
     }
     return { top, bottom };
+  }
+
+  /** 標題畫面的提醒：畫面有晃動、閃爍效果，可以在設定裡關閉（題材包沒有效果時不顯示）。 */
+  private motionNote(): HTMLElement {
+    const open = el('button', { type: 'button', 'data-ui': 'title-settings' }, ['設定']);
+    open.onclick = (e) => {
+      e.stopPropagation();
+      this.openSettings();
+    };
+    const note = el('p', { class: 'motion-note', 'data-ui': 'motion-note' }, [
+      settings.calm ? '已減少畫面晃動與閃爍。' : '遊戲裡有畫面晃動、模糊與閃爍的效果，可以在',
+      open,
+      settings.calm ? '' : '裡關閉。',
+    ]);
+    note.hidden = !currentPack().effects?.length;
+    return note;
   }
 
   /** 標題畫面的「製作名單」按鈕（meta.credits 有內容時才有）。 */
@@ -906,6 +963,13 @@ export class AdvView implements View {
     close.focus();
   }
 
+  /** 無障礙設定：文字大小、減少晃動與閃爍、色弱友善。 */
+  applyAccessibility(): void {
+    this.stage.style.setProperty('--text-scale', String(settings.textScale || 1));
+    this.stage.classList.toggle('calm', settings.calm);
+    this.stage.classList.toggle('color-assist', settings.colorAssist);
+  }
+
   /** 介面樣式（meta.uiStyle）：classic、box、paper。 */
   applyUiStyle(): void {
     const s = this.engine.script.meta.uiStyle;
@@ -944,6 +1008,95 @@ export class AdvView implements View {
 
   protected onStart(): void {
     this.audio?.unlock();
+    // 有玩前問卷：先填（可以略過）再開始
+    const sv = this.survey;
+    this.surveySession = sv ? newSession() : null;
+    if (sv && hasQuestions(sv.survey, 'pre')) {
+      void showSurveyForm(this.stage, sv.survey, 'pre').then((answers) => {
+        if (answers && this.surveySession) {
+          this.surveySession.pre = answers;
+          sv.store.save(this.surveySession);
+        }
+        this.beginGame();
+      });
+      return;
+    }
+    this.beginGame();
+  }
+
+  /**
+   * 結局之後回到標題：有玩後問卷、這次還沒填時，先填（可以略過）。
+   */
+  private endToTitle(): void {
+    const sv = this.survey;
+    const session = this.surveySession;
+    const thenResources = () => (this.publish?.resources ? this.showResources(() => this.engine.toTitle()) : this.engine.toTitle());
+    if (sv && session && !session.post && hasQuestions(sv.survey, 'post')) {
+      session.ending = this.engine.ending?.id ?? session.ending;
+      void showSurveyForm(this.stage, sv.survey, 'post').then((answers) => {
+        if (answers) {
+          session.post = answers;
+          sv.store.save(session);
+        }
+        thenResources();
+      });
+      return;
+    }
+    thenResources();
+  }
+
+  /** 結尾的資源頁（publish.json 的 resources）：求助專線、衛教連結、服務資訊。 */
+  showResources(onDone: () => void): void {
+    const r = this.publish?.resources;
+    if (!r) return onDone();
+    const done = el('button', { type: 'button', class: 'start-button', 'data-ui': 'resources-done' }, ['回到標題']);
+    const screen = el('div', { class: 'screen resources-screen open', role: 'dialog', 'aria-label': r.title || '相關資源', 'data-ui': 'resources' }, [
+      el('div', { class: 'resources-box' }, [
+        el('h2', {}, [r.title || '相關資源']),
+        ...(r.intro ? [el('p', { class: 'resources-intro' }, [r.intro])] : []),
+        el(
+          'ul',
+          { class: 'resources-list' },
+          r.items.map((it) =>
+            el('li', {}, [
+              el('strong', {}, [it.title]),
+              ...(it.text ? [el('p', {}, [it.text])] : []),
+              el('div', { class: 'resources-links' }, [
+                ...(it.phone ? [el('a', { href: telHref(it.phone), 'data-phone': it.phone }, [`☎ ${it.phone}`])] : []),
+                ...(it.url ? [el('a', { href: it.url, target: '_blank', rel: 'noopener noreferrer' }, ['網站'])] : []),
+              ]),
+            ]),
+          ),
+        ),
+        done,
+      ]),
+    ]);
+    done.onclick = (e) => {
+      e.stopPropagation();
+      screen.remove();
+      onDone();
+    };
+    screen.addEventListener('click', (e) => e.stopPropagation());
+    this.stage.append(screen);
+  }
+
+  /** 標題畫面下方的製作單位（publish.json 的 organization）。 */
+  private organizationLine(): HTMLElement[] {
+    const org = this.publish?.organization;
+    if (!org) return [];
+    const parts: (Node | string)[] = [];
+    if (org.logo) {
+      const img = el('img', { class: 'org-logo', alt: '', 'data-name': org.logo });
+      void resolveImage('fg', org.logo).then((url) => (img.src = url));
+      parts.push(img);
+    }
+    parts.push(el('span', {}, [org.name]));
+    const inner = org.url ? el('a', { href: org.url, target: '_blank', rel: 'noopener noreferrer' }, parts) : el('span', {}, parts);
+    inner.addEventListener('click', (e) => e.stopPropagation());
+    return [el('p', { class: 'org-line', 'data-ui': 'organization' }, [inner])];
+  }
+
+  private beginGame(): void {
     this.titleScreen.classList.remove('open');
     this.applyTransitionStyle();
     this.stage.classList.add('eyes-closed');
@@ -1601,7 +1754,7 @@ export class AdvView implements View {
     again.onclick = (e) => {
       e.stopPropagation();
       if (withPage) this.showMemoryPage();
-      else this.engine.toTitle();
+      else this.endToTitle();
     };
     this.endingScreen.dataset.endingId = ending?.id ?? '';
     this.endingScreen.replaceChildren(
@@ -1617,7 +1770,7 @@ export class AdvView implements View {
   showMemoryPage(): void {
     const toTitle = (e: Event) => {
       e.stopPropagation();
-      this.engine.toTitle();
+      this.endToTitle();
     };
     const skip = el('button', { class: 'memory-skip', type: 'button' }, ['略過']);
     skip.onclick = toTitle;

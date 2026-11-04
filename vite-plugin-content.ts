@@ -40,7 +40,12 @@ export interface ProjectEntry {
   dir: string;
   kind: 'example' | 'template';
   title: string;
+  /** 這個專案有哪些選用的內容檔（survey.json、publish.json）。 */
+  extras?: string[];
 }
+
+/** 專案資料夾裡選用的內容檔：有才放進 projects.json 的 extras，遊戲頁看這個才去讀（沒有就不發請求、不會 404）。 */
+export const EXTRA_FILES = ['survey.json', 'publish.json'];
 
 /** 列出所有專案（有 script.json 的 examples/*、templates/*）。 */
 export async function listProjects(root: string): Promise<ProjectEntry[]> {
@@ -58,7 +63,11 @@ export async function listProjects(root: string): Promise<ProjectEntry[]> {
     for (const name of names) {
       try {
         const script = JSON.parse(await readFile(join(root, top, name, 'script.json'), 'utf8')) as { meta?: { title?: string } };
-        out.push({ dir: `${top}/${name}`, kind, title: script.meta?.title ?? name });
+        const extras: string[] = [];
+        for (const f of EXTRA_FILES) {
+          if (await readFile(join(root, top, name, f)).then(() => true, () => false)) extras.push(f);
+        }
+        out.push({ dir: `${top}/${name}`, kind, title: script.meta?.title ?? name, ...(extras.length ? { extras } : {}) });
       } catch {
         /* 沒有 script.json 的資料夾不算專案 */
       }

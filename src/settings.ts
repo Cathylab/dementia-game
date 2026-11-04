@@ -13,10 +13,33 @@ export interface Settings {
   memoryReview: MemoryReviewMode;
   /** 配音音量 0–1；0 等於關閉配音（v3）。 */
   voiceVolume: number;
+  /** 文字大小倍數：1 標準、1.2 大、1.4 特大（無障礙）。 */
+  textScale: number;
+  /** 減少晃動與閃爍：畫面不晃、轉場改淡入淡出、文字不閃（無障礙）。預設跟著系統的「減少動態」。 */
+  calm: boolean;
+  /** 色弱友善：提示不只靠顏色（加框線、圖示、底線）（無障礙）。 */
+  colorAssist: boolean;
 }
 
 const KEY = 'dementia-vn-settings';
-const BUILTIN: Settings = { textSpeed: 30, volume: 0.7, hiddenHints: false, memoryReview: 'inline', voiceVolume: 0.9 };
+const prefersReducedMotion = (() => {
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+})();
+
+const BUILTIN: Settings = {
+  textSpeed: 30,
+  volume: 0.7,
+  hiddenHints: false,
+  memoryReview: 'inline',
+  voiceVolume: 0.9,
+  textScale: 1,
+  calm: prefersReducedMotion,
+  colorAssist: false,
+};
 
 /** 玩家自己改過的設定（存在瀏覽器裡）。沒改過的項目才會套用腳本的預設值。 */
 const stored: Partial<Settings> = readStored();

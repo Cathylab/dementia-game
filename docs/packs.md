@@ -25,7 +25,7 @@ packs/
     "forgottenPerson": "那個人",
     "forgottenThing": "那個東西"
   },
-  "docs": { "readme": "README.md", "guide": "guide.md", "cautions": "cautions.md" }
+  "docs": { "readme": "README.md", "guide": "guide.md", "cautions": "cautions.md", "review": "review.md" }
 }
 ```
 
@@ -37,7 +37,7 @@ packs/
 | `degradation` | 退化係數隨幕變化：第 1 幕用第 1 個數字、第 2 幕用第 2 個……超過的幕沿用最後一個。0 是正常、1 是最嚴重。它影響打字的穩定度、可以點的物件有多明顯、音樂走音等。全部是 0＝沒有退化。 |
 | `texts.forgottenPerson` | `name_fade` 時人名最後變成的字（預設「那個人」） |
 | `texts.forgottenThing` | 物件說明卡 `name_fade` 時名稱最後變成的字（預設「那個東西」） |
-| `docs` | 說明文件的檔名（之後的引導流程會讀它們放進提示詞） |
+| `docs` | 說明文件的檔名（引導流程會讀 guide、cautions 放進提示詞；`review` 是專家審閱的簽核清單，放在「審閱用劇本」最前面） |
 
 缺少或寫錯的欄位會用預設值（開發者面板與主控台會提醒）。
 

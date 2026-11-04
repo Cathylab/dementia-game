@@ -50,14 +50,14 @@ button {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   cursor: default;
-  --text-size: clamp(18px, 4.3cqh, 42px);
+  --text-size: calc(clamp(18px, 4.3cqh, 42px) * var(--text-scale, 1));
 }
 
 @media (orientation: portrait) {
   .stage {
     width: 100vw;
     height: 100dvh;
-    --text-size: clamp(19px, 5.6cqw, 30px);
+    --text-size: calc(clamp(19px, 5.6cqw, 30px) * var(--text-scale, 1));
   }
 }
 
@@ -3682,4 +3682,282 @@ body.voice-desk-page #app {
   .stage:is([data-ui-style='box'], [data-ui-style='paper']) .choices[data-mode='list'] {
     bottom: calc(72px + env(safe-area-inset-bottom) + 24cqh);
   }
+}
+
+/* ───────────── 無障礙：減少晃動與閃爍（設定 calm） ───────────── */
+
+.stage.calm .scene-layers,
+.stage.calm .objects,
+.stage.calm .objects-bg,
+.stage.calm .bg-layer,
+.stage.calm .char-layer,
+.stage.calm .text,
+.stage.calm .monologue-text,
+.stage.calm .inspect-desc,
+.stage.calm .dialog.fx-repeat .text,
+.stage.calm .object-spot,
+.stage.calm .object-spot .glow,
+.stage.calm .object-spot::before {
+  animation: none !important;
+}
+
+.stage.calm .text .ch.glitch-block {
+  filter: none;
+}
+
+/* ───────────── 無障礙：色弱友善（設定 colorAssist） ───────────── */
+/* 提示不只靠顏色：物件加上黑白雙圈、灰掉的選項加虛線與鎖頭、人名加底線 */
+
+.stage.color-assist .object-spot {
+  outline: 2px solid #fff;
+  outline-offset: -3px;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.75);
+  border-radius: 50%;
+}
+
+.stage.color-assist .object-spot.has-overlay {
+  border-radius: 8%;
+}
+
+.stage.color-assist .object-spot.seen {
+  outline-style: dashed;
+}
+
+.stage.color-assist .choice.locked {
+  border-style: dashed;
+  border-width: 2px;
+}
+
+.stage.color-assist .choice.locked .label::before {
+  content: '🔒 ';
+}
+
+.stage.color-assist .namebox .name {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.stage.color-assist .choice:hover,
+.stage.color-assist .choice:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+/* 標題畫面的晃動、閃爍提醒 */
+.motion-note {
+  max-width: 90%;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: clamp(13px, 2.2cqh, 16px);
+}
+
+.motion-note button {
+  margin-left: 0.4em;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 設定可以從標題畫面打開，要疊在標題畫面上面 */
+.settings-overlay.open {
+  z-index: 9;
+}
+
+/* ───────────── 成效評估問卷 ───────────── */
+
+.survey-screen {
+  z-index: 9;
+  justify-content: flex-start;
+  overflow: auto;
+  padding: 4% 4% 6%;
+  background: #0d0b09;
+}
+
+.survey-form {
+  width: min(40em, 100%);
+  margin: auto;
+  text-align: left;
+  font-size: clamp(15px, 2.6cqh, 19px);
+  line-height: 1.6;
+}
+
+.survey-form h2 {
+  margin: 0;
+  font-size: 1.4em;
+  letter-spacing: 0.15em;
+  text-align: center;
+}
+
+.survey-part,
+.survey-intro {
+  margin: 0.3em 0 1em;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+.survey-q {
+  margin: 0 0 1em;
+  padding: 0.8em 1em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+
+.survey-q legend {
+  padding: 0 0.3em;
+}
+
+.survey-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 0.6em;
+  margin-top: 0.4em;
+}
+
+.survey-options.scale {
+  justify-content: space-between;
+}
+
+.survey-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 44px;
+  padding: 0 0.7em;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.survey-option:has(input:checked) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.survey-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.3em;
+  color: var(--ink-dim);
+  font-size: 0.85em;
+}
+
+.survey-q textarea {
+  width: 100%;
+  margin-top: 0.4em;
+  padding: 0.5em;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+}
+
+.survey-error {
+  min-height: 1.4em;
+  margin: 0;
+  color: #ffb4a0;
+}
+
+.survey-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.dev-survey {
+  margin: 0.4em 0;
+  padding-left: 1.2em;
+}
+
+/* ───────────── 正式發佈：製作單位、結尾資源頁（publish.json） ───────────── */
+
+.org-line {
+  margin: 0.4em 0 0;
+  color: var(--ink-dim);
+  font-size: clamp(13px, 2.2cqh, 16px);
+}
+
+.org-line a,
+.org-line > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.org-logo {
+  height: clamp(28px, 6cqh, 48px);
+  width: auto;
+  border-radius: 6px;
+}
+
+.resources-screen {
+  z-index: 9;
+  justify-content: flex-start;
+  overflow: auto;
+  padding: 4%;
+  background: #0d0b09;
+}
+
+.resources-box {
+  width: min(38em, 100%);
+  margin: auto;
+  text-align: left;
+  font-size: clamp(15px, 2.6cqh, 19px);
+  line-height: 1.6;
+}
+
+.resources-box h2 {
+  margin: 0 0 0.3em;
+  text-align: center;
+  letter-spacing: 0.15em;
+}
+
+.resources-intro {
+  margin: 0 0 1em;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+.resources-list {
+  margin: 0 0 1.2em;
+  padding: 0;
+  list-style: none;
+}
+
+.resources-list li {
+  margin: 0 0 0.8em;
+  padding: 0.8em 1em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+
+.resources-list p {
+  margin: 0.2em 0 0;
+  color: var(--ink-dim);
+}
+
+.resources-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 1.2em;
+  margin-top: 0.3em;
+}
+
+.resources-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+}
+
+.resources-box .start-button {
+  display: block;
+  margin: 0 auto;
 }
