@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 專案是什麼
 
-《寫給未來的我》：讓一般人用第一人稱體驗失智症的網頁視覺小說。repo 是**與內容無關的引擎**（Vite + TypeScript，純前端、無框架、無後端），內容在 `examples/`（Demo《寫給未來的我》：`examples/寫給未來的我/script.json` 與 `assets/`）、`templates/空白/`、`packs/`，不再用 `public/`。產品化的總規格與 PR 順序在 `docs/product-requirements.md`（每項一個 PR，最後的「實作補充」要隨實作更新）。部署到 GitHub Pages：<https://cathylab.github.io/dementia-game/>（推到 `main` 時由 `.github/workflows/deploy.yml` 自動發布）。
+《寫給未來的我》：讓一般人用第一人稱體驗失智症的網頁視覺小說。repo 是**與內容無關的引擎**（Vite + TypeScript，純前端、無框架、無後端），內容在 `examples/`（Demo《寫給未來的我》：`examples/寫給未來的我/script.json` 與 `assets/`）、`templates/空白/`、`packs/`，不再用 `public/`。產品化的總規格與 PR 順序在 `docs/product-requirements.md`（每項一個 PR，最後的「實作補充」要隨實作更新）。**目前進行中的工作清單：`docs/engine-todo-試玩回饋.md`**（製作人試玩回饋，引擎只做程式；給劇本 AI 的對應文件是 `docs/給劇本AI-試玩回饋第一輪.md`）。部署到 GitHub Pages：<https://cathylab.github.io/dementia-game/>（推到 `main` 時由 `.github/workflows/deploy.yml` 自動發布）。
 
 使用者（Cathylab）不寫程式、用中文溝通，透過 GitHub 網頁合併 PR 與上傳檔案。劇本與美術由另一個「劇本 AI」產出，雙方以 `docs/script-format-v1.md`、`script-format-v2.md`、`script-format-v3-voice.md` 為共同規格；每份文件最後的「引擎實作補充」記錄引擎對規格沒寫到的情況所做的決定。**改引擎行為時要同步更新對應文件與 README。**
 
@@ -72,7 +72,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 
 ## Git 與協作流程
 
-- 開發分支 `claude/focused-planck-vu15fw`，每輪工作開一個新 PR，由使用者在 GitHub 網頁合併後自動部署。
+- 開發分支依每個 session 指定的分支，每輪工作開一個新 PR，由使用者在 GitHub 網頁合併後自動部署。
 - PR 合併後要繼續工作：`git fetch origin` 後，若分支已全部併入就 `git merge --ff-only origin/main`；若分支還有未合併的提交，用 `git merge origin/main`（**不要 rebase 或 force push**，環境會擋）。
 - 使用者常直接上傳檔案到 `main`：先 `git fetch` 檢查放的位置（曾經放到 repo 根目錄而非素材資料夾；現在素材在 `examples/寫給未來的我/assets/`，使用者可能還照舊傳到 `public/`）與檔案大小（背景圖要轉成 webp，曾從 92 MB 壓到 6.5 MB）。
 - 劇本 AI 交來的新 `script.json` 可能是從舊版改的：合併前要和 repo 版本逐欄比對，保留 repo 裡的呈現設定與已調整的座標，用 `formatScript` 寫出。
