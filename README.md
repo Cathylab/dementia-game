@@ -80,6 +80,21 @@ npm run dev
 
 建置時這三個資料夾原樣複製到 `dist/`，並為每個專案產生 `assets/voice/manifest.json`、`assets/sfx/manifest.json`，以及列出所有專案的 `projects.json`。
 
+### 下載版（Release 壓縮檔）
+
+給一般使用者的下載版：到 GitHub 的 **Releases** 下載 `同理體驗視覺小說-版本.zip`（目前約 **9.4 MB**，133 個檔案），解壓縮後：
+
+- `開始.html`：做自己的遊戲（引導網站）
+- `玩 Demo.html`：玩《寫給未來的我》
+- `空白範本.html`：空白的遊戲
+- `使用說明.html`：給完全不懂技術的人看的說明（附截圖，`guide/使用說明.html` 與 `guide/usage/`）
+
+不需要安裝、不需要網路（只有「請 AI 寫」的步驟要到有網路的地方）。
+
+- 自己打包：`npm run package` → `release/同理體驗視覺小說-dev.zip`（內容是 `dist-offline/` 加上使用說明，去掉網站才用的檔案）。
+- 發佈：推送版本標籤（例如 `git tag v1.0.0 && git push origin v1.0.0`）時，`.github/workflows/release.yml` 會建置、打包，並建立 GitHub Release 附上壓縮檔。在 GitHub 的 Actions 頁手動執行時只打包（壓縮檔在那次執行的 Artifacts），不會發佈。
+- 素材變多時請更新上面的大小；圖片請用 webp、配音用 mp3。
+
 ### 題材包
 
 每個處境（失智、聽損……）是一個題材包：`packs/{代號}/pack.json` 決定啟用哪些效果、退化係數怎麼隨幕變化、介面上的特殊文字，旁邊附寫作準則與注意事項。腳本的 `meta.pack` 指定用哪一個：

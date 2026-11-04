@@ -1,0 +1,47 @@
+name: Release（離線版壓縮檔）
+
+# 推送版本標籤（例如 v1.0.0）時：建置離線版、打包成壓縮檔、建立 GitHub Release 並附上壓縮檔。
+# 手動執行（Actions → Release → Run workflow）時：只打包，壓縮檔放在這次執行的 Artifacts 裡，不建立 Release。
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - id: pkg
+        run: node scripts/package-release.mjs "release/同理體驗視覺小說-${GITHUB_REF_NAME}.zip" "${GITHUB_REF_NAME}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: offline-zip
+          path: release/*.zip
+      - name: 建立 Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SIZE: ${{ steps.pkg.outputs.size }}
+        run: |
+          cat > notes.md <<NOTES
+          ## 下載
+
+          下載下面的 **同理體驗視覺小說-${GITHUB_REF_NAME}.zip**（${SIZE}），解壓縮後：
+
+          - 雙擊 **開始.html**：做自己的遊戲（引導網站）
+          - 雙擊 **玩 Demo.html**：玩範例遊戲《寫給未來的我》
+          - 打開 **使用說明.html**：給第一次使用的人
+
+          不需要安裝任何東西，也不需要網路（只有「請 AI 寫」的步驟要到有網路的地方）。建議用 Chrome 或 Edge。
+          NOTES
+          gh release create "${GITHUB_REF_NAME}" release/*.zip --title "${GITHUB_REF_NAME}" --notes-file notes.md

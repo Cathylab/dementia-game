@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "test": "playwright test",
-    "build:offline": "vite build --mode offline"
+    "build:offline": "vite build --mode offline",
+    "package": "npm run build && node scripts/package-release.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
