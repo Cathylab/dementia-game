@@ -33,7 +33,7 @@ async function bootGuide() {
   // 以前分享的連結（首頁加 ?dev=1 等）轉到遊戲頁
   const params = new URLSearchParams(location.search);
   if (GAME_PARAMS.some((k) => params.has(k))) {
-    location.replace(gameHref(Object.fromEntries(params)) + location.hash);
+    location.replace(gameHref(Object.fromEntries(params), false) + location.hash);
     return;
   }
   document.title = '開始做你的遊戲｜同理體驗視覺小說';

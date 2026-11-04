@@ -555,10 +555,27 @@ export class DevPanel {
       { 'data-dev': 'close-project' },
     );
     const buttons = [exportBtn, playBtn, local ? close : saveLocal];
+    // 看原版時，瀏覽器裡若還有本機專案，給一個打開它的連結（遊戲網址預設不讀本機專案）
+    const stored = el('p', { class: 'dev-note', 'data-dev': 'stored-project' });
+    if (!local) {
+      void project.store.load().then(
+        (p) => {
+          if (!p) return;
+          const open = el('a', { href: '#', 'data-dev': 'open-stored' }, ['打開它']);
+          open.onclick = (ev) => {
+            ev.preventDefault();
+            reloadWithProject(true);
+          };
+          stored.replaceChildren(`這個瀏覽器裡還有本機專案《${p.script.meta.title}》：`, open);
+        },
+        () => {},
+      );
+    }
 
     return this.section(
       '專案',
       where,
+      stored,
       el('div', { class: 'dev-row dev-wrap' }, buttons),
       el('label', { class: 'dev-row' }, ['開啟專案檔', file]),
       msg,
