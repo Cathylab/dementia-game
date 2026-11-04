@@ -82,10 +82,13 @@ test('開啟專案檔：改用檔案裡的遊戲，重新整理還在；修改�
   });
   expect(files).toEqual(['bg/test_room.png', 'fg/phone_on_table.png']);
 
-  // ?site=1 暫時看網站原本的遊戲
-  await page.goto('./play.html?timescale=0.2&site=1');
-  await expect(page.locator('.title-screen h1')).toHaveText('測試腳本');
+  // 開啟後網址帶 local=1；沒有 local=1 的遊戲網址是網站原本的遊戲
+  expect(new URL(page.url()).searchParams.get('local')).toBe('1');
   await page.goto('./play.html?timescale=0.2');
+  await expect(page.locator('.title-screen h1')).toHaveText('測試腳本');
+  await page.goto('./play.html?timescale=0.2&local=1&site=1');
+  await expect(page.locator('.title-screen h1')).toHaveText('測試腳本');
+  await page.goto('./play.html?timescale=0.2&local=1');
   await expect(page.locator('.title-screen h1')).toHaveText('改過的標題');
 
   page.on('dialog', (d) => void d.accept());

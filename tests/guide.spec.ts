@@ -29,6 +29,17 @@ test('首頁：一句話說明、開始按鈕、試玩片段、九個步驟、�
   expect(errors).toEqual([]);
 });
 
+test('首頁「製作者入口」：開原版的開發者面板、配音總表、故事編輯器', async ({ page }) => {
+  await page.goto('./');
+  const maker = page.locator('[data-guide=maker]');
+  await expect(maker.locator('[data-guide=maker-dev]')).toHaveAttribute('href', /play\.html\?project=.*&site=1&dev=1$/);
+  await expect(maker.locator('[data-guide=maker-voice]')).toHaveAttribute('href', /&site=1&voice=1$/);
+  await expect(maker.locator('[data-guide=maker-story]')).toHaveAttribute('href', /&site=1&story=1$/);
+  await maker.locator('[data-guide=maker-dev]').click();
+  await expect(page.locator('.devpanel')).toBeVisible();
+  await expect(page.locator('[data-dev=project-mode]')).toHaveAttribute('data-mode', 'site');
+});
+
 test('以前分享的連結（首頁加參數）轉到遊戲頁', async ({ page }) => {
   await page.goto('./?dev=1&timescale=0.2');
   await expect(page).toHaveURL(/play\.html\?dev=1&timescale=0\.2$/);
@@ -73,18 +84,22 @@ test('引導流程：從空白開始，看得到第幾步；上一步、跳過�
   await page.click('[data-guide=prev]');
   await expect(progress).toContainText('第 2 步');
   // 隨時可以切到故事編輯器或試玩
-  await expect(page.locator('[data-guide=open-editor]')).toHaveAttribute('href', 'play.html?story=1');
-  await expect(page.locator('[data-guide=playtest]')).toHaveAttribute('href', 'play.html');
+  await expect(page.locator('[data-guide=open-editor]')).toHaveAttribute('href', 'play.html?story=1&local=1');
+  await expect(page.locator('[data-guide=playtest]')).toHaveAttribute('href', 'play.html?local=1');
 
   // 關掉再打開：首頁有「繼續」，回到第 2 步
   await page.goto('./');
   await expect(page.locator('[data-guide=resume]')).toHaveText('繼續做《我的遊戲》（第 2 步）');
   await page.click('[data-guide=resume]');
   await expect(progress).toContainText('第 2 步');
-  // 遊戲頁開的是這個本機專案
-  await page.goto('./play.html');
+  // 從引導網站進去（local=1）開的是這個本機專案
+  await page.goto('./play.html?local=1');
   await expect(page.locator('.title-screen h1')).toHaveText('我的遊戲');
   await expect(page.locator('.project-badge')).toContainText('本機專案');
+  // 遊戲網址本身（舊書籤）永遠是原版
+  await page.goto('./play.html');
+  await expect(page.locator('.title-screen h1')).toHaveText('寫給未來的我');
+  await expect(page.locator('.project-badge')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
