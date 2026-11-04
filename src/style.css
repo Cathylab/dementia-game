@@ -3222,3 +3222,45 @@ body.voice-desk-page #app {
     opacity: 0;
   }
 }
+
+/* ───────────── 開發者面板：編輯物件位置 ───────────── */
+
+/* 編輯時畫面不晃、不平移動畫，拖曳才準 */
+.stage.obj-edit .objects,
+.stage.obj-edit .scene-layers,
+.stage.obj-edit .objects-bg,
+.stage.obj-edit .bg {
+  animation: none !important;
+}
+
+.stage.obj-edit .object-spot {
+  cursor: grab;
+  outline: 2px dashed rgba(120, 200, 255, 0.8);
+  outline-offset: -2px;
+  border-radius: 50%;
+  touch-action: none;
+}
+
+.stage.obj-edit .object-spot .label {
+  opacity: 1;
+}
+
+.stage.obj-edit .object-spot.editing-selected {
+  outline: 3px solid #6cf;
+  z-index: 1;
+}
+
+.stage.obj-edit .object-spot::after {
+  content: attr(data-appear-at);
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  min-width: 1.6em;
+  padding: 0 0.3em;
+  border-radius: 999px;
+  background: #246;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}

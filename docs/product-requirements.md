@@ -573,3 +573,9 @@ docs/                 規格文件與本需求書
 - 物件的循環音效由 `AudioEngine.setSfxLoops(names)` 管理（`#stage[data-sfx-loops]` 給測試看）。
 - 說明卡：靠下方、手機直式是底部卡片，「放大」按鈕切換 `.inspect.zoomed`；點卡片其他地方照舊關閉。
 
+### 試玩回饋 1b：開發者面板編輯物件
+
+- `AdvView.objectEdit`：不是 null 時 `renderObjects` 畫出場景所有物件（不看 `appearAt`、`if`），拖曳改 `x`、`y`（相對 `.objects-bg` 的框，和背景圖座標一致）；選取只換外框不重畫，避免換掉拖曳中的元素。編輯時畫面停止晃動。
+- 面板的「儲存物件」走 `editor.save(true)`（允許結構改變），之前先 `editor.invalidate()`。
+- 故事編輯器的物件卡提示改指向開發者面板。
+

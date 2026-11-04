@@ -129,6 +129,11 @@ async function boot() {
       () => editor.save(),
       project,
       () => story.open(),
+      () => {
+        // 新增、刪除物件改了結構：文字編輯器要重新列欄位
+        editor.invalidate();
+        return editor.save(true);
+      },
     );
     view.onStateChange = () => dev.refresh();
     setupClip(engine, view);

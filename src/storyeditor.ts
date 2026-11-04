@@ -443,7 +443,7 @@ export class StoryEditor {
       ? el('section', { class: 'story-card' }, [
           el('h3', {}, [`可以點的物件（${scene.objects.length}）`]),
           el('ul', { class: 'story-objects' }, scene.objects.map((o) => el('li', {}, [`${o.label}（${o.id}）`]))),
-          el('p', { class: 'story-hint' }, ['物件的位置之後可以在這裡直接拖曳；目前請在文字編輯器改說明文字。']),
+          el('p', { class: 'story-hint' }, ['物件的位置、大小、第幾句出現：在開發者面板「可以點的物件」直接拖曳調整。說明文字請在文字編輯器改。']),
         ])
       : null;
 

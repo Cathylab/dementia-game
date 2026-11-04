@@ -10,7 +10,8 @@
 | --- | --- |
 | 首頁：引導網站（試玩片段、開始做自己的遊戲、流程說明） | <https://cathylab.github.io/dementia-game/> |
 | 玩《寫給未來的我》（給試玩者） | <https://cathylab.github.io/dementia-game/play.html> |
-| 開發者版本（開著開發者面板：跳場景、看數值、呈現調整） | <https://cathylab.github.io/dementia-game/play.html?dev=1> |
+| 製作者工具（每個遊戲的開發者面板、故事編輯器、素材、配音總表） | <https://cathylab.github.io/dementia-game/tools.html> |
+| 開發者版本（開著開發者面板：跳場景、看數值、呈現調整、拖曳物件） | <https://cathylab.github.io/dementia-game/play.html?dev=1> |
 | 文字編輯器（改台詞，線上版會下載修改後的 script.json） | <https://cathylab.github.io/dementia-game/play.html?edit=1> |
 | 故事編輯器（新增場景、台詞、選項分支、角色、結局、素材） | <https://cathylab.github.io/dementia-game/play.html?story=1> |
 | 空白範本（從零開始做；可以加 `&story=1` 直接打開故事編輯器） | <https://cathylab.github.io/dementia-game/play.html?project=templates/空白> |
@@ -539,6 +540,15 @@ npx playwright install chromium
 | 試聽檔案 | 選電腦裡的音樂檔，暫時當成某個曲名來播（只在這次開啟的頁面有效）。確定後把檔案改名為 `{曲名}.mp3` 或 `.ogg` 放進 `{專案}/assets/music/` | 不存檔 |
 
 `sprite` 的 `scale` 是相對原本全身高度的倍數，`y` 是上下位移（畫面高度的 %，負數往下）。目前的劇本預設是腰上構圖：`{ "scale": 2.2, "y": -95 }`。
+
+### 可以點的物件
+
+面板的「可以點的物件」管理目前場景的物件（只保證電腦上好操作）：
+
+- 下拉選單選物件；「新增物件」在目前這句出現、放在畫面中間（代號 `{場景}_obj{n}`，說明文字到文字編輯器或故事編輯器改）；「刪除」。
+- 勾「在畫面上拖曳」：畫面上顯示這個場景的**所有**物件（右上角數字是第幾句出現），直接拖曳改 `x`、`y`；拖曳時不會打開說明卡、不會推進劇情。
+- 名稱、大小（`r`）、疊圖寬（`overlayWidth`，拉到最左＝不疊圖）、第幾句出現（`appearAt`，「目前這句」一鍵設定）、一定要點（`required`）、提醒動畫（`attention`）、循環音效（`sfx`）。
+- 「儲存物件」寫回 `script.json`（允許新增、刪除物件；線上版下載檔案；本機專案存進專案）。
 
 ### 專案檔
 
