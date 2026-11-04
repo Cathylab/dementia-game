@@ -14,6 +14,8 @@ export interface EmbeddedProject {
 export interface Embed {
   /** 這個 html 是引導網站還是遊戲。 */
   page?: 'guide' | 'game';
+  /** 匯出的「可以玩的版本」：永遠玩自己內嵌的故事，不讀這個瀏覽器裡的本機專案。 */
+  player?: boolean;
   /** 每個專案用哪個 html 開，例如 examples/寫給未來的我 → 玩 Demo.html。 */
   pages?: Record<string, string>;
   /** 沒有 ?project= 時載入哪一個，例如 examples/寫給未來的我。 */

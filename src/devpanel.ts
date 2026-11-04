@@ -13,7 +13,9 @@ import {
 } from './types';
 import { buildUploadSection } from './devupload';
 import { PROJECT_EXT } from './projectfile';
-import { timeLabel, type ProjectSession } from './project';
+import { downloadBlob, timeLabel, type ProjectSession } from './project';
+import { exportPlayable } from './exporter';
+import { localFiles } from './localfiles';
 import { assetFolderLabel, projectUrl } from './paths';
 import { FILE_MODE, OFFLINE_LIMITS } from './embed';
 import { checkScript } from './checks';
@@ -512,6 +514,17 @@ export class DevPanel {
       showWhere();
     };
 
+    const playBtn = this.button(
+      '匯出可以玩的版本',
+      () =>
+        void run(async () => {
+          msg.textContent = '打包中…';
+          const r = await exportPlayable(e.script, localFiles());
+          downloadBlob(r.blob, r.fileName);
+          return `已下載 ${r.fileName}（${r.files} 個素材）。解壓縮後雙擊 html 就能玩，也可以放到網站上。${r.note}`;
+        }),
+      { 'data-dev': 'export-playable' },
+    );
     const exportBtn = this.button('匯出專案檔', () => void run(() => project.exportFile(e.script, progress('匯出中'))), {
       'data-dev': 'export-project',
       class: 'dev-primary',
@@ -540,7 +553,7 @@ export class DevPanel {
       },
       { 'data-dev': 'close-project' },
     );
-    const buttons = [exportBtn, local ? close : saveLocal];
+    const buttons = [exportBtn, playBtn, local ? close : saveLocal];
 
     return this.section(
       '專案',

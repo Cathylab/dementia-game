@@ -3,7 +3,7 @@
 // - 程式打包成一般 script（iife），連同 CSS 直接寫進 html；
 // - 每個專案的 script.json 與音檔清單寫進 html（window.__VN_EMBED__），不用 fetch；
 // - 圖片、音檔照舊放在 examples/、templates/ 底下，用相對路徑載入（contentPlugin 負責複製）。
-import { readFile } from 'node:fs/promises';
+import { access, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Plugin, Rollup } from 'vite';
 import { listAudioFiles, listProjects, MANIFEST_FOLDERS, readPacks } from './vite-plugin-content.ts';
@@ -24,8 +24,11 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+export const PLAYER_TEMPLATE = 'player-template.html';
+
 export function offlinePlugin(): Plugin {
   let root = '';
+  let templateSource = '';
   return {
     name: 'vn-offline',
     apply: 'build',
@@ -82,17 +85,35 @@ export function offlinePlugin(): Plugin {
         const out = base
           .replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(title)}</title>`)
           .replace(/data-page="[^"]*"/, () => `data-page="${page}"`)
-          .replace('</head>', () => `    <style>\n${css}\n    </style>\n  </head>`)
+          .replace('</head>', () => `    <style id="vn-style">\n${css}\n    </style>\n  </head>`)
           .replace(
             '</body>',
-            () => `    <script>window.__VN_EMBED__ = ${embed};</script>\n    <script>\n${safeScript(entry.code)}\n    </script>\n  </body>`,
+            () => `    <script>window.__VN_EMBED__ = ${embed};</script>\n    <script id="vn-engine">\n${safeScript(entry.code)}\n    </script>\n  </body>`,
           );
         this.emitFile({ type: 'asset', fileName, source: out });
       }
+      // 匯出「可以玩的版本」用的樣板：引導網站讀它的樣式與程式（離線版直接讀自己頁面上的）
+      const template = base
+        .replace('</head>', () => `    <style id="vn-style">\n${css}\n    </style>\n  </head>`)
+        .replace('</body>', () => `    <script id="vn-engine">\n${safeScript(entry.code)}\n    </script>\n  </body>`);
+      this.emitFile({ type: 'asset', fileName: PLAYER_TEMPLATE, source: template });
+      // 網站版（dist/）也放一份：網站上的引導網站匯出時用
+      templateSource = template;
       // 原本的 html、js、css 都已經寫進上面的 html 了
       delete bundle[html.fileName];
       delete bundle[entry.fileName];
       for (const f of files) if (f.type === 'asset' && f.fileName.endsWith('.css')) delete bundle[f.fileName];
+    },
+    // 網站版先建置（dist/），離線版後建置：把樣板也放進 dist/
+    async closeBundle() {
+      if (!templateSource) return;
+      const dist = join(root, 'dist');
+      try {
+        await access(dist);
+      } catch {
+        return;
+      }
+      await writeFile(join(dist, PLAYER_TEMPLATE), templateSource);
     },
   };
 }
