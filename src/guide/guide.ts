@@ -16,6 +16,7 @@ import { LESSON_MINUTES, LESSONS } from './lessons';
 import { flushPending } from './pending';
 import { STEPS, type StepDef } from './steps';
 import { renderTeacher } from './teacher';
+import { renderRoles } from './rolespage';
 import './guide.css';
 
 const BLANK = 'templates/空白';
@@ -144,6 +145,7 @@ export class Guide {
     if (l && this.state && this.project) return this.renderLesson(Math.min(LESSONS.length, Math.max(1, Number(l[1]))));
     if (hash === 'start') return this.renderStart();
     if (hash === 'teacher') return renderTeacher(this.root);
+    if (hash === 'roles') return renderRoles(this.root);
     return this.renderHome();
   }
 
@@ -236,6 +238,8 @@ export class Guide {
         el('a', { href: gameHref({ dev: '1' }) }, ['開發者版本']),
         ' ・ ',
         el('a', { href: '#/teacher', 'data-guide': 'teacher-link' }, ['老師工作台（代貼提示詞）']),
+        ' ・ ',
+        el('a', { href: '#/roles', 'data-guide': 'roles-link' }, ['分組角色卡']),
       ]),
     );
   }
@@ -289,15 +293,25 @@ export class Guide {
   }
 
   /** 第 5 步的另一條路：不用 AI，照格子填。 */
-  private gridAlternative(state: GuideState, project: StoredProject): HTMLElement {
-    const box = el('details', { class: 'g-alt', 'data-guide': 'grid-alt' }, [el('summary', {}, ['不用 AI：照格子填一個短篇（2～3 個場景）'])]);
+  /** 步驟頁下方可以展開的工具（例如第 5 步的「照格子填」）。 */
+  private toolDetails(id: string, label: string, attr: string, state: GuideState, project: StoredProject): HTMLElement {
+    const box = el('details', { class: 'g-alt', 'data-guide': attr }, [el('summary', {}, [label])]);
     box.addEventListener('toggle', () => {
       if (box.open && box.children.length === 1) {
-        const embed = this.embedStep('grid', state, project);
+        const embed = this.embedStep(id, state, project);
         if (embed) box.append(embed);
       }
     });
     return box;
+  }
+
+  /** 完整模式各步驟下方附的工具。 */
+  private stepTools(stepId: string, state: GuideState, project: StoredProject): HTMLElement[] {
+    const out: HTMLElement[] = [];
+    if (stepId === 'theme') out.push(this.toolDetails('sources', '查證：資料來源表（每個症狀或處境都要有來源）', 'sources-alt', state, project));
+    if (stepId === 'script') out.push(this.toolDetails('grid', '不用 AI：照格子填一個短篇（2～3 個場景）', 'grid-alt', state, project));
+    if (stepId === 'playtest') out.push(this.toolDetails('stereotype', '有沒有寫成刻板印象？檢查清單', 'stereotype-alt', state, project));
+    return out;
   }
 
   // ───────── 課堂模式 ─────────
@@ -413,7 +427,7 @@ export class Guide {
         el('h3', {}, ['任務']),
         tasks,
         el('details', { class: 'g-teacher', open: '' }, [el('summary', {}, ['給老師']), el('p', {}, [lesson.teacher])]),
-        el('div', { class: 'g-actions g-noprint' }, [print]),
+        el('div', { class: 'g-actions g-noprint' }, [print, el('a', { class: 'g-btn', href: '#/roles', 'data-guide': 'open-roles' }, ['分組角色卡'])]),
       ]),
       ...embeds,
       el('div', { class: 'g-nav g-noprint' }, [prev, next]),
@@ -518,7 +532,7 @@ export class Guide {
           el('p', {}, [el('strong', {}, ['為什麼：']), step.why]),
         ]),
         body,
-        ...(step.id === 'script' ? [this.gridAlternative(state, project)] : []),
+        ...this.stepTools(step.id, state, project),
         el('div', { class: 'g-nav' }, [prev, skip, next]),
         nextHint,
       ]),
