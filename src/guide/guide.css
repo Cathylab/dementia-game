@@ -682,3 +682,21 @@ html[data-page='guide'] #app {
   margin: 0 0 4px;
 }
 
+/* 角色卡 */
+.g-role-card h2 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.g-role-tasks > li {
+  margin: 8px 0;
+}
+
+@media print {
+  .g-role-card {
+    break-after: page;
+    border: 2px solid #000;
+    background: #fff;
+  }
+}
+

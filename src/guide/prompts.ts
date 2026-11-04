@@ -25,6 +25,20 @@ export interface Answers {
   design?: { raw: string; checks?: string[] };
   script?: { applied: boolean; title?: string };
   art?: { raw: string; style: string };
+  /** 查證引導：每個症狀或處境的資料來源。 */
+  sources?: SourceRow[];
+  /** 刻板印象檢查清單：打勾的項目。 */
+  stereotype?: string[];
+}
+
+export interface SourceRow {
+  /** 寫進故事的症狀或處境，例如「想不起熟人的名字」。 */
+  claim: string;
+  /** 資料來源名稱，例如「台灣失智症協會」。 */
+  source: string;
+  url: string;
+  /** 查證日期。 */
+  date: string;
 }
 
 export interface PromptInput {
@@ -51,6 +65,16 @@ function brief(i: PromptInput): string {
     `- 想讓玩家體會的事：${t?.goal || '（還沒寫）'}`,
     `- 長度：${LENGTH_TEXT[t?.length ?? 'short']}`,
     ...(t?.audience ? [`- 給誰玩：${t.audience}`] : []),
+  ].join('\n');
+}
+
+/** 查證過的資料（每個症狀或處境的來源）：放進提示詞，請 AI 依這些資料寫、不要自己加沒有來源的症狀。 */
+function sources(i: PromptInput): string {
+  const list = (i.answers.sources ?? []).filter((s) => s.claim.trim());
+  if (!list.length) return '';
+  return [
+    '【查證過的資料（請只依這些資料描寫症狀與處境，不要加沒有來源的內容）】',
+    ...list.map((s) => `- ${s.claim.trim()}：${s.source.trim() || '（來源）'}${s.url.trim() ? ` ${s.url.trim()}` : ''}${s.date.trim() ? `（查證日期 ${s.date.trim()}）` : ''}`),
   ].join('\n');
 }
 
@@ -90,6 +114,7 @@ export function outlinePrompt(i: PromptInput): string {
   return join(
     INTRO,
     brief(i),
+    sources(i),
     `【我選的故事方向】\n${d?.chosen || d?.raw || '（還沒選）'}`,
     packDocs(i),
     `【請你做的事】
@@ -118,6 +143,7 @@ export function designPrompt(i: PromptInput): string {
   return join(
     INTRO,
     brief(i),
+    sources(i),
     `【分場大綱】\n${i.answers.outline?.raw || '（還沒有）'}`,
     packDocs(i),
     `【請你做的事】
@@ -136,6 +162,7 @@ export function scriptPrompt(i: PromptInput): string {
   return join(
     INTRO,
     brief(i),
+    sources(i),
     `【分場大綱】\n${i.answers.outline?.raw || '（還沒有）'}`,
     `【設計表】\n${i.answers.design?.raw || '（還沒有）'}`,
     packDocs(i),
