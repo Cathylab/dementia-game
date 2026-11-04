@@ -695,6 +695,7 @@ export class AdvView implements View {
       e.stopPropagation();
       this.onStart();
     };
+    this.applyCover();
     this.titleScreen.replaceChildren(
       el('h1', {}, [meta.title]),
       el('p', { class: 'subtitle' }, [meta.durationMinutes ? `約 ${meta.durationMinutes} 分鐘 ・ 建議戴上耳機` : '建議戴上耳機']),
@@ -703,6 +704,36 @@ export class AdvView implements View {
     );
     this.titleScreen.classList.add('open');
     this.stage.dataset.phase = 'title';
+  }
+
+  /** 封面圖：meta.cover（手機直式用 coverPortrait，沒有就用 cover，以中間為主裁切）。 */
+  applyCover(): void {
+    const meta = this.engine.script.meta;
+    const name = (this.isPortrait() && meta.coverPortrait) || meta.cover || '';
+    this.titleScreen.classList.toggle('has-cover', !!name);
+    this.titleScreen.dataset.cover = name;
+    if (!name) {
+      this.titleScreen.style.removeProperty('background-image');
+      return;
+    }
+    // 直接設 background-image（佔位圖的 data URL 很長，放在 CSS 變數裡瀏覽器不收）
+    void resolveImage('bg', name).then((url) => {
+      if (this.titleScreen.dataset.cover !== name) return;
+      this.titleScreen.style.backgroundImage = `linear-gradient(to bottom, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.35) 45%, rgba(0, 0, 0, 0.78) 100%), url("${url}")`;
+    });
+  }
+
+  /** 章節卡的樣式與大小（meta.chapterStyle）。 */
+  applyChapterStyle(): void {
+    const cs = this.engine.script.meta.chapterStyle ?? {};
+    this.chapterCard.dataset.style = cs.style ?? 'stacked';
+    this.chapterCard.style.setProperty('--chapter-scale', String(clampN(cs.scale ?? 1, 0.6, 1.6)));
+  }
+
+  /** 開發者面板「預覽章節卡」：在目前畫面上顯示一次。 */
+  previewChapterCard(): Promise<void> {
+    const act = this.engine.scene?.act ?? 1;
+    return this.showChapterCard(act, this.chapterText(act) || '（這一幕沒有章節卡文字）');
   }
 
   protected onStart(): void {
@@ -751,6 +782,7 @@ export class AdvView implements View {
   /** 章節卡：全黑畫面上「第一章」＋大字的時間，約 3 秒；點一下或按空白鍵可以跳過。 */
   private async showChapterCard(act: number, text: string): Promise<void> {
     this.stage.classList.remove('menu-open');
+    this.applyChapterStyle();
     this.chapterCard.replaceChildren(
       el('p', { class: 'chapter-no' }, [`第${chineseNumber(act)}章`]),
       el('h2', { class: 'chapter-time' }, [text]),
