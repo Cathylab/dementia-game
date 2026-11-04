@@ -3873,3 +3873,91 @@ body.voice-desk-page #app {
   margin: 0.4em 0;
   padding-left: 1.2em;
 }
+
+/* ───────────── 正式發佈：製作單位、結尾資源頁（publish.json） ───────────── */
+
+.org-line {
+  margin: 0.4em 0 0;
+  color: var(--ink-dim);
+  font-size: clamp(13px, 2.2cqh, 16px);
+}
+
+.org-line a,
+.org-line > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.org-logo {
+  height: clamp(28px, 6cqh, 48px);
+  width: auto;
+  border-radius: 6px;
+}
+
+.resources-screen {
+  z-index: 9;
+  justify-content: flex-start;
+  overflow: auto;
+  padding: 4%;
+  background: #0d0b09;
+}
+
+.resources-box {
+  width: min(38em, 100%);
+  margin: auto;
+  text-align: left;
+  font-size: clamp(15px, 2.6cqh, 19px);
+  line-height: 1.6;
+}
+
+.resources-box h2 {
+  margin: 0 0 0.3em;
+  text-align: center;
+  letter-spacing: 0.15em;
+}
+
+.resources-intro {
+  margin: 0 0 1em;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+.resources-list {
+  margin: 0 0 1.2em;
+  padding: 0;
+  list-style: none;
+}
+
+.resources-list li {
+  margin: 0 0 0.8em;
+  padding: 0.8em 1em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+
+.resources-list p {
+  margin: 0.2em 0 0;
+  color: var(--ink-dim);
+}
+
+.resources-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 1.2em;
+  margin-top: 0.3em;
+}
+
+.resources-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+}
+
+.resources-box .start-button {
+  display: block;
+  margin: 0 auto;
+}

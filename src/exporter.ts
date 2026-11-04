@@ -91,7 +91,7 @@ async function fetchList(url: string): Promise<string[] | null> {
 }
 
 /** 劇本用到的素材：先拿專案裡的檔案，沒有的再去網站上找（離線版找不到就算了）。 */
-async function collect(script: Script, own: ReadonlyMap<string, Blob>): Promise<{ files: Map<string, Blob>; missing: number }> {
+async function collect(script: Script, own: ReadonlyMap<string, Blob>, extraFg: string[] = []): Promise<{ files: Map<string, Blob>; missing: number }> {
   const files = new Map<string, Blob>();
   let missing = 0;
   const lists: Partial<Record<AssetKind, string[] | null>> = {};
@@ -103,6 +103,8 @@ async function collect(script: Script, own: ReadonlyMap<string, Blob>): Promise<
     const required = new Set(assetNames(script, kind));
     const names = new Set(required);
     if (kind === 'fg') {
+      // 單位標誌（publish.json）
+      for (const n of extraFg) names.add(n);
       for (const s of script.scenes) {
         if (s.foreground) names.add(`${s.foreground}_wrong`);
         for (const l of s.lines) if (isText(l) && l.wrongObject) names.add(l.wrongObject);
@@ -197,10 +199,16 @@ const README = (title: string, file: string) => `《${title}》可以玩的版�
 export type PlayableTarget = 'folder' | 'itch';
 
 /** 匯出可以玩的版本（壓縮檔）。 */
-/** survey：成效評估問卷（有的話一起放進去，匯出的版本也會問）。 */
-export async function exportPlayable(script: Script, own: ReadonlyMap<string, Blob>, target: PlayableTarget = 'folder', survey?: unknown): Promise<PlayableResult> {
+/** extras：成效評估問卷、正式發佈資訊（有的話一起放進去）。 */
+export async function exportPlayable(
+  script: Script,
+  own: ReadonlyMap<string, Blob>,
+  target: PlayableTarget = 'folder',
+  extras: { survey?: unknown; publish?: unknown } = {},
+): Promise<PlayableResult> {
   const { css, js } = await engineParts();
-  const { files, missing } = await collect(script, own);
+  const logo = (extras.publish as { organization?: { logo?: string } } | undefined)?.organization?.logo;
+  const { files, missing } = await collect(script, own, logo ? [logo] : []);
   const packId = packIdOf(script);
   const pack = await packJson(packId);
   const title = script.meta?.title || '我的遊戲';
@@ -214,7 +222,7 @@ export async function exportPlayable(script: Script, own: ReadonlyMap<string, Bl
     page: 'game',
     player: true,
     defaultProject: 'game',
-    projects: { game: { title, kind: 'example', script, manifests, ...(survey ? { survey } : {}) } },
+    projects: { game: { title, kind: 'example', script, manifests, ...(extras.survey ? { survey: extras.survey } : {}), ...(extras.publish ? { publish: extras.publish } : {}) } },
     packs: pack ? { [packId]: pack } : {},
     pages: { game: 'index.html' },
   };

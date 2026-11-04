@@ -11,6 +11,8 @@ export interface EmbeddedProject {
   manifests: Record<string, string[]>;
   /** 成效評估問卷（專案的 survey.json，沒有就省略）。 */
   survey?: unknown;
+  /** 正式發佈資訊（專案的 publish.json：單位、結尾資源頁）。 */
+  publish?: unknown;
 }
 
 export interface Embed {

@@ -614,7 +614,7 @@ export class DevPanel {
       () =>
         void run(async () => {
           msg.textContent = '打包中…';
-          const r = await exportPlayable(e.script, localFiles(), 'folder', this.view.survey?.survey);
+          const r = await exportPlayable(e.script, localFiles(), 'folder', { survey: this.view.survey?.survey, publish: this.view.publish });
           downloadBlob(r.blob, r.fileName);
           return `已下載 ${r.fileName}（${r.files} 個素材）。解壓縮後雙擊 html 就能玩，也可以放到網站上。${r.note}`;
         }),

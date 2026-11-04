@@ -6,6 +6,7 @@ import { activeFx, currentPack } from './pack';
 import { saveTimeLabel, type SaveData, type SaveStore } from './saves';
 import { hasQuestions, newSession, type Survey, type SurveySession, type SurveyStore } from './survey';
 import { showSurveyForm } from './surveyview';
+import { telHref, type Publish } from './publish';
 import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
 import type {
@@ -183,6 +184,8 @@ export class AdvView implements View {
   saves: SaveStore | null = null;
   /** 成效評估問卷（專案有 survey.json 時，main.ts 設定）。 */
   survey: { survey: Survey; store: SurveyStore } | null = null;
+  /** 正式發佈資訊（單位、結尾資源頁；專案有 publish.json 時 main.ts 設定）。 */
+  publish: Publish | null = null;
   /** 這一次遊玩的問卷回答。 */
   private surveySession: SurveySession | null = null;
   readonly titleScreen = el('div', { class: 'screen title-screen' });
@@ -859,6 +862,7 @@ export class AdvView implements View {
       ...saveButtons.bottom,
       ...(this.creditsButton() ?? []),
       this.motionNote(),
+      ...this.organizationLine(),
       ...(this.titleNote ? [el('p', { class: 'project-badge' }, [this.titleNote])] : []),
     );
     this.titleScreen.classList.add('open');
@@ -1026,6 +1030,7 @@ export class AdvView implements View {
   private endToTitle(): void {
     const sv = this.survey;
     const session = this.surveySession;
+    const thenResources = () => (this.publish?.resources ? this.showResources(() => this.engine.toTitle()) : this.engine.toTitle());
     if (sv && session && !session.post && hasQuestions(sv.survey, 'post')) {
       session.ending = this.engine.ending?.id ?? session.ending;
       void showSurveyForm(this.stage, sv.survey, 'post').then((answers) => {
@@ -1033,11 +1038,62 @@ export class AdvView implements View {
           session.post = answers;
           sv.store.save(session);
         }
-        this.engine.toTitle();
+        thenResources();
       });
       return;
     }
-    this.engine.toTitle();
+    thenResources();
+  }
+
+  /** 結尾的資源頁（publish.json 的 resources）：求助專線、衛教連結、服務資訊。 */
+  showResources(onDone: () => void): void {
+    const r = this.publish?.resources;
+    if (!r) return onDone();
+    const done = el('button', { type: 'button', class: 'start-button', 'data-ui': 'resources-done' }, ['回到標題']);
+    const screen = el('div', { class: 'screen resources-screen open', role: 'dialog', 'aria-label': r.title || '相關資源', 'data-ui': 'resources' }, [
+      el('div', { class: 'resources-box' }, [
+        el('h2', {}, [r.title || '相關資源']),
+        ...(r.intro ? [el('p', { class: 'resources-intro' }, [r.intro])] : []),
+        el(
+          'ul',
+          { class: 'resources-list' },
+          r.items.map((it) =>
+            el('li', {}, [
+              el('strong', {}, [it.title]),
+              ...(it.text ? [el('p', {}, [it.text])] : []),
+              el('div', { class: 'resources-links' }, [
+                ...(it.phone ? [el('a', { href: telHref(it.phone), 'data-phone': it.phone }, [`☎ ${it.phone}`])] : []),
+                ...(it.url ? [el('a', { href: it.url, target: '_blank', rel: 'noopener noreferrer' }, ['網站'])] : []),
+              ]),
+            ]),
+          ),
+        ),
+        done,
+      ]),
+    ]);
+    done.onclick = (e) => {
+      e.stopPropagation();
+      screen.remove();
+      onDone();
+    };
+    screen.addEventListener('click', (e) => e.stopPropagation());
+    this.stage.append(screen);
+  }
+
+  /** 標題畫面下方的製作單位（publish.json 的 organization）。 */
+  private organizationLine(): HTMLElement[] {
+    const org = this.publish?.organization;
+    if (!org) return [];
+    const parts: (Node | string)[] = [];
+    if (org.logo) {
+      const img = el('img', { class: 'org-logo', alt: '', 'data-name': org.logo });
+      void resolveImage('fg', org.logo).then((url) => (img.src = url));
+      parts.push(img);
+    }
+    parts.push(el('span', {}, [org.name]));
+    const inner = org.url ? el('a', { href: org.url, target: '_blank', rel: 'noopener noreferrer' }, parts) : el('span', {}, parts);
+    inner.addEventListener('click', (e) => e.stopPropagation());
+    return [el('p', { class: 'org-line', 'data-ui': 'organization' }, [inner])];
   }
 
   private beginGame(): void {

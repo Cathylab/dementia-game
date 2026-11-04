@@ -17,7 +17,7 @@ import { loadPack } from './packloader';
 import { ProjectSession, reloadWithProject } from './project';
 import { SaveStore } from './saves';
 import { SurveyStore } from './survey';
-import { loadSurvey } from './surveyload';
+import { loadPublish, loadSurvey } from './extras';
 import { BrowserProjectStore } from './projectstore';
 import { showcaseDb } from './guide/review';
 import { StoryEditor } from './storyeditor';
@@ -115,8 +115,9 @@ async function boot() {
     view.saves = saves;
     // 成效評估問卷：網站上的專案、離線版、匯出的版本有 survey.json 時才有（本機專案沒有）
     if (started.session.mode === 'site') {
-      const survey = await loadSurvey();
+      const [survey, publish] = await Promise.all([loadSurvey(), loadPublish()]);
       if (survey) view.survey = { survey, store: new SurveyStore([projectDir(), EMBED?.player ? 'player' : '', script.meta.title].join('|')) };
+      view.publish = publish;
     }
     engine.onCheckpoint = () => {
       const d = engine.saveData();

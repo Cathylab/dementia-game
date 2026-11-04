@@ -19,7 +19,7 @@ const SURVEY: Survey = {
 
 async function withSurvey(page: Page, survey: Survey | null = SURVEY) {
   await page.route('**/projects.json', (r) =>
-    r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ dir: 'examples/寫給未來的我', kind: 'example', title: 'x', survey: !!survey }]) }),
+    r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ dir: 'examples/寫給未來的我', kind: 'example', title: 'x', ...(survey ? { extras: ['survey.json'] } : {}) }]) }),
   );
   if (survey) await page.route('**/survey.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify(survey) }));
   await openWithTestScript(page);

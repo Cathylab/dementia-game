@@ -612,7 +612,13 @@ docs/                 規格文件與本需求書
 
 ### 階段二 B-7：成效評估
 
-- 題目在專案的 `survey.json`（`docs/survey-format.md`），內容由其他 AI 或單位寫。純邏輯在 `src/survey.ts`（格式檢查、`SurveyStore`、統計、CSV），讀檔在 `src/surveyload.ts`，畫面在 `src/surveyview.ts`。
-- 只有網站上的專案、離線版、匯出的版本有問卷；本機專案沒有。`projects.json` 的 `survey: true` 避免 404。
+- 題目在專案的 `survey.json`（`docs/survey-format.md`），內容由其他 AI 或單位寫。純邏輯在 `src/survey.ts`（格式檢查、`SurveyStore`、統計、CSV），讀檔在 `src/extras.ts`，畫面在 `src/surveyview.ts`。
+- 只有網站上的專案、離線版、匯出的版本有問卷；本機專案沒有。`projects.json` 的 `extras` 避免 404。
 - 回答 localStorage `vn-survey:{專案|player|遊戲名稱}`，每次按「開始」一筆；CSV 開頭加 BOM 讓 Excel 正確讀中文。
+
+### 階段二 B-6：正式發佈
+
+- 內容在專案的 `publish.json`（`docs/publish-format.md`）：`organization`（標題畫面下方）、`resources`（結局後、回到標題前的一頁；有玩後問卷時在問卷之後）。格式檢查在 `src/publish.ts`。
+- 選用的內容檔（`survey.json`、`publish.json`）由 `src/extras.ts` 讀；`vite-plugin-content.ts` 的 `EXTRA_FILES` 決定 `projects.json` 的 `extras`。
+- 匯出可以玩的版本時，`exportPlayable` 的 `extras` 帶問卷與發佈資訊，標誌圖一起打包。
 
