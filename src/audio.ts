@@ -1,8 +1,10 @@
-// 音樂：優先播放 public/assets/music/{name}.ogg（或 .mp3），檔案不存在時改用 Web Audio 合成的環境音。
+// 音樂：優先播放 {專案}/assets/music/{name}.ogg（或 .mp3），檔案不存在時改用 Web Audio 合成的環境音。
+// 離線模式（file://）不能用 Web Audio 讀本機音檔，音檔改用 <audio> 播放（見 ElementTrack）。
 // 走音機制（音高漂移、節奏不穩、偶爾靜音、音量不穩、濾波）同時套用在兩種來源上，強度由退化係數決定。
 import { clamp, rand, seeded } from './util';
 import { localFileUrl } from './localfiles';
-import { assetBase } from './paths';
+import { embeddedManifest, FILE_MODE } from './embed';
+import { assetBase, projectDir } from './paths';
 import type { AudioLike } from './view';
 
 /** 配音依序找的副檔名。 */
@@ -11,6 +13,98 @@ export const MUSIC_EXTENSIONS = ['ogg', 'mp3'];
 const EXTENSIONS = MUSIC_EXTENSIONS;
 
 type Mode = 'file' | 'synth';
+
+/** 目前播放中的背景音樂（Web Audio 的檔案或合成音，或離線模式的 <audio>）。 */
+interface MusicTrack {
+  readonly mode: Mode;
+  start(fadeIn: number): void;
+  stop(fadeOut: number): void;
+  setDegradation(d: number): void;
+}
+
+/**
+ * 離線模式（file://）的音樂：瀏覽器不准 Web Audio 讀本機音檔，改用 <audio> 播放。
+ * 走音只做得到播放速度漂移（音高與速度一起不穩）、音量不穩與偶爾靜音，沒有濾波。
+ */
+class ElementTrack implements MusicTrack {
+  readonly mode = 'file' as const;
+  private readonly el: HTMLAudioElement;
+  private degradation = 0;
+  private drift = 0;
+  private wobble = 1;
+  private dropoutUntil = 0;
+  private fadeFrom = 0;
+  private fadeTo = 0;
+  private fadeStart = 0;
+  private fadeLen = 1;
+  private ticks = 0;
+  private timer = 0;
+  private stopped = false;
+
+  constructor(
+    url: string,
+    /** 音樂音量 × muffle（每次更新時讀取）。 */
+    private readonly level: () => number,
+  ) {
+    this.el = new Audio(url);
+    this.el.loop = true;
+    (this.el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = false;
+    this.el.volume = 0;
+  }
+
+  start(fadeIn: number): void {
+    this.fade(1, fadeIn);
+    void this.el.play().catch(() => {});
+    this.timer = window.setInterval(() => this.tick(), 100);
+  }
+
+  stop(fadeOut: number): void {
+    if (this.stopped) return;
+    this.stopped = true;
+    this.fade(0, fadeOut);
+    window.setTimeout(() => {
+      clearInterval(this.timer);
+      this.el.pause();
+      this.el.removeAttribute('src');
+    }, fadeOut * 1000 + 150);
+  }
+
+  setDegradation(d: number): void {
+    this.degradation = clamp(d, 0, 1);
+  }
+
+  private fade(to: number, seconds: number): void {
+    this.fadeFrom = this.currentFade();
+    this.fadeTo = to;
+    this.fadeStart = performance.now();
+    this.fadeLen = Math.max(1, seconds * 1000);
+  }
+
+  private currentFade(): number {
+    const k = clamp((performance.now() - this.fadeStart) / this.fadeLen, 0, 1);
+    return this.fadeFrom + (this.fadeTo - this.fadeFrom) * k;
+  }
+
+  private tick(): void {
+    // 每 250ms 更新一次走音（和 Web Audio 版一樣的節奏），音量每 100ms 更新
+    if (++this.ticks % 3 === 0) {
+      const d = this.degradation;
+      const maxDrift = 45 * d;
+      this.drift = clamp(this.drift + rand(-1, 1) * 9 * d, -maxDrift, maxDrift);
+      this.el.playbackRate = Math.pow(2, this.drift / 1200);
+      const now = performance.now();
+      if (now >= this.dropoutUntil) {
+        if (Math.random() < 0.035 * d) {
+          this.dropoutUntil = now + rand(400, 1600);
+          this.wobble = 0;
+        } else {
+          this.wobble = 1 - Math.random() * 0.55 * d;
+        }
+      }
+    }
+    this.el.volume = clamp(this.level() * this.currentFade() * this.wobble, 0, 1);
+  }
+}
 
 /** 兩種音源共用的走音控制。output → filter → wobbleGain → destination */
 abstract class Track {
@@ -285,7 +379,9 @@ export class AudioEngine implements AudioLike {
   private bus!: BiquadFilterNode;
   private muffleGain!: GainNode;
   private master!: GainNode;
-  private current: Track | null = null;
+  private current: MusicTrack | null = null;
+  /** 離線模式的配音（<audio>）。 */
+  private voiceEl: { el: HTMLAudioElement; done: () => void } | null = null;
   private currentName: string | null = null;
   private voiceBus!: BiquadFilterNode;
   private voiceMuffleGain!: GainNode;
@@ -345,6 +441,7 @@ export class AudioEngine implements AudioLike {
     if (on === this.muffled) return;
     this.muffled = on;
     this.statusEl.dataset.muffle = on ? '1' : '0';
+    if (this.voiceEl) this.voiceEl.el.volume = this.voiceLevel();
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     this.bus.frequency.setTargetAtTime(on ? 650 : 20000, t, on ? 0.25 : 0.6);
@@ -358,6 +455,7 @@ export class AudioEngine implements AudioLike {
   setVoiceVolume(v: number): void {
     this.voiceVolume = v;
     if (this.ctx) this.voiceMaster.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    if (this.voiceEl) this.voiceEl.el.volume = this.voiceLevel();
     if (v === 0) this.stopVoice();
   }
 
@@ -372,6 +470,8 @@ export class AudioEngine implements AudioLike {
     const ctx = this.ctx;
     this.statusEl.dataset.voice = id;
     this.statusEl.dataset.voiceState = 'loading';
+    // 離線模式：沒有事先解碼好的（上傳的）就用 <audio> 播
+    if (FILE_MODE && !this.voiceBuffers.has(id)) return this.playVoiceElement(id, seq);
     return this.loadVoice(id).then(
       (buffer) =>
         new Promise<void>((resolve) => {
@@ -399,9 +499,52 @@ export class AudioEngine implements AudioLike {
     );
   }
 
+  private playVoiceElement(id: string, seq: number): Promise<void> {
+    return this.findAudio('voice', id).then(
+      (url) =>
+        new Promise<void>((resolve) => {
+          if (seq !== this.voiceSeq || !url) {
+            if (seq === this.voiceSeq) this.statusEl.dataset.voiceState = 'missing';
+            resolve();
+            return;
+          }
+          const el = new Audio(url);
+          el.volume = this.voiceLevel();
+          const done = () => {
+            if (this.voiceEl?.el === el) {
+              this.voiceEl = null;
+              this.statusEl.dataset.voiceState = 'ended';
+            }
+            resolve();
+          };
+          el.onended = done;
+          el.onerror = () => {
+            if (this.voiceEl?.el === el) this.statusEl.dataset.voiceState = 'missing';
+            this.voiceEl = null;
+            resolve();
+          };
+          this.voiceEl = { el, done };
+          this.statusEl.dataset.voiceState = 'playing';
+          void el.play().catch(() => done());
+        }),
+    );
+  }
+
+  /** 離線模式配音的音量：配音音量 × muffle。 */
+  private voiceLevel(): number {
+    return clamp(this.voiceVolume * (this.muffled ? 0.4 : 1), 0, 1);
+  }
+
   /** 停止正在播的配音（0.1 秒淡出，不硬切）。 */
   stopVoice(): void {
     this.voiceSeq++;
+    const ve = this.voiceEl;
+    if (ve) {
+      this.voiceEl = null;
+      ve.el.pause();
+      this.statusEl.dataset.voiceState = 'stopped';
+      ve.done();
+    }
     const v = this.voice;
     if (!v || !this.ctx) return;
     this.voice = null;
@@ -418,7 +561,7 @@ export class AudioEngine implements AudioLike {
   }
 
   get voicePlaying(): boolean {
-    return !!this.voice;
+    return !!this.voice || !!this.voiceEl;
   }
 
   /** 這句配音有沒有音檔（依 manifest 判斷，不會產生 404）。 */
@@ -439,6 +582,7 @@ export class AudioEngine implements AudioLike {
       const ext = VOICE_EXTENSIONS.find((e) => manifest.has(`${id}.${e}`));
       return ext ? `${assetBase()}/${folder}/${id}.${ext}` : null;
     }
+    if (FILE_MODE) return null;
     for (const ext of VOICE_EXTENSIONS) {
       const url = `${assetBase()}/${folder}/${id}.${ext}`;
       try {
@@ -457,6 +601,11 @@ export class AudioEngine implements AudioLike {
 
   private manifestFor(folder: string): Promise<Set<string> | null> {
     let p = this.manifests.get(folder);
+    const embedded = embeddedManifest(projectDir(), folder);
+    if (!p && embedded) {
+      p = Promise.resolve(new Set(embedded));
+      this.manifests.set(folder, p);
+    }
     if (!p) {
       p = fetch(`${assetBase()}/${folder}/manifest.json`, { cache: 'no-cache' })
         .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('json') ? r.json() : null))
@@ -496,6 +645,22 @@ export class AudioEngine implements AudioLike {
     const ctx = this.ctx;
     this.statusEl.dataset.sfx = name;
     this.statusEl.dataset.sfxState = 'loading';
+    if (FILE_MODE && !this.sfxBuffers.has(name)) {
+      void this.findAudio('sfx', name).then((url) => {
+        if (!url) {
+          if (this.statusEl.dataset.sfx === name) this.statusEl.dataset.sfxState = 'missing';
+          return;
+        }
+        const el = new Audio(url);
+        el.volume = clamp(this.volume * (this.muffled ? 0.4 : 1), 0, 1);
+        el.onended = () => {
+          if (this.statusEl.dataset.sfx === name) this.statusEl.dataset.sfxState = 'ended';
+        };
+        this.statusEl.dataset.sfxState = 'playing';
+        void el.play().catch(() => (this.statusEl.dataset.sfxState = 'missing'));
+      });
+      return;
+    }
     void this.loadSfx(name).then((buffer) => {
       if (!buffer) {
         if (this.statusEl.dataset.sfx === name) this.statusEl.dataset.sfxState = 'missing';
@@ -615,6 +780,19 @@ export class AudioEngine implements AudioLike {
     this.statusEl.dataset.audioMode = name && this.ctx ? 'loading' : 'none';
     if (!name || !this.ctx) return;
     const ctx = this.ctx;
+    if (FILE_MODE && !this.buffers.has(name)) {
+      void this.musicUrl(name).then((url) => {
+        if (seq !== this.requestSeq) return;
+        const track: MusicTrack = url
+          ? new ElementTrack(url, () => this.volume * (this.muffled ? 0.4 : 1))
+          : new SynthTrack(ctx, this.bus, name);
+        track.setDegradation(this.degradation);
+        track.start(2.5);
+        this.current = track;
+        this.statusEl.dataset.audioMode = track.mode;
+      });
+      return;
+    }
     void this.loadBuffer(name).then((buffer) => {
       if (seq !== this.requestSeq) return;
       const track = buffer ? new FileTrack(ctx, this.bus, buffer) : new SynthTrack(ctx, this.bus, name);
@@ -625,12 +803,23 @@ export class AudioEngine implements AudioLike {
     });
   }
 
+  /** 音樂檔的網址：先看本機素材，再看清單（有清單時不請求不存在的檔案）。null＝沒有檔案。 */
+  private async musicUrl(name: string): Promise<string | null> {
+    const local = localFileUrl('music', name, EXTENSIONS);
+    if (local) return local;
+    const manifest = await this.manifestFor('music');
+    const ext = EXTENSIONS.find((e) => manifest?.has(`${name}.${e}`));
+    return ext ? `${assetBase()}/music/${name}.${ext}` : null;
+  }
+
   private loadBuffer(name: string): Promise<AudioBuffer | null> {
     let p = this.buffers.get(name);
     if (!p) {
       p = (async () => {
         const local = localFileUrl('music', name, EXTENSIONS);
-        const urls = local ? [local] : EXTENSIONS.map((ext) => `${assetBase()}/music/${name}.${ext}`);
+        const manifest = local ? null : await this.manifestFor('music');
+        const exts = manifest ? EXTENSIONS.filter((e) => manifest.has(`${name}.${e}`)) : EXTENSIONS;
+        const urls = local ? [local] : exts.map((ext) => `${assetBase()}/music/${name}.${ext}`);
         for (const url of urls) {
           try {
             const res = await fetch(url);

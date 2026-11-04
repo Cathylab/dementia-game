@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build --mode offline",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
-    "test": "playwright test"
+    "test": "playwright test",
+    "build:offline": "vite build --mode offline"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

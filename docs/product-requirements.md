@@ -308,8 +308,8 @@ docs/                 規格文件與本需求書
 
 | # | PR | 對應章節 | 狀態 |
 | --- | --- | --- | --- |
-| 1 | repo 結構調整：內容搬到 `examples/`、`templates/空白/`、`packs/`；引擎可切換載入的專案 | 4.2、5.5.1 | 進行中 |
-| 2 | 離線雙擊開啟的建置（`file://`）與自動降級 | 4.4 | |
+| 1 | repo 結構調整：內容搬到 `examples/`、`templates/空白/`、`packs/`；引擎可切換載入的專案 | 4.2、5.5.1 | 完成（#13） |
+| 2 | 離線雙擊開啟的建置（`file://`）與自動降級 | 4.4 | 進行中 |
 | 3 | 題材包機制，失智症包 | 5.6 | |
 | 4 | 白話的檢查訊息、兩級、抓出 JSON、修正提示詞 | 5.3 | |
 | 5 | 佔位素材升級與素材管理頁 | 5.4 | |
@@ -326,3 +326,25 @@ docs/                 規格文件與本需求書
 - `public/` 不再使用。
 - 開發模式的「儲存」寫回目前專案的 `script.json`（例如 `examples/寫給未來的我/script.json`）。
 - 本機素材層、專案檔的路徑格式不變（`bg/x.webp`）；開發者面板的 GitHub 上傳連結改指到目前專案的 `assets/` 資料夾。
+
+### 4.4 離線雙擊開啟
+
+- 評估結果：**不需要啟動程式**。只要不用 ES 模組、不用 fetch 讀本機檔案，Chromium 在 `file://` 下可以完整執行；音檔改用 `<audio>` 播放。
+- 建置：`npm run build` 同時產生 `dist/`（網站）與 `dist-offline/`（離線版，`vite build --mode offline`，見 `vite-plugin-offline.ts`）。
+  - 程式打包成 iife，連同 CSS 寫進 html。
+  - 每個專案的 `script.json` 與 `voice`／`sfx`／`music` 清單寫進 `window.__VN_EMBED__`（每個 html 都包含全部專案，差別只在預設載入哪一個）。
+  - 素材照舊在 `examples/`、`templates/`，用相對路徑載入。
+- 離線版目前有兩個入口：`玩 Demo.html`、`空白範本.html`。`開始.html`（引導網站）在 5.1 的 PR 加入；使用說明與壓縮檔在 4.3 的 PR。
+- 離線模式（`location.protocol === 'file:'`）的降級：
+  - 配音、音效、音樂檔用 `<audio>` 播放（Web Audio 的 `MediaElementSource` 在 `file://` 下會被當成跨來源而沒有聲音，所以不接進 Web Audio）。
+  - 音樂走音只有播放速度漂移（`preservesPitch = false`）、音量不穩、偶爾靜音；沒有濾波。
+  - muffle 只降低音量。
+  - 合成音樂照常（不讀檔）。
+  - 上傳的音檔已經解碼過，照常用 Web Audio。
+  - 匯出專案檔不含內建素材（讀不到）。
+  - 開發者面板顯示「離線模式」與簡化項目（`OFFLINE_LIMITS`）。
+- 音樂也有清單了（`assets/music/manifest.json`），線上版也不再為不存在的音樂檔發出 404 請求。
+- 網址參數 `?project=` 在離線版只接受內嵌的專案。
+- 已驗證：Linux 上的 Chromium（自動測試 `tests/offline.spec.ts`：雙擊開啟、圖片、配音、音樂檔、空白範本玩到結局、開啟專案檔後重新開啟、Demo 玩到結局，且不發任何 fetch）。
+- **還沒驗證**：Windows／Mac 實機，以及 Safari、Firefox。Safari 在 `file://` 下的本機檔案限制比較嚴，IndexedDB 也可能不能用（開不了本機專案時遊戲照常能玩，只是不能存）；需要在 4.3 的 PR 前用實機確認。
+

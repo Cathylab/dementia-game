@@ -15,6 +15,7 @@ import { buildUploadSection } from './devupload';
 import { PROJECT_EXT } from './projectfile';
 import { timeLabel, type ProjectSession } from './project';
 import { assetFolderLabel, projectUrl } from './paths';
+import { FILE_MODE, OFFLINE_LIMITS } from './embed';
 import { clamp, el, urlParam } from './util';
 import type { AdvView } from './view';
 
@@ -197,6 +198,15 @@ export class DevPanel {
 
     this.root.append(
       el('header', {}, [title, foldAll, fold, close]),
+      ...(FILE_MODE
+        ? [
+            el('div', { class: 'dev-offline', 'data-dev': 'offline' }, [
+              el('strong', {}, ['離線模式（直接開啟檔案）']),
+              el('p', {}, ['以下功能已簡化：']),
+              el('ul', {}, OFFLINE_LIMITS.map((t) => el('li', {}, [t]))),
+            ]),
+          ]
+        : []),
       ...(this.project ? [this.buildProject(this.project)] : []),
       this.section('目前狀態', this.status, this.stats),
       this.section('跳到場景', el('div', { class: 'dev-row' }, [this.sceneSelect, jump])),

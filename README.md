@@ -39,7 +39,7 @@ npm run dev
 | 指令 | 用途 |
 | --- | --- |
 | `npm run dev` | 開發伺服器（存檔自動重新整理） |
-| `npm run build` | 型別檢查並建置到 `dist/` |
+| `npm run build` | 型別檢查並建置網站版 `dist/` 與離線版 `dist-offline/` |
 | `npm run preview` | 預覽建置結果 |
 | `npm run typecheck` | 只做型別檢查（含測試檔） |
 | `npm test` | 跑 Playwright 測試（會自動建置並啟動預覽伺服器） |
@@ -55,6 +55,31 @@ npm run dev
 網址沒有參數時載入 Demo；加 `?project=templates/空白` 載入空白範本（只接受 `examples/`、`templates/` 底下的資料夾）。可以和其他參數一起用，例如 `?project=templates/空白&story=1`。開過本機專案時，本機專案優先（`?site=1` 略過）。
 
 建置時這三個資料夾原樣複製到 `dist/`，並為每個專案產生 `assets/voice/manifest.json`、`assets/sfx/manifest.json`，以及列出所有專案的 `projects.json`。
+
+### 離線版（雙擊就能玩）
+
+`npm run build` 同時建置兩份：
+
+- `dist/`：網站版（GitHub Pages）。
+- `dist-offline/`：離線版。把整個資料夾複製到任何電腦（隨身碟、沒有網路的教室），直接雙擊 html 就能玩，不用安裝、不用網路：
+  - `玩 Demo.html`：《寫給未來的我》。
+  - `空白範本.html`：空白範本。
+  - 兩個檔案都可以在網址加 `?project=…`、`?dev=1`、`?story=1` 等參數。
+
+離線版的做法：程式和樣式直接寫在 html 裡（不用 ES 模組），每個專案的 `script.json` 與音檔清單也寫在 html 裡（不用 fetch），圖片、音檔照舊放在 `examples/`、`templates/`，用相對路徑載入。只建置離線版：`npm run build:offline`。
+
+離線模式下簡化的功能（開發者面板會列出）：
+
+| 功能 | 線上版 | 離線版 |
+| --- | --- | --- |
+| 配音、音效、音樂檔 | Web Audio | `<audio>` 播放 |
+| 音樂走音 | 音高漂移、音量不穩、濾波、偶爾靜音 | 只有速度漂移、音量不穩、偶爾靜音（沒有濾波） |
+| 聲音變悶（muffle） | 低通濾波＋降低音量 | 只降低音量 |
+| 合成音樂 | 有 | 有（一樣） |
+| 匯出專案檔 | 含網站上的素材 | 只含自己上傳或開啟的素材 |
+| 存檔 | 本機專案存瀏覽器；其他下載 script.json | 同左 |
+
+本機專案（IndexedDB）在離線版也能用：開啟專案檔後存在這個瀏覽器裡，下次雙擊同一個 html 還在。
 
 第一次在自己電腦跑測試前，需要先下載瀏覽器：
 
@@ -351,6 +376,7 @@ npx playwright install chromium
 場景的 `music` 欄位對應 `{專案}/assets/music/{music}.ogg`。
 
 - 找不到 `.ogg` 時會再找 `.mp3`（Safari 舊版不支援 ogg，可兩種都放）。
+- 建置時產生 `{專案}/assets/music/manifest.json`（和配音一樣），只請求清單上有的檔案，缺檔時不發請求。
 - 兩者都沒有時，改用 Web Audio 程式合成的環境音：依曲名決定調性的長音和弦、低頻持續音、輕微房間底噪與偶爾的高音。
 - 音樂會循環播放，換曲時交叉淡入淡出。
 - 走音機制同時套用在合成音與真實音檔：真實音檔以播放速率漂移造成音高與速度不穩、音量不穩、低通濾波、偶爾靜音；合成音另外讓每個聲部各自走音、和弦節奏不穩。
@@ -512,6 +538,7 @@ templates/
 packs/                 題材包（之後的 PR）
 src/
   paths.ts             目前載入哪個專案、素材在哪裡（?project=…）
+  embed.ts             離線版內嵌的劇本與音檔清單、離線模式的限制
   types.ts             腳本格式型別
   script.ts            載入、驗證、結局條件
   engine.ts            流程與狀態：台詞、選項、跳轉、回上一句、repeat_line
@@ -534,6 +561,7 @@ src/
   voicedesk.ts         開發者頁面「配音總表」（?voice=1）
   editable.ts          可編輯欄位、結構比對、JSON 排版（瀏覽器與開發伺服器共用）
 vite-plugin-script-save.ts   開發模式下把編輯結果寫回 script.json
+vite-plugin-offline.ts   離線版：程式、樣式、劇本、音檔清單寫進 html（玩 Demo.html、空白範本.html）
 vite-plugin-content.ts   提供與複製 examples/、templates/、packs/；產生每個專案的音檔清單與 projects.json
   style.css            全部樣式
 tests/

@@ -11,7 +11,7 @@ import type { Plugin } from 'vite';
 
 export const CONTENT_FOLDERS = ['examples', 'templates', 'packs'] as const;
 /** 有清單的音檔資料夾（專案的 assets/ 底下）。 */
-export const MANIFEST_FOLDERS = ['voice', 'sfx'] as const;
+export const MANIFEST_FOLDERS = ['voice', 'sfx', 'music'] as const;
 
 const MIME: Record<string, string> = {
   '.json': 'application/json; charset=utf-8',
@@ -93,7 +93,7 @@ export function contentPlugin(): Plugin {
         // 不允許 ../ 跑出內容資料夾
         if (!file.startsWith(resolve(root, top) + sep)) return next();
         // 音檔清單：每次請求都重新掃描，放進新音檔不用重開伺服器
-        const m = url.match(/^\/((?:examples|templates)\/[^/]+)\/assets\/(voice|sfx)\/manifest\.json$/);
+        const m = url.match(/^\/((?:examples|templates)\/[^/]+)\/assets\/(voice|sfx|music)\/manifest\.json$/);
         if (m) {
           void listAudioFiles(resolve(root, m[1]), m[2]).then((files) => {
             res.setHeader('Content-Type', MIME['.json']);

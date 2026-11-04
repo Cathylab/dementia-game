@@ -1,6 +1,7 @@
 // 開發者頁面「配音總表」（v3）：網址加 ?voice=1 打開，不出現在遊戲選單裡。
 // 從 script.json 直接讀：列出所有配音句、探測音檔有無、試聽、整場試聽、匯出缺檔清單 voice-lines.json。
-import { assetBase, assetFolderLabel } from './paths';
+import { embeddedManifest } from './embed';
+import { assetBase, assetFolderLabel, projectDir } from './paths';
 import type { Script } from './types';
 import { el } from './util';
 import { voiceEntries, type VoiceEntry } from './voice';
@@ -114,6 +115,12 @@ export class VoiceDesk {
 
   /** 用 HEAD 探測 .mp3、.ogg；開發伺服器找不到檔案時會回 index.html，所以也檢查內容類型。 */
   private async probe(id: string): Promise<string | null> {
+    // 有內嵌清單（離線版）就照清單，不發請求
+    const list = embeddedManifest(projectDir(), 'voice');
+    if (list) {
+      const ext = EXTENSIONS.find((e) => list.includes(`${id}.${e}`));
+      return ext ? `${assetBase()}/voice/${id}.${ext}` : null;
+    }
     for (const ext of EXTENSIONS) {
       const url = `${assetBase()}/voice/${id}.${ext}`;
       try {

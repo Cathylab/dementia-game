@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-offline
 test-results
 playwright-report
 *.log
