@@ -96,3 +96,24 @@ test('離線版「開始.html」也能匯出可以玩的版本', async ({ page }
   await expect(page.locator('.title-screen h1')).toHaveText('我的遊戲');
   await playToEnd(page);
 });
+
+test('itch.io 用的壓縮檔：index.html 在最外層、只有英數檔名，解壓縮後能玩', async ({ page }) => {
+  await page.goto('./');
+  await page.click('[data-guide=begin]');
+  await page.click('[data-guide=start-blank]');
+  await page.locator('textarea[name=guide-goal]').fill('目標');
+  await page.click('[data-guide=next]');
+  await expect(page.locator('[data-guide=progress]')).toContainText('第 2 步');
+  await page.goto('./#/step/9');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-guide=export-itch]')]);
+  expect(download.suggestedFilename()).toBe('我的遊戲-itch.zip');
+  await expect(page.locator('[data-guide=export-itch-status]')).toContainText('已下載');
+  const { dir, files } = await unzip(download);
+  expect(files).toContain('index.html');
+  expect(files.every((f) => f === 'index.html' || f.startsWith('game/assets/'))).toBe(true);
+  expect(files.every((f) => /^[\x20-\x7e]+$/.test(f))).toBe(true);
+  await page.goto(pathToFileURL(join(dir, 'index.html')).href + '?timescale=0.2');
+  await expect(page.locator('.title-screen h1')).toHaveText('我的遊戲');
+  await playToEnd(page);
+});
+

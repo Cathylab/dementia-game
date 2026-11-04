@@ -7,7 +7,7 @@ import { FILE_MODE } from '../embed';
 import { issueSummary, renderIssues } from '../issueview';
 import { type Pack } from '../pack';
 import { listPacks, loadPack, loadPackDocs } from '../packloader';
-import { exportPlayable } from '../exporter';
+import { exportPlayable, type PlayableTarget } from '../exporter';
 import { downloadBlob } from '../project';
 import { packProject, projectFileName } from '../projectfile';
 import type { Script } from '../types';
@@ -408,20 +408,25 @@ registerStep('publish', (ctx) => {
     downloadBlob(blob, name);
     msg.textContent = `已下載 ${name}。換電腦或給別人繼續編輯時，用遊戲頁開發者面板的「開啟專案檔」。`;
   };
-  const playMsg = el('p', { class: 'g-status', 'data-guide': 'play-status', 'aria-live': 'polite' });
-  const exportPlay = el('button', { type: 'button', class: 'g-btn primary', 'data-guide': 'export-playable' }, ['匯出可以玩的版本（.zip）']);
-  exportPlay.onclick = async () => {
-    exportPlay.disabled = true;
-    playMsg.textContent = '打包中…';
-    try {
-      const r = await exportPlayable(ctx.project.script, ctx.project.files);
-      downloadBlob(r.blob, r.fileName);
-      playMsg.textContent = `已下載 ${r.fileName}（${r.files} 個素材）。${r.note}`;
-    } catch (err) {
-      playMsg.textContent = `沒有成功：${(err as Error)?.message ?? err}`;
-    }
-    exportPlay.disabled = false;
+  const exportButton = (label: string, target: PlayableTarget, attr: string, primary: boolean) => {
+    const status = el('p', { class: 'g-status', 'data-guide': attr === 'export-playable' ? 'play-status' : `${attr}-status`, 'aria-live': 'polite' });
+    const b = el('button', { type: 'button', class: `g-btn ${primary ? 'primary' : ''}`.trim(), 'data-guide': attr }, [label]);
+    b.onclick = async () => {
+      b.disabled = true;
+      status.textContent = '打包中…';
+      try {
+        const r = await exportPlayable(ctx.project.script, ctx.project.files, target);
+        downloadBlob(r.blob, r.fileName);
+        status.textContent = `已下載 ${r.fileName}（${r.files} 個素材）。${r.note}`;
+      } catch (err) {
+        status.textContent = `沒有成功：${(err as Error)?.message ?? err}`;
+      }
+      b.disabled = false;
+    };
+    return [b, status] as const;
   };
+  const [exportPlay, playMsg] = exportButton('匯出可以玩的版本（.zip）', 'folder', 'export-playable', true);
+  const [exportItch, itchMsg] = exportButton('匯出 itch.io 用的壓縮檔', 'itch', 'export-itch', false);
   ctx.setReady(true);
   return el('div', { class: 'g-form' }, [
     el('h3', {}, ['專案檔：之後繼續編輯']),
@@ -432,6 +437,19 @@ registerStep('publish', (ctx) => {
     el('p', {}, ['一個壓縮檔：解壓縮後雙擊 html 就能玩（不需要網路），也可以整個放到學校、單位的網站或 GitHub Pages。']),
     el('div', { class: 'g-actions' }, [exportPlay]),
     playMsg,
+    el('h3', {}, ['發佈到 itch.io（建議：最簡單，免費）']),
+    el('p', {}, ['itch.io 是獨立遊戲作者最常用的發佈網站：別人打開網址就能在瀏覽器玩，也可以同時放下載版。可以設成公開、只給有網址的人，或設密碼。']),
+    el('div', { class: 'g-actions' }, [exportItch]),
+    itchMsg,
+    el('ol', { class: 'g-howto' }, [
+      el('li', {}, ['按上面的「匯出 itch.io 用的壓縮檔」（不用解壓縮）。']),
+      el('li', {}, ['到 itch.io 註冊帳號（免費），登入後點右上角帳號 → Upload new project。']),
+      el('li', {}, ['填 Title（作品名稱）；Kind of project 選 HTML。']),
+      el('li', {}, ['Uploads 按 Upload files，選剛才下載的壓縮檔，勾「This file will be played in the browser」。']),
+      el('li', {}, ['Embed options：Viewport 填 1280 × 720，勾 Mobile friendly 與 Fullscreen button。']),
+      el('li', {}, ['Visibility 先選 Draft 自己試玩；沒問題再改成 Restricted（只給有網址或密碼的人）或 Public，按 Save。']),
+    ]),
+    el('p', { class: 'g-meta' }, ['也想讓人下載離線版：在同一個頁面再上傳「匯出可以玩的版本」的壓縮檔（不要勾 played in the browser）。完整說明見 docs/publish-itch.md。']),
     el('h3', {}, ['發佈到 GitHub Pages（免費、不用寫程式）']),
     el('ol', { class: 'g-howto' }, [
       el('li', {}, ['按上面的「匯出可以玩的版本」，下載後先解壓縮。']),

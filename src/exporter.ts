@@ -189,8 +189,15 @@ const README = (title: string, file: string) => `《${title}》可以玩的版�
 這是用「同理體驗視覺小說」工具做的作品。
 `;
 
+/**
+ * 壓縮檔的樣子：
+ * - folder：外面包一層「作品名」資料夾，有 index.html、玩 作品名.html、說明.txt（雙擊玩、放到一般網站）。
+ * - itch：給 itch.io 的 HTML 遊戲上傳：index.html 在最外層，只有英數檔名（index.html 與 game/assets/…）。
+ */
+export type PlayableTarget = 'folder' | 'itch';
+
 /** 匯出可以玩的版本（壓縮檔）。 */
-export async function exportPlayable(script: Script, own: ReadonlyMap<string, Blob>): Promise<PlayableResult> {
+export async function exportPlayable(script: Script, own: ReadonlyMap<string, Blob>, target: PlayableTarget = 'folder'): Promise<PlayableResult> {
   const { css, js } = await engineParts();
   const { files, missing } = await collect(script, own);
   const packId = packIdOf(script);
@@ -212,14 +219,15 @@ export async function exportPlayable(script: Script, own: ReadonlyMap<string, Bl
   };
   const html = new TextEncoder().encode(playerHtml(css, js, embed, title));
   const playFile = `玩 ${name}.html`;
-  const zip: Zippable = {
-    [`${name}/index.html`]: html,
-    [`${name}/${playFile}`]: html,
-    [`${name}/說明.txt`]: new TextEncoder().encode(README(title, playFile)),
-  };
+  const root = target === 'itch' ? '' : `${name}/`;
+  const zip: Zippable = { [`${root}index.html`]: html };
+  if (target === 'folder') {
+    zip[`${root}${playFile}`] = html;
+    zip[`${root}說明.txt`] = new TextEncoder().encode(README(title, playFile));
+  }
   for (const [path, blob] of [...files].sort(([a], [b]) => a.localeCompare(b))) {
     const data = new Uint8Array(await blob.arrayBuffer());
-    zip[`${name}/game/assets/${path}`] = STORED.test(path) ? [data, { level: 0 }] : data;
+    zip[`${root}game/assets/${path}`] = STORED.test(path) ? [data, { level: 0 }] : data;
   }
   const bytes = zipSync(zip, { level: 6 });
   const note = FILE_MODE
@@ -229,7 +237,7 @@ export async function exportPlayable(script: Script, own: ReadonlyMap<string, Bl
       : '';
   return {
     blob: new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/zip' }),
-    fileName: `${name}-可以玩的版本.zip`,
+    fileName: target === 'itch' ? `${name}-itch.zip` : `${name}-可以玩的版本.zip`,
     files: files.size,
     missing,
     note,

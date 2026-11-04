@@ -527,6 +527,7 @@ assets/bg/…  assets/char/…  assets/fg/…  assets/voice/…  assets/music/�
 ```
 
 - 解壓縮後雙擊 html 就能玩，不需要網路；也可以把資料夾裡的全部檔案放到任何網站空間。發佈到 GitHub Pages 的步驟見 [`docs/publish-github-pages.md`](docs/publish-github-pages.md)。
+- **itch.io**：第 9 步的「匯出 itch.io 用的壓縮檔」（`作品名-itch.zip`）是給 itch.io 的 HTML 遊戲上傳用：`index.html` 在壓縮檔最外層、只有 `index.html` 與 `game/assets/…`（英數檔名），不用解壓縮直接上傳。步驟見 [`docs/publish-itch.md`](docs/publish-itch.md)。
 - 劇本、題材包、音檔清單都寫在 html 裡；**永遠玩自己的故事**，不會被那台電腦瀏覽器裡的本機專案蓋掉。
 - 還沒有檔案的素材用佔位圖或合成音。離線版匯出時只放得進自己上傳的素材。
 - 引擎程式來自離線版建置：建置時產生 `player-template.html`（網站版與離線版都有），離線版直接讀自己頁面上的程式。
@@ -602,6 +603,7 @@ docs/
   script-format-v3-voice.md  v3 配音
   product-requirements.md    產品需求書（產品化的總規格與實作順序）
   publish-github-pages.md    把遊戲放上 GitHub Pages 的教學
+  publish-itch.md            把遊戲放上 itch.io 的教學
   packs.md                   怎麼做一個題材包
 index.html             引導網站（首頁）
 play.html              遊戲
