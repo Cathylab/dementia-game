@@ -490,8 +490,51 @@ export class DevPanel {
       });
     }, { 'data-dev': 'preview-choice' });
 
+    // 標題畫面：遊戲名稱、封面圖；章節卡樣式與大小
+    const titleInput = el('input', { type: 'text', name: 'dev-title', value: meta.title });
+    titleInput.onchange = () => {
+      meta.title = titleInput.value.trim() || meta.title;
+      titleInput.value = meta.title;
+      document.title = meta.title;
+      if (e.phase === 'title') v.showTitle();
+    };
+    const coverInput = el('input', { type: 'text', name: 'dev-cover', value: meta.cover ?? '', placeholder: '背景圖名稱（assets/bg/）' });
+    const coverPortraitInput = el('input', { type: 'text', name: 'dev-cover-portrait', value: meta.coverPortrait ?? '', placeholder: '（選填）手機直式用' });
+    const applyCover = () => {
+      const c = coverInput.value.trim();
+      const cp = coverPortraitInput.value.trim();
+      if (c) meta.cover = c;
+      else delete meta.cover;
+      if (cp) meta.coverPortrait = cp;
+      else delete meta.coverPortrait;
+      v.applyCover();
+    };
+    coverInput.onchange = applyCover;
+    coverPortraitInput.onchange = applyCover;
+    const chapterStyle = el('select', { name: 'dev-chapter-style' }, [
+      el('option', { value: 'stacked' }, ['上下兩行都清楚']),
+      el('option', { value: 'bold' }, ['「第一章」最大']),
+      el('option', { value: 'quiet' }, ['小而淡（舊樣式）']),
+    ]);
+    chapterStyle.value = meta.chapterStyle?.style ?? 'stacked';
+    const chapterScale = el('input', { type: 'range', name: 'dev-chapter-scale', min: '0.6', max: '1.6', step: '0.05', value: String(meta.chapterStyle?.scale ?? 1) });
+    const chapterScaleOut = el('output', {}, [`${Number(chapterScale.value).toFixed(2)} 倍`]);
+    const applyChapter = () => {
+      meta.chapterStyle = { style: chapterStyle.value as 'stacked' | 'bold' | 'quiet', scale: Number(chapterScale.value) };
+      chapterScaleOut.textContent = `${meta.chapterStyle.scale!.toFixed(2)} 倍`;
+      v.applyChapterStyle();
+    };
+    chapterStyle.onchange = applyChapter;
+    chapterScale.oninput = applyChapter;
+    const previewChapter = this.button('預覽', () => void v.previewChapterCard(), { 'data-dev': 'preview-chapter' });
+
     return this.section(
       '呈現調整',
+      el('label', { class: 'dev-row' }, ['遊戲名稱', titleInput]),
+      el('label', { class: 'dev-row' }, ['封面', coverInput]),
+      el('label', { class: 'dev-row' }, ['直式封面', coverPortraitInput]),
+      el('label', { class: 'dev-row' }, ['章節卡', chapterStyle, previewChapter]),
+      el('label', { class: 'dev-row' }, ['章節卡大小', chapterScale, chapterScaleOut]),
       el('label', { class: 'dev-row' }, ['題材包', pack]),
       packNote,
       el('label', { class: 'dev-row' }, ['轉場', transition, preview]),

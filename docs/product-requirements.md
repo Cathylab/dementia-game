@@ -590,3 +590,9 @@ docs/                 規格文件與本需求書
 - `time_skip` 用 `.bg-skip` 疊層（和 `.bg` 同樣的框）交叉淡入淡出，不再呼叫 `blink()`、不換 `.bg`。
 - 打字退化（`typewriter.ts`）與 `glitchSpans` 調柔和；`desaturate` 可以掛在選項上（`Fx.applyChoice`）。詳細見 `script-format-v1.md` 最後一節。
 
+### 試玩回饋 4：標題與章節卡
+
+- `AdvView.applyCover` 直接設 `.title-screen` 的 `background-image`（佔位圖的 data URL 太長，放進 CSS 變數會被瀏覽器丟掉）。
+- `meta.title`、`cover`、`coverPortrait`、`chapterStyle` 都由 `stripPresentation` 去掉，開發者面板「儲存調整」可以寫回。
+- 章節卡 `data-style` 三種樣式，字級用 `--chapter-scale` 乘上相對畫面大小的 clamp。
+

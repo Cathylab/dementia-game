@@ -100,6 +100,11 @@ export function stripPresentation(script: Script): void {
   delete script.meta.sprite;
   delete script.meta.pack;
   delete script.meta.choiceStyle;
+  delete script.meta.chapterStyle;
+  delete script.meta.cover;
+  delete script.meta.coverPortrait;
+  // 遊戲名稱可以在開發者面板改
+  script.meta.title = '';
   for (const c of script.characters ?? []) delete c.sprite;
   for (const s of script.scenes) delete s.music;
 }

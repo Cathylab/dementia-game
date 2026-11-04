@@ -47,6 +47,12 @@ export interface Meta {
    * 題材包代號（packs/{pack}/pack.json）。省略＝dementia（相容舊腳本）；null 或 "plain"＝一般故事，沒有特殊效果。
    */
   pack?: string | null;
+  /** 封面圖：assets/bg/{cover}（呈現設定）。省略＝沒有封面。 */
+  cover?: string;
+  /** 手機直式用的封面（選填），省略時用 cover（以中間為主裁切）。 */
+  coverPortrait?: string;
+  /** 章節卡的樣式與大小（呈現設定）。 */
+  chapterStyle?: ChapterStyle;
   /** 選項的位置與大小（呈現設定，開發者面板可調）。 */
   choiceStyle?: ChoiceStyle;
   /** 素材出處（音效等），標題畫面「製作名單」顯示。 */
@@ -61,6 +67,15 @@ export interface Meta {
 export interface ChoiceStyle {
   position?: 'right' | 'center';
   width?: number;
+  scale?: number;
+}
+
+/**
+ * 章節卡：style＝stacked（預設：「第一章」與時間上下排列，兩者都清楚）、bold（「第一章」最大）、
+ * quiet（小而淡，舊樣式）；scale＝整體大小倍數（0.6～1.6，預設 1）。
+ */
+export interface ChapterStyle {
+  style?: 'stacked' | 'bold' | 'quiet';
   scale?: number;
 }
 

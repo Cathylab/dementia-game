@@ -74,6 +74,17 @@ export function validateScript(script: Script, pack?: Pack): string[] {
   if (meta.objectHighlight !== undefined && !['glow', 'ring'].includes(meta.objectHighlight)) {
     problems.push('meta.objectHighlight 必須是 "glow" 或 "ring"');
   }
+  for (const k of ['cover', 'coverPortrait'] as const) {
+    const c = meta[k];
+    if (c !== undefined && !(typeof c === 'string' && c.trim())) problems.push(`（警告）meta.${k} 必須是背景圖名稱（文字）`);
+  }
+  const ch = meta.chapterStyle;
+  if (ch !== undefined) {
+    const okScale = ch?.scale === undefined || (typeof ch.scale === 'number' && ch.scale >= 0.6 && ch.scale <= 1.6);
+    if (typeof ch !== 'object' || ch === null || !(ch.style === undefined || ['stacked', 'bold', 'quiet'].includes(ch.style)) || !okScale) {
+      problems.push('（警告）meta.chapterStyle 必須是 { style: "stacked"|"bold"|"quiet", scale: 0.6～1.6 }');
+    }
+  }
   const cs = meta.choiceStyle;
   if (cs !== undefined) {
     const num = (v: unknown, lo: number, hi: number) => v === undefined || (typeof v === 'number' && v >= lo && v <= hi);

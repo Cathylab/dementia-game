@@ -85,6 +85,11 @@ export function assetCatalog(script: Script): AssetItem[] {
       describe(it, `${scene.title ?? scene.id}的氣氛`);
     }
     for (const obj of scene.objects ?? []) {
+      if (obj.sfx) {
+        const it = get('sfx', obj.sfx);
+        use(it, scene, `（物件「${obj.label}」，循環播放）`);
+        describe(it, `${obj.label}出現時循環播放，點了就停`);
+      }
       if (!obj.image) continue;
       const it = get('fg', obj.image);
       use(it, scene, `（物件「${obj.label}」）`);
@@ -105,6 +110,14 @@ export function assetCatalog(script: Script): AssetItem[] {
         describe(it, line.text.slice(0, 40));
       }
     });
+  }
+
+  // 封面
+  for (const [c, what] of [[script.meta?.cover, '封面'], [script.meta?.coverPortrait, '手機直式封面']] as const) {
+    if (!c) continue;
+    const it = get('bg', c);
+    if (!it.uses.includes('標題畫面')) it.uses.push('標題畫面');
+    describe(it, `${what}：遊戲標題「${script.meta.title}」的背景，以畫面中間為主`);
   }
 
   // 立繪：每個角色需要的表情
