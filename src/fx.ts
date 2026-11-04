@@ -1,3 +1,4 @@
+import { activeFx, currentPack } from './pack';
 import { resolveImage } from './assets';
 import type { ChoiceLine, FxTag, TextLine } from './types';
 import { clamp, pick, rand, shuffle, sleep, T } from './util';
@@ -49,7 +50,7 @@ export class Effects {
 
   applyLine(line: TextLine, spans: HTMLSpanElement[], repeated: boolean): void {
     if (repeated) this.markRepeat();
-    for (const fx of line.fx ?? []) this.trigger(fx, { line, spans });
+    for (const fx of activeFx(line.fx)) this.trigger(fx, { line, spans });
   }
 
   /** 觸發單一效果。開發者面板也會呼叫這裡。 */
@@ -98,7 +99,7 @@ export class Effects {
     if (!this.v.nameEl.textContent) return;
     clearInterval(this.nameTimer);
     box.classList.add('fx-name-fade');
-    this.nameTimer = fadeText(this.v.nameEl, '那個人', () => {
+    this.nameTimer = fadeText(this.v.nameEl, currentPack().texts.forgottenPerson, () => {
       box.dataset.faded = '1';
       const trait = this.v.engine.getChar(this.v.engine.lastChar)?.trait;
       if (trait) box.querySelector('.trait')?.replaceChildren(trait);
@@ -185,7 +186,7 @@ export class Effects {
 
   /** 套用選項效果。items 為選項元素（list 為按鈕、hotspot 為熱點）。 */
   applyChoice(line: ChoiceLine, container: HTMLElement, items: HTMLElement[]): void {
-    const fx = line.fx ?? [];
+    const fx = activeFx(line.fx);
     if (fx.includes('flat_options')) this.flatOptions(container, items);
     if (fx.includes('choice_vanish')) this.choiceVanish(container, items, line.mode === 'hotspot');
   }

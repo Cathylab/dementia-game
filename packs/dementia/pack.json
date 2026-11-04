@@ -1,0 +1,27 @@
+{
+  "name": "失智症",
+  "description": "用第一人稱經歷失智症：記不住的人名、消失的選項、說錯的物件，介面跟著記憶一起崩壞。",
+  "effects": [
+    "name_fade",
+    "text_blur",
+    "repeat_line",
+    "choice_vanish",
+    "flat_options",
+    "wrong_object",
+    "time_skip",
+    "desaturate",
+    "focus_drift",
+    "look_around",
+    "muffle"
+  ],
+  "degradation": [0, 0.5, 1],
+  "texts": {
+    "forgottenPerson": "那個人",
+    "forgottenThing": "那個東西"
+  },
+  "docs": {
+    "readme": "README.md",
+    "guide": "guide.md",
+    "cautions": "cautions.md"
+  }
+}

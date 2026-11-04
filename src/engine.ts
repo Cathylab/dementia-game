@@ -1,3 +1,4 @@
+import { activeFx, currentPack, degradationForAct } from './pack';
 import { ENDING_TARGET, evalCondition, pickEnding, type CondContext } from './script';
 import { settings } from './settings';
 import {
@@ -148,11 +149,10 @@ export class Engine {
     return id ? this.chars.get(id) ?? null : null;
   }
 
-  /** 全域退化係數：第一幕 0、第二幕 0.5、第三幕 1（之後依此類推並夾在 0–1）。 */
+  /** 全域退化係數：依題材包的曲線（失智症包：第一幕 0、第二幕 0.5、第三幕起 1）。 */
   get degradation(): number {
     if (this.degradationOverride != null) return this.degradationOverride;
-    const act = this.scene?.act ?? 1;
-    return clamp((act - 1) / 2, 0, 1);
+    return clamp(degradationForAct(currentPack(), this.scene?.act ?? 1), 0, 1);
   }
 
   /** 判定 if／結局條件用的狀態。 */
@@ -298,7 +298,7 @@ export class Engine {
         this.poses[character.id] = pose;
         this.lastChar = character.id;
       }
-      if (!forced && line.fx?.includes('repeat_line')) {
+      if (!forced && activeFx(line.fx).includes('repeat_line')) {
         this.repeats.push({ line, remaining: Math.random() < 0.5 ? 1 : 2 });
       }
       this.log.push({ speaker: line.speaker, name: this.speakerName(line.speaker), text: line.text, voice: line.voice });
@@ -394,7 +394,7 @@ export class Engine {
     if (this.phase !== 'choice') return;
     if (this.shown.find((o) => o.opt === opt)?.locked) return;
     // flat_options：走「第一個實際出現的選項」的 goto
-    const flat = line.fx?.includes('flat_options');
+    const flat = activeFx(line.fx).includes('flat_options');
     const target = flat ? (this.shown[0]?.opt ?? line.choice[0]).goto : opt.goto;
     const range = this.script.meta.statRange ?? { min: -Infinity, max: Infinity };
     for (const [k, v] of Object.entries(opt.effects ?? {})) {

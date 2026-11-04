@@ -2,6 +2,7 @@ import { imageSize, resolveImage, resolveSprite, type ImageKind } from './assets
 import { Effects, fadeText, glitchSpans } from './fx';
 import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
+import { activeFx, currentPack } from './pack';
 import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
 import type {
@@ -467,7 +468,7 @@ export class AdvView implements View {
       if (corrupt && e.name) {
         const name = row.querySelector<HTMLElement>('.log-name')!;
         name.classList.add('fx-name-fade');
-        name.textContent = Math.random() < 0.4 ? '那個人' : this.underscoreSome(e.name);
+        name.textContent = Math.random() < 0.4 ? currentPack().texts.forgottenPerson : this.underscoreSome(e.name);
       }
       return { node: row };
     });
@@ -1039,11 +1040,11 @@ export class AdvView implements View {
       card.append(img);
     }
     card.append(label, desc, el('p', { class: 'inspect-hint' }, ['點一下關閉']));
-    const fx = obj.fx ?? [];
+    const fx = activeFx(obj.fx);
     card.classList.toggle('fx-text-blur', fx.includes('text_blur'));
     card.classList.toggle('fx-name-fade', fx.includes('name_fade'));
     if (fx.includes('text_blur')) glitchSpans(spans);
-    if (fx.includes('name_fade')) this.inspectTimer = fadeText(label, '那個東西');
+    if (fx.includes('name_fade')) this.inspectTimer = fadeText(label, currentPack().texts.forgottenThing);
     this.inspectEl.replaceChildren(card);
     this.inspectEl.dataset.object = obj.id;
     this.inspectEl.classList.add('open');

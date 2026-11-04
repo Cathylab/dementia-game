@@ -35,6 +35,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/projectfile.ts`：專案檔 `.vnproj`（zip：`project.json`、`script.json`、`assets/…`），用 `fflate`。
 - `src/devupload.ts`：開發者面板「上傳素材」，放進本機素材層（`putLocalFile`＋`forgetImage`），並提供轉好 webp 的下載與 GitHub 上傳頁連結。
 - `src/storyeditor.ts`＋`src/storyops.ts`：故事編輯器（`?story=1`），可改結構（場景、台詞、選項去向、角色、結局）。復原用整份腳本 JSON 快照；`restore` 原地換掉 `engine.script` 的內容後 `engine.reindex()`。改結構後呼叫 `TextEditor.invalidate()`。存檔走 `editor.save(true)`（dev 端點加 `?structure=1`）。
+- 題材包：`packs/{id}/pack.json`（`docs/packs.md`）。`src/pack.ts` 的 `currentPack()`／`activeFx()`：**觸發效果的地方都要經過 `activeFx`**；退化係數由 `degradationForAct`。`meta.pack` 省略＝dementia（相容），`null`／`plain`＝無效果。`src/packloader.ts` 線上 fetch、離線讀 `EMBED.packs`。
 - `src/editable.ts`：文字編輯器可改的欄位、`structureOf`（只比結構；呈現設定 `meta.transition`、`objectHighlight`、`sprite`、`characters[].sprite`、`scenes[].music` 視為可改）、JSON 排版 `formatScript`。瀏覽器與 dev server 共用。
 - `src/paths.ts`：目前專案（`?project=examples/…` 或 `templates/…`，預設 Demo）；`assetBase()`、`scriptUrl()`、`assetFolderLabel()`。**所有網站上的素材網址都要經過它**，不要寫死路徑。
 - 離線版：`npm run build` 也會跑 `vite build --mode offline` → `dist-offline/`（`玩 Demo.html`、`空白範本.html`，iife＋CSS＋`window.__VN_EMBED__` 寫進 html）。`src/embed.ts` 的 `FILE_MODE`（`file://`）下不可 fetch：劇本與清單從 `EMBED` 來，配音／音效／音樂檔用 `<audio>`（`ElementTrack`）。新增任何讀檔都要考慮這兩種模式。

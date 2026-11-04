@@ -67,6 +67,34 @@ export async function listProjects(root: string): Promise<ProjectEntry[]> {
   return out;
 }
 
+/** 讀所有題材包（有 pack.json 的 packs/*）：代號 → pack.json 內容。 */
+export async function readPacks(root: string): Promise<Record<string, Record<string, unknown>>> {
+  const out: Record<string, Record<string, unknown>> = {};
+  let names: string[] = [];
+  try {
+    names = (await readdir(join(root, 'packs'))).sort();
+  } catch {
+    return out;
+  }
+  for (const id of names) {
+    try {
+      out[id] = JSON.parse(await readFile(join(root, 'packs', id, 'pack.json'), 'utf8')) as Record<string, unknown>;
+    } catch {
+      /* 沒有 pack.json 的資料夾不算題材包 */
+    }
+  }
+  return out;
+}
+
+/** 題材包清單（給選單用）。 */
+export async function listPackEntries(root: string): Promise<{ id: string; name: string; description: string }[]> {
+  return Object.entries(await readPacks(root)).map(([id, p]) => ({
+    id,
+    name: typeof p.name === 'string' ? p.name : id,
+    description: typeof p.description === 'string' ? p.description : '',
+  }));
+}
+
 export function contentPlugin(): Plugin {
   let root = '';
   let outDir = '';
@@ -79,6 +107,14 @@ export function contentPlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = decodeURIComponent((req.url ?? '').split('?')[0]);
+        if (url === '/packs.json') {
+          void listPackEntries(root).then((list) => {
+            res.setHeader('Content-Type', MIME['.json']);
+            res.setHeader('Cache-Control', 'no-cache');
+            res.end(JSON.stringify(list));
+          });
+          return;
+        }
         if (url === '/projects.json') {
           void listProjects(root).then((list) => {
             res.setHeader('Content-Type', MIME['.json']);
@@ -117,6 +153,7 @@ export function contentPlugin(): Plugin {
     async generateBundle() {
       const projects = await listProjects(root);
       this.emitFile({ type: 'asset', fileName: 'projects.json', source: JSON.stringify(projects) });
+      this.emitFile({ type: 'asset', fileName: 'packs.json', source: JSON.stringify(await listPackEntries(root)) });
       for (const p of projects) {
         for (const folder of MANIFEST_FOLDERS) {
           this.emitFile({

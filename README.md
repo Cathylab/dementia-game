@@ -56,6 +56,15 @@ npm run dev
 
 建置時這三個資料夾原樣複製到 `dist/`，並為每個專案產生 `assets/voice/manifest.json`、`assets/sfx/manifest.json`，以及列出所有專案的 `projects.json`。
 
+### 題材包
+
+每個處境（失智、聽損……）是一個題材包：`packs/{代號}/pack.json` 決定啟用哪些效果、退化係數怎麼隨幕變化、介面上的特殊文字，旁邊附寫作準則與注意事項。腳本的 `meta.pack` 指定用哪一個：
+
+- `dementia`（失智症）：全部 11 種效果，退化 0 → 0.5 → 1。《寫給未來的我》用它；沒寫 `meta.pack` 的舊腳本也當作它。
+- `plain`（一般故事）：沒有特殊效果、沒有退化。空白範本用它；`"pack": null` 也是它。
+
+題材包沒啟用的效果，寫在腳本裡也不會出現（腳本檢查會提醒）。開發者面板「呈現調整」的「題材包」可以即時切換並存檔。怎麼做新的題材包見 [`docs/packs.md`](docs/packs.md)。
+
 ### 離線版（雙擊就能玩）
 
 `npm run build` 同時建置兩份：
@@ -186,7 +195,7 @@ npx playwright install chromium
 
 ### 全域退化係數
 
-由場景的 `act` 決定：第一幕 0、第二幕 0.5、第三幕 1（第四幕以後維持 1）。它會連續影響：
+由場景的 `act` 與題材包的 `degradation` 曲線決定。失智症包：第一幕 0、第二幕 0.5、第三幕 1（第四幕以後維持 1）；一般故事包永遠是 0。它會連續影響：
 
 - 打字速度忽快忽慢、偶爾停頓
 - 文字間距隨機抖動
@@ -535,10 +544,14 @@ examples/
   寫給未來的我/        Demo 遊戲：script.json（故事腳本）＋ assets/bg|char|fg|voice|music|sfx/（素材）
 templates/
   空白/                空白範本（最少的可執行專案）
-packs/                 題材包（之後的 PR）
+packs/
+  dementia/            失智症題材包：pack.json、README、寫作準則 guide.md、注意事項 cautions.md
+  plain/               一般故事（沒有特殊效果）
 src/
   paths.ts             目前載入哪個專案、素材在哪裡（?project=…）
-  embed.ts             離線版內嵌的劇本與音檔清單、離線模式的限制
+  embed.ts             離線版內嵌的劇本、音檔清單、題材包，離線模式的限制
+  pack.ts              題材包格式、目前的題材包、效果開關與退化曲線
+  packloader.ts        讀題材包（線上 fetch、離線內嵌）
   types.ts             腳本格式型別
   script.ts            載入、驗證、結局條件
   engine.ts            流程與狀態：台詞、選項、跳轉、回上一句、repeat_line

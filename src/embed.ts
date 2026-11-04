@@ -15,6 +15,8 @@ export interface Embed {
   /** 沒有 ?project= 時載入哪一個，例如 examples/寫給未來的我。 */
   defaultProject: string;
   projects: Record<string, EmbeddedProject>;
+  /** 題材包（packs/{id}/pack.json 的內容）。 */
+  packs?: Record<string, unknown>;
 }
 
 export const EMBED: Embed | null = (globalThis as unknown as { __VN_EMBED__?: Embed }).__VN_EMBED__ ?? null;

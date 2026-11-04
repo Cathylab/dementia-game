@@ -1,3 +1,4 @@
+import type { Pack } from './pack';
 import {
   ALL_FX,
   isChoice,
@@ -6,6 +7,7 @@ import {
   requiredObjects,
   TRANSITION_STYLES,
   type Ending,
+  type FxTag,
   type Script,
   type SpriteFraming,
 } from './types';
@@ -27,8 +29,15 @@ export async function loadScript(url: string): Promise<Script> {
 }
 
 /** 檢查腳本常見錯誤，回傳問題清單（不丟例外，盡量讓遊戲照樣能跑）。 */
-export function validateScript(script: Script): string[] {
+export function validateScript(script: Script, pack?: Pack): string[] {
   const problems: string[] = [];
+  const pk = script.meta?.pack;
+  if (pk !== undefined && pk !== null && typeof pk !== 'string') problems.push('meta.pack 必須是題材包代號（文字）或 null');
+  /** 用到了、但題材包沒有啟用的效果：效果 → 位置 */
+  const offPack = new Map<string, string[]>();
+  const notePack = (fx: string, where: string) => {
+    if (pack && ALL_FX.includes(fx as FxTag) && !pack.effects.includes(fx as FxTag)) offPack.set(fx, [...(offPack.get(fx) ?? []), where]);
+  };
   if (!script.meta?.title) problems.push('meta.title 缺少');
   if (!Array.isArray(script.scenes) || script.scenes.length === 0) {
     problems.push('scenes 為空');
@@ -115,6 +124,7 @@ export function validateScript(script: Script): string[] {
       if (typeof obj.y === 'number' && obj.y > 0.92) problems.push(`${where}：y ${obj.y} 太低，會被下方功能列擋住（建議 0.92 以下）`);
       if ((obj.appearAt ?? 0) >= scene.lines.length) problems.push(`${where}：appearAt ${obj.appearAt} 超過本場景的句數`);
       for (const fx of obj.fx ?? []) {
+        notePack(fx, where);
         if (fx !== 'text_blur' && fx !== 'name_fade') problems.push(`${where}：物件說明只支援 text_blur、name_fade，不支援 "${fx}"`);
       }
       if (obj.truthVoice && !obj.truth) problems.push(`${where}：有 truthVoice 但沒有 truth`);
@@ -123,6 +133,7 @@ export function validateScript(script: Script): string[] {
     scene.lines.forEach((line, i) => {
       const where = `${scene.id}.lines[${i}]`;
       for (const fx of line.fx ?? []) {
+        notePack(fx, where);
         if (!ALL_FX.includes(fx)) problems.push(`${where}：未知效果 "${fx}"`);
       }
       checkCond(`${where}.if`, line.if);
@@ -193,6 +204,10 @@ export function validateScript(script: Script): string[] {
   for (const e of script.endings ?? []) {
     if (!sceneIds.has(e.scene)) problems.push(`結局 ${e.id}：找不到場景 "${e.scene}"`);
     checkCond(`結局 ${e.id}.condition`, e.condition);
+  }
+  for (const [fx, wheres] of offPack) {
+    const more = wheres.length > 3 ? `等 ${wheres.length} 處` : '';
+    problems.push(`（警告）題材包「${pack!.name}」沒有啟用效果 ${fx}，${wheres.slice(0, 3).join('、')}${more}的這個效果不會出現`);
   }
   return problems;
 }
