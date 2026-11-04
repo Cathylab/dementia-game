@@ -450,7 +450,7 @@ registerStep('publish', (ctx) => {
   const msg = el('p', { class: 'g-status', 'aria-live': 'polite' });
   const exportProject = el('button', { type: 'button', class: 'g-btn primary', 'data-guide': 'export-project' }, ['匯出專案檔（.vnproj）']);
   exportProject.onclick = async () => {
-    const blob = await packProject({ script: ctx.project.script, files: ctx.project.files });
+    const blob = await packProject({ script: ctx.project.script, files: ctx.project.files, group: (ctx.state.answers as Answers).theme?.group });
     const name = projectFileName(ctx.project.script.meta.title ?? '');
     downloadBlob(blob, name);
     msg.textContent = `已下載 ${name}。換電腦或給別人繼續編輯時，用遊戲頁開發者面板的「開啟專案檔」。`;

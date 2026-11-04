@@ -33,9 +33,20 @@ export class BrowserProjectStore implements ProjectStore {
   readonly label = '這個瀏覽器';
   private db: Promise<IDBDatabase> | null = null;
 
+  /** dbName：班級展示的每個作品各用一個資料庫，不會動到自己的專案。 */
+  constructor(private readonly dbName = DB_NAME) {}
+
+  /** 刪掉整個資料庫（班級展示移除作品時）。 */
+  static async drop(dbName: string): Promise<void> {
+    await new Promise<void>((resolve) => {
+      const req = indexedDB.deleteDatabase(dbName);
+      req.onsuccess = req.onerror = req.onblocked = () => resolve();
+    });
+  }
+
   private open(): Promise<IDBDatabase> {
     this.db ??= new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1);
+      const req = indexedDB.open(this.dbName, 1);
       req.onupgradeneeded = () => {
         req.result.createObjectStore(META);
         req.result.createObjectStore(FILES);

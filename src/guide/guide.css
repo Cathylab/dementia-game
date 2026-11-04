@@ -757,3 +757,76 @@ html[data-page='guide'] #app {
     grid-template-columns: 1fr;
   }
 }
+
+/* 班級展示・互評 */
+.g-show-item.current {
+  outline: 3px solid var(--g-accent);
+}
+.g-show-item input[name='showcase-group'] {
+  max-width: 12em;
+}
+.g-scale {
+  border: 1px solid var(--g-line);
+  border-radius: 8px;
+  margin: 8px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.g-review-papers {
+  display: none;
+}
+.g-review-paper table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 16px;
+}
+.g-review-paper th,
+.g-review-paper td {
+  border: 1px solid #999;
+  padding: 6px 8px;
+  text-align: left;
+}
+.g-paper-lines {
+  height: 5em;
+  background: repeating-linear-gradient(transparent 0 1.6em, #bbb 1.6em calc(1.6em + 1px));
+  margin-bottom: 12px;
+}
+@media print {
+  .g-showcase {
+    display: none !important;
+  }
+  .g-review-papers {
+    display: block;
+  }
+  .g-review-paper {
+    break-after: page;
+  }
+}
+
+/* 給老師的文件 */
+.g-table-wrap {
+  overflow-x: auto;
+  margin: 12px 0;
+}
+.g-table {
+  border-collapse: collapse;
+  min-width: 640px;
+  font-size: 0.92em;
+}
+.g-table th,
+.g-table td {
+  border: 1px solid var(--g-line);
+  padding: 8px 10px;
+  vertical-align: top;
+  text-align: left;
+}
+.g-table thead th {
+  background: var(--g-bg);
+}
+.g-doc h1 {
+  margin-top: 0;
+}
+.g-doc-list li {
+  margin: 6px 0;
+}

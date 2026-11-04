@@ -17,4 +17,4 @@ export function gameHref(params: Record<string, string> = {}): string {
 }
 
 /** 這些網址參數是給遊戲的；首頁收到時轉到遊戲頁（以前分享的連結照樣能用）。 */
-export const GAME_PARAMS = ['dev', 'story', 'edit', 'voice', 'project', 'site', 'timescale', 'clip'];
+export const GAME_PARAMS = ['showcase', 'dev', 'story', 'edit', 'voice', 'project', 'site', 'timescale', 'clip'];

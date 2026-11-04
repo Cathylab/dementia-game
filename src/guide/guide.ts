@@ -17,6 +17,8 @@ import { flushPending } from './pending';
 import { STEPS, type StepDef } from './steps';
 import { renderTeacher } from './teacher';
 import { renderRoles } from './rolespage';
+import { renderShowcase } from './showcase';
+import { renderTeacherDoc } from './teacherdocs';
 import './guide.css';
 
 const BLANK = 'templates/空白';
@@ -146,6 +148,9 @@ export class Guide {
     if (hash === 'start') return this.renderStart();
     if (hash === 'teacher') return renderTeacher(this.root);
     if (hash === 'roles') return renderRoles(this.root);
+    if (hash === 'showcase') return renderShowcase(this.root);
+    const d = hash.match(/^docs(?:\/(\w+))?$/);
+    if (d) return renderTeacherDoc(this.root, d[1] ?? '');
     return this.renderHome();
   }
 
@@ -240,6 +245,10 @@ export class Guide {
         el('a', { href: '#/teacher', 'data-guide': 'teacher-link' }, ['老師工作台（代貼提示詞）']),
         ' ・ ',
         el('a', { href: '#/roles', 'data-guide': 'roles-link' }, ['分組角色卡']),
+        ' ・ ',
+        el('a', { href: '#/showcase', 'data-guide': 'showcase-link' }, ['班級展示']),
+        ' ・ ',
+        el('a', { href: '#/docs', 'data-guide': 'docs-link' }, ['給老師：教案、評分規準、安全守則']),
       ]),
     );
   }

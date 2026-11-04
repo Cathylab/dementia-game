@@ -130,7 +130,7 @@ export function renderTeacher(root: HTMLElement): void {
 
   render();
   root.replaceChildren(
-    el('nav', { class: 'g-crumbs' }, [el('a', { href: '#/' }, ['← 回首頁'])]),
+    el('nav', { class: 'g-crumbs' }, [el('a', { href: '#/' }, ['← 回首頁']), el('a', { href: '#/showcase' }, ['班級展示']), el('a', { href: '#/docs' }, ['給老師的文件'])]),
     el('section', { class: 'g-section' }, [
       el('h1', {}, ['老師工作台：代貼提示詞']),
       el('p', {}, [
