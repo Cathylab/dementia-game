@@ -5,6 +5,7 @@ import { TextEditor } from './editor';
 import { Engine } from './engine';
 import { EMBED, embeddedScript } from './embed';
 import { Guide } from './guide/guide';
+import './guide/stepviews';
 import { GAME_PARAMS, gameHref } from './guide/links';
 import { projectDir, scriptUrl } from './paths';
 import { loadScript } from './script';

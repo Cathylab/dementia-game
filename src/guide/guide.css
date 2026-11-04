@@ -394,3 +394,121 @@ html[data-page='guide'] #app {
     margin-left: 0;
   }
 }
+
+/* 步驟內容 */
+.g-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.g-form h3 {
+  margin: 12px 0 0;
+  font-size: 17px;
+}
+
+.g-field {
+  display: grid;
+  gap: 6px;
+}
+
+.g-field-label {
+  font-weight: 600;
+}
+
+.g-field small,
+.g-next-hint {
+  color: var(--g-dim);
+  font-size: 13px;
+}
+
+.guide input[type='text'],
+.guide textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--g-line);
+  border-radius: 10px;
+  background: var(--g-bg);
+  color: var(--g-ink);
+  font: inherit;
+}
+
+.guide textarea {
+  resize: vertical;
+}
+
+.guide input:focus,
+.guide textarea:focus {
+  outline: 2px solid var(--g-accent);
+  outline-offset: 1px;
+}
+
+.g-radios {
+  display: grid;
+  gap: 6px;
+}
+
+.g-radio {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--g-bg);
+  cursor: pointer;
+}
+
+.g-radio input {
+  flex: none;
+}
+
+.g-prompt {
+  max-height: 280px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--g-line);
+  border-radius: 10px;
+  background: var(--g-bg);
+  white-space: pre-wrap;
+  font: 13px/1.6 ui-monospace, Menlo, Consolas, var(--font-body);
+}
+
+.g-status {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--g-dim);
+}
+
+.g-status.ok {
+  color: var(--g-good);
+  font-weight: 600;
+}
+
+.g-offline {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--g-bg);
+  color: var(--g-accent);
+}
+
+.g-checklist {
+  display: grid;
+  gap: 6px;
+}
+
+.g-result .issues {
+  color: var(--g-ink);
+}
+
+.g-result .issue {
+  background: var(--g-bg);
+}
+
+.g-result .issues button {
+  border-color: var(--g-line);
+  background: var(--g-paper);
+  color: var(--g-ink);
+}
+

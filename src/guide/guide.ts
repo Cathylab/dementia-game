@@ -31,6 +31,10 @@ export interface StepContext {
   save: () => Promise<void>;
   /** 重畫這一頁。 */
   refresh: () => void;
+  /** 這一步可不可以進下一步（檢查通過才行）；不行時顯示原因。「先跳過」不受影響。 */
+  setReady: (ok: boolean, why?: string) => void;
+  /** 把劇本存進本機專案。 */
+  applyScript: (script: Script) => Promise<void>;
 }
 
 const bodies = new Map<string, StepBody>();
@@ -285,7 +289,25 @@ export class Guide {
       el('span', {}, [n < STEPS.length ? `還剩 ${STEPS.length - n} 步` : '最後一步']),
     ]);
 
-    const ctx: StepContext = { step, index: n, state, store: this.store, project, save, refresh: () => this.renderStep(n) };
+    const next = el('button', { type: 'button', class: 'g-btn primary', 'data-guide': 'next' }, [n < STEPS.length ? '下一步 →' : '完成']);
+    const nextHint = el('p', { class: 'g-next-hint', 'data-guide': 'next-hint', 'aria-live': 'polite' });
+    const ctx: StepContext = {
+      step,
+      index: n,
+      state,
+      store: this.store,
+      project,
+      save,
+      refresh: () => this.renderStep(n),
+      setReady: (ok, why) => {
+        next.disabled = !ok;
+        nextHint.textContent = ok ? '' : (why ?? '');
+      },
+      applyScript: async (script) => {
+        await this.store.saveScript(script);
+        project.script = JSON.parse(JSON.stringify(script)) as Script;
+      },
+    };
     const body = bodies.get(step.id)?.(ctx) ?? el('div', { class: 'g-todo' }, [
       el('p', {}, ['這一步的操作畫面會在下一版加入。現在可以：']),
       el('ul', {}, [
@@ -297,7 +319,6 @@ export class Guide {
     const prev = el('button', { type: 'button', class: 'g-btn', 'data-guide': 'prev' }, ['← 上一步']);
     prev.disabled = n === 1;
     prev.onclick = () => goTo(n - 1);
-    const next = el('button', { type: 'button', class: 'g-btn primary', 'data-guide': 'next' }, [n < STEPS.length ? '下一步 →' : '完成']);
     next.onclick = () => {
       state.skipped = state.skipped.filter((k) => k !== n);
       if (n < STEPS.length) goTo(n + 1);
@@ -330,6 +351,7 @@ export class Guide {
         ]),
         body,
         el('div', { class: 'g-nav' }, [prev, skip, next]),
+        nextHint,
       ]),
     );
   }
