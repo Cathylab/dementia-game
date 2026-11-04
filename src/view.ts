@@ -4,6 +4,8 @@ import type { CharPose, Engine, ShownOption, View } from './engine';
 import { ICONS } from './icons';
 import { activeFx, currentPack } from './pack';
 import { saveTimeLabel, type SaveData, type SaveStore } from './saves';
+import { hasQuestions, newSession, type Survey, type SurveySession, type SurveyStore } from './survey';
+import { showSurveyForm } from './surveyview';
 import { setSetting, settings, type MemoryReviewMode } from './settings';
 import { Typewriter } from './typewriter';
 import type {
@@ -179,6 +181,10 @@ export class AdvView implements View {
   readonly pauseOverlay = el('div', { class: 'overlay pause-overlay', role: 'dialog', 'aria-label': '暫停' });
   /** 存檔簿（main.ts 設定）；沒有就不顯示存檔、讀檔。 */
   saves: SaveStore | null = null;
+  /** 成效評估問卷（專案有 survey.json 時，main.ts 設定）。 */
+  survey: { survey: Survey; store: SurveyStore } | null = null;
+  /** 這一次遊玩的問卷回答。 */
+  private surveySession: SurveySession | null = null;
   readonly titleScreen = el('div', { class: 'screen title-screen' });
   readonly endingScreen = el('div', { class: 'screen ending-screen' });
   readonly buttons = new Map<UiKey, HTMLButtonElement>();
@@ -998,6 +1004,43 @@ export class AdvView implements View {
 
   protected onStart(): void {
     this.audio?.unlock();
+    // 有玩前問卷：先填（可以略過）再開始
+    const sv = this.survey;
+    this.surveySession = sv ? newSession() : null;
+    if (sv && hasQuestions(sv.survey, 'pre')) {
+      void showSurveyForm(this.stage, sv.survey, 'pre').then((answers) => {
+        if (answers && this.surveySession) {
+          this.surveySession.pre = answers;
+          sv.store.save(this.surveySession);
+        }
+        this.beginGame();
+      });
+      return;
+    }
+    this.beginGame();
+  }
+
+  /**
+   * 結局之後回到標題：有玩後問卷、這次還沒填時，先填（可以略過）。
+   */
+  private endToTitle(): void {
+    const sv = this.survey;
+    const session = this.surveySession;
+    if (sv && session && !session.post && hasQuestions(sv.survey, 'post')) {
+      session.ending = this.engine.ending?.id ?? session.ending;
+      void showSurveyForm(this.stage, sv.survey, 'post').then((answers) => {
+        if (answers) {
+          session.post = answers;
+          sv.store.save(session);
+        }
+        this.engine.toTitle();
+      });
+      return;
+    }
+    this.engine.toTitle();
+  }
+
+  private beginGame(): void {
     this.titleScreen.classList.remove('open');
     this.applyTransitionStyle();
     this.stage.classList.add('eyes-closed');
@@ -1655,7 +1698,7 @@ export class AdvView implements View {
     again.onclick = (e) => {
       e.stopPropagation();
       if (withPage) this.showMemoryPage();
-      else this.engine.toTitle();
+      else this.endToTitle();
     };
     this.endingScreen.dataset.endingId = ending?.id ?? '';
     this.endingScreen.replaceChildren(
@@ -1671,7 +1714,7 @@ export class AdvView implements View {
   showMemoryPage(): void {
     const toTitle = (e: Event) => {
       e.stopPropagation();
-      this.engine.toTitle();
+      this.endToTitle();
     };
     const skip = el('button', { class: 'memory-skip', type: 'button' }, ['略過']);
     skip.onclick = toTitle;

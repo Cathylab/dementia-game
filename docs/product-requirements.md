@@ -610,3 +610,9 @@ docs/                 規格文件與本需求書
 - 標題畫面的提醒（`[data-ui=motion-note]`）只在題材包有效果時出現；設定視窗 z-index 9，可以疊在標題畫面上。
 - 「字幕」：所有台詞與配音本來就有文字；音效字幕還沒做（需要每個音效的中文說明，劇本格式要先定）。
 
+### 階段二 B-7：成效評估
+
+- 題目在專案的 `survey.json`（`docs/survey-format.md`），內容由其他 AI 或單位寫。純邏輯在 `src/survey.ts`（格式檢查、`SurveyStore`、統計、CSV），讀檔在 `src/surveyload.ts`，畫面在 `src/surveyview.ts`。
+- 只有網站上的專案、離線版、匯出的版本有問卷；本機專案沒有。`projects.json` 的 `survey: true` 避免 404。
+- 回答 localStorage `vn-survey:{專案|player|遊戲名稱}`，每次按「開始」一筆；CSV 開頭加 BOM 讓 Excel 正確讀中文。
+

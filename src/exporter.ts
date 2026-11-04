@@ -197,7 +197,8 @@ const README = (title: string, file: string) => `《${title}》可以玩的版�
 export type PlayableTarget = 'folder' | 'itch';
 
 /** 匯出可以玩的版本（壓縮檔）。 */
-export async function exportPlayable(script: Script, own: ReadonlyMap<string, Blob>, target: PlayableTarget = 'folder'): Promise<PlayableResult> {
+/** survey：成效評估問卷（有的話一起放進去，匯出的版本也會問）。 */
+export async function exportPlayable(script: Script, own: ReadonlyMap<string, Blob>, target: PlayableTarget = 'folder', survey?: unknown): Promise<PlayableResult> {
   const { css, js } = await engineParts();
   const { files, missing } = await collect(script, own);
   const packId = packIdOf(script);
@@ -213,7 +214,7 @@ export async function exportPlayable(script: Script, own: ReadonlyMap<string, Bl
     page: 'game',
     player: true,
     defaultProject: 'game',
-    projects: { game: { title, kind: 'example', script, manifests } },
+    projects: { game: { title, kind: 'example', script, manifests, ...(survey ? { survey } : {}) } },
     packs: pack ? { [packId]: pack } : {},
     pages: { game: 'index.html' },
   };

@@ -16,6 +16,8 @@ import { currentPack, packIdOf, setCurrentPack } from './pack';
 import { loadPack } from './packloader';
 import { ProjectSession, reloadWithProject } from './project';
 import { SaveStore } from './saves';
+import { SurveyStore } from './survey';
+import { loadSurvey } from './surveyload';
 import { BrowserProjectStore } from './projectstore';
 import { showcaseDb } from './guide/review';
 import { StoryEditor } from './storyeditor';
@@ -111,6 +113,11 @@ async function boot() {
     // 存檔：每個遊戲（專案、本機專案或班級作品、遊戲名稱）各自一份，存在這個瀏覽器
     const saves = new SaveStore([projectDir(), started.session.mode, showcase ?? '', EMBED?.player ? 'player' : '', script.meta.title].join('|'));
     view.saves = saves;
+    // 成效評估問卷：網站上的專案、離線版、匯出的版本有 survey.json 時才有（本機專案沒有）
+    if (started.session.mode === 'site') {
+      const survey = await loadSurvey();
+      if (survey) view.survey = { survey, store: new SurveyStore([projectDir(), EMBED?.player ? 'player' : '', script.meta.title].join('|')) };
+    }
     engine.onCheckpoint = () => {
       const d = engine.saveData();
       if (d) saves.saveAuto(d);

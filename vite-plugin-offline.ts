@@ -52,7 +52,9 @@ export function offlinePlugin(): Plugin {
         const manifests: Record<string, string[]> = {};
         for (const folder of MANIFEST_FOLDERS) manifests[folder] = await listAudioFiles(join(root, p.dir), folder);
         const script = JSON.parse(await readFile(join(root, p.dir, 'script.json'), 'utf8')) as unknown;
-        projects[p.dir] = { title: p.title, kind: p.kind, script, manifests };
+        // 成效評估問卷（選用）
+        const survey = await readFile(join(root, p.dir, 'survey.json'), 'utf8').then((t) => JSON.parse(t) as unknown, () => undefined);
+        projects[p.dir] = { title: p.title, kind: p.kind, script, manifests, ...(survey ? { survey } : {}) };
       }
 
       const packs = await readPacks(root);

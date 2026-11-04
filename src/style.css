@@ -3766,3 +3766,110 @@ body.voice-desk-page #app {
 .settings-overlay.open {
   z-index: 9;
 }
+
+/* ───────────── 成效評估問卷 ───────────── */
+
+.survey-screen {
+  z-index: 9;
+  justify-content: flex-start;
+  overflow: auto;
+  padding: 4% 4% 6%;
+  background: #0d0b09;
+}
+
+.survey-form {
+  width: min(40em, 100%);
+  margin: auto;
+  text-align: left;
+  font-size: clamp(15px, 2.6cqh, 19px);
+  line-height: 1.6;
+}
+
+.survey-form h2 {
+  margin: 0;
+  font-size: 1.4em;
+  letter-spacing: 0.15em;
+  text-align: center;
+}
+
+.survey-part,
+.survey-intro {
+  margin: 0.3em 0 1em;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+.survey-q {
+  margin: 0 0 1em;
+  padding: 0.8em 1em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+
+.survey-q legend {
+  padding: 0 0.3em;
+}
+
+.survey-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 0.6em;
+  margin-top: 0.4em;
+}
+
+.survey-options.scale {
+  justify-content: space-between;
+}
+
+.survey-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 44px;
+  padding: 0 0.7em;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.survey-option:has(input:checked) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.survey-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.3em;
+  color: var(--ink-dim);
+  font-size: 0.85em;
+}
+
+.survey-q textarea {
+  width: 100%;
+  margin-top: 0.4em;
+  padding: 0.5em;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+}
+
+.survey-error {
+  min-height: 1.4em;
+  margin: 0;
+  color: #ffb4a0;
+}
+
+.survey-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.dev-survey {
+  margin: 0.4em 0;
+  padding-left: 1.2em;
+}

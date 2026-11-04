@@ -15,6 +15,7 @@ import {
 import { buildUploadSection } from './devupload';
 import { PROJECT_EXT } from './projectfile';
 import { downloadBlob, reloadWithProject, timeLabel, type ProjectSession } from './project';
+import { surveyCsv, surveyStats } from './survey';
 import { exportPlayable } from './exporter';
 import { localFiles } from './localfiles';
 import { assetFolderLabel, projectUrl } from './paths';
@@ -232,6 +233,7 @@ export class DevPanel {
       this.section('跳到場景', el('div', { class: 'dev-row' }, [this.sceneSelect, jump])),
       this.buildPresentation(),
       this.buildObjects(),
+      ...(this.view.survey ? [this.buildSurvey()] : []),
       this.section('上傳素材', buildUploadSection(e, this.view, this.project?.mode === 'local')),
       this.section('觸發效果', el('div', { class: 'dev-grid' }, fxButtons)),
       this.section(
@@ -612,7 +614,7 @@ export class DevPanel {
       () =>
         void run(async () => {
           msg.textContent = '打包中…';
-          const r = await exportPlayable(e.script, localFiles());
+          const r = await exportPlayable(e.script, localFiles(), 'folder', this.view.survey?.survey);
           downloadBlob(r.blob, r.fileName);
           return `已下載 ${r.fileName}（${r.files} 個素材）。解壓縮後雙擊 html 就能玩，也可以放到網站上。${r.note}`;
         }),
@@ -679,6 +681,43 @@ export class DevPanel {
 
   private syncProject: () => void = () => {};
   private syncObjects: () => void = () => {};
+  private syncSurvey: () => void = () => {};
+
+  /** 成效評估問卷的結果：這台電腦上的回答數、量表平均、單選人數；匯出 CSV、清除。 */
+  private buildSurvey(): HTMLElement {
+    const { survey, store } = this.view.survey!;
+    const box = el('div', { 'data-dev': 'survey-stats' });
+    const render = () => {
+      const sessions = store.all();
+      const stats = surveyStats(survey, sessions);
+      box.replaceChildren(
+        el('p', { class: 'dev-note' }, [`這台電腦上 ${sessions.length} 次遊玩，玩前填了 ${sessions.filter((s) => s.pre).length} 份、玩後 ${sessions.filter((s) => s.post).length} 份。回答只存在這個瀏覽器，不會送出。`]),
+        el(
+          'ul',
+          { class: 'dev-survey' },
+          stats.map((st) =>
+            el('li', { 'data-q': `${st.part}_${st.q.id}` }, [
+              `${st.part === 'pre' ? '玩前' : '玩後'}｜${st.q.text}：${st.count} 人`,
+              st.average !== undefined ? `，平均 ${st.average}` : '',
+              st.counts ? `（${Object.entries(st.counts).map(([k, v]) => `${k} ${v}`).join('、')}）` : '',
+            ]),
+          ),
+        ),
+      );
+    };
+    render();
+    this.syncSurvey = render;
+    const csv = this.button('匯出 CSV', () => {
+      downloadBlob(new Blob([surveyCsv(survey, store.all())], { type: 'text/csv' }), `${this.engine.script.meta.title}-問卷.csv`);
+    }, { 'data-dev': 'survey-csv' });
+    const refresh = this.button('重新整理', render, { 'data-dev': 'survey-refresh' });
+    const clear = this.button('清除回答', () => {
+      if (!confirm('清除這台電腦上所有的問卷回答？先匯出 CSV 了嗎？')) return;
+      store.clear();
+      render();
+    }, { 'data-dev': 'survey-clear', class: 'danger' });
+    return this.section('問卷結果', box, el('div', { class: 'dev-row' }, [csv, refresh, clear]));
+  }
 
   /**
    * 可以點的物件（目前場景）：新增、刪除、在畫面上拖曳位置，調大小、疊圖寬度、第幾句出現、
@@ -953,6 +992,7 @@ export class DevPanel {
     this.syncSpriteChar();
     this.syncProject();
     this.syncObjects();
+    this.syncSurvey();
     this.degRange.value = String(e.degradation);
     this.degOut.textContent = e.degradation.toFixed(2);
     const pose = e.lastChar ? e.poses[e.lastChar] : null;
