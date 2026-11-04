@@ -74,6 +74,13 @@ export function validateScript(script: Script, pack?: Pack): string[] {
   if (meta.objectHighlight !== undefined && !['glow', 'ring'].includes(meta.objectHighlight)) {
     problems.push('meta.objectHighlight 必須是 "glow" 或 "ring"');
   }
+  const cs = meta.choiceStyle;
+  if (cs !== undefined) {
+    const num = (v: unknown, lo: number, hi: number) => v === undefined || (typeof v === 'number' && v >= lo && v <= hi);
+    if (typeof cs !== 'object' || cs === null || !(cs.position === undefined || cs.position === 'right' || cs.position === 'center') || !num(cs.width, 0.2, 0.8) || !num(cs.scale, 0.6, 1.3)) {
+      problems.push('（警告）meta.choiceStyle 必須是 { position: "right"|"center", width: 0.2～0.8, scale: 0.6～1.3 }');
+    }
+  }
   const checkFraming = (where: string, f: SpriteFraming | undefined) => {
     if (!f) return;
     if (f.scale !== undefined && !(typeof f.scale === 'number' && f.scale > 0)) problems.push(`${where}.scale 必須是大於 0 的數字`);

@@ -3264,3 +3264,51 @@ body.voice-desk-page #app {
   line-height: 1.6;
   text-align: center;
 }
+
+/* ───────────── 選項：對話框右上方（meta.choiceStyle，預設） ───────────── */
+
+/* 提問放在對話框裡，字和旁白一樣 */
+.dialog.prompt .choice-prompt {
+  color: var(--ink);
+}
+
+@media (orientation: landscape) {
+  .choices[data-layout='right'] {
+    inset: auto 5% 31% auto;
+    width: var(--choice-width, 36%);
+    height: auto;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 1.4cqh;
+    padding: 0;
+    font-size: calc(var(--text-size) * var(--choice-scale, 0.88));
+  }
+  .choices[data-layout='right'] .choice {
+    min-width: 0;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.45em 1.2em;
+  }
+  .choices[data-layout='center'] {
+    font-size: calc(var(--text-size) * var(--choice-scale, 1));
+  }
+  .choices[data-layout='center'] .choice {
+    min-width: min(var(--choice-width, 70%), 620px);
+  }
+}
+
+/* 手機直式：選項維持置中，但往下放在對話框上方，不擋角色的臉 */
+@media (orientation: portrait) {
+  .choices[data-mode='list'] {
+    inset: auto 0 calc(30% + 2cqh) 0;
+    height: auto;
+    justify-content: flex-end;
+    gap: 1.6cqh;
+    padding: 0 6%;
+  }
+}
+
+/* 選項出現時「▼」不顯示（要點選項，不是點畫面） */
+.stage[data-phase='choice'] .next-indicator {
+  visibility: hidden;
+}
