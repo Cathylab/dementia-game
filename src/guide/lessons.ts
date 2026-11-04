@@ -71,11 +71,11 @@ export const LESSONS: LessonDef[] = [
     title: '素材與效果',
     goal: '放上背景與角色圖（手繪拍照也可以），在關鍵時刻加 1～2 個效果。',
     tasks: [
-      { id: 'draw', text: '美術員手繪或拍照背景、角色，在素材頁上傳（沒有圖也可以先用佔位圖）。', minutes: 25, role: '美術' },
+      { id: 'draw', text: '美術員把背景、角色畫在白紙上，用「手繪拍照上傳」放進專案（背景、物品也可以從小圖庫選；沒有圖也可以先用佔位圖）。', minutes: 25, role: '美術' },
       { id: 'fx', text: '選 1～2 個效果，放在最想讓玩家「感覺到」的那一句（故事編輯器的效果標籤）。', minutes: 10, role: '編劇' },
       { id: 'sound', text: '（可選）幫一兩句台詞加上音效。', minutes: 10, role: '全組' },
     ],
-    steps: ['assets'],
+    steps: ['drawings', 'assets'],
     teacher: '效果不要多：一個用在對的地方，比五個到處都是更有力量。提醒同學效果要對應想讓玩家體會的感受。',
   },
   {
