@@ -3562,3 +3562,124 @@ body.voice-desk-page #app {
 .title-screen .pause-overlay {
   z-index: 9;
 }
+
+/* ───────────── UI 樣式（meta.uiStyle，開發者面板切換） ───────────── */
+/* classic（預設）：全幅漸層台詞區，上面那些規則。
+   box：對話框是一個有邊框的半透明框（傳統視覺小說）。
+   paper：米白色紙張般的對話框、深色字（明亮、好讀）。 */
+
+/* box */
+.stage[data-ui-style='box'] .dialog {
+  left: 4%;
+  right: 4%;
+  bottom: calc(5cqh + 44px);
+  min-height: 0;
+  padding: 1.1em 1.6em 1.3em;
+  border: 1px solid rgba(242, 201, 138, 0.45);
+  border-radius: 14px;
+  background: rgba(14, 12, 10, 0.82);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.stage[data-ui-style='box'] .namebox:not(.hidden) .name {
+  display: inline-block;
+  padding: 0.1em 0.8em;
+  border-radius: 6px;
+  background: rgba(242, 201, 138, 0.18);
+}
+
+.stage[data-ui-style='box'] .choice {
+  border-radius: 10px;
+  border-color: rgba(242, 201, 138, 0.45);
+}
+
+@media (orientation: portrait) {
+  .stage[data-ui-style='box'] .dialog {
+    left: 3%;
+    right: 3%;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    padding: 0.9em 1.1em 1em;
+  }
+}
+
+/* paper */
+.stage[data-ui-style='paper'] .dialog {
+  left: 5%;
+  right: 5%;
+  bottom: calc(5cqh + 44px);
+  min-height: 0;
+  padding: 1em 1.6em 1.2em;
+  border-radius: 6px;
+  background: rgba(247, 241, 228, 0.94);
+  color: #2b2620;
+  text-shadow: none;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.stage[data-ui-style='paper'] .namebox {
+  color: #8a5a2b;
+}
+
+.stage[data-ui-style='paper'] .namebox .trait {
+  color: #7a7062;
+}
+
+.stage[data-ui-style='paper'] .next-indicator {
+  color: #8a5a2b;
+}
+
+.stage[data-ui-style='paper'] .choice {
+  border-radius: 6px;
+  border-color: rgba(43, 38, 32, 0.25);
+  background: rgba(247, 241, 228, 0.94);
+  color: #2b2620;
+  backdrop-filter: none;
+}
+
+.stage[data-ui-style='paper'] .choice:hover,
+.stage[data-ui-style='paper'] .choice:focus-visible {
+  background: #fffaf0;
+  border-color: #8a5a2b;
+  color: #5b3a18;
+}
+
+.stage[data-ui-style='paper'] .choices.fx-flat-options .choice {
+  background: rgba(200, 196, 188, 0.94);
+  color: #4a4640;
+}
+
+.stage[data-ui-style='paper'].fx-desaturate .choice:not(.locked) {
+  background: rgba(247, 241, 228, 0.96);
+}
+
+@media (orientation: portrait) {
+  .stage[data-ui-style='paper'] .dialog {
+    left: 3%;
+    right: 3%;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    padding: 0.9em 1.1em 1em;
+  }
+}
+
+.stage[data-ui-style='box'] .next-indicator,
+.stage[data-ui-style='paper'] .next-indicator {
+  right: 1.2em;
+  bottom: 0.5em;
+}
+
+/* box／paper：對話框比較高（有框），選項要放在框的上面 */
+.stage:is([data-ui-style='box'], [data-ui-style='paper']) .text {
+  min-height: 2.5em;
+}
+
+@media (orientation: landscape) {
+  .stage:is([data-ui-style='box'], [data-ui-style='paper']) .choices[data-layout='right'] {
+    bottom: calc(5cqh + 44px + 30cqh);
+  }
+}
+
+@media (orientation: portrait) {
+  .stage:is([data-ui-style='box'], [data-ui-style='paper']) .choices[data-mode='list'] {
+    bottom: calc(72px + env(safe-area-inset-bottom) + 24cqh);
+  }
+}

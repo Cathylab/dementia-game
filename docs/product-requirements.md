@@ -602,4 +602,5 @@ docs/                 規格文件與本需求書
 - 功能列的「標題」換成「暫停」（`UiKey` 多了 `pause`）；`ui.title` 改成控制暫停選單裡的「回到標題」。Esc 在沒有視窗時打開暫停選單。
 - 標題畫面「繼續」用 `.continue-button`（不用 `.start-button`，測試會點 `.start-button`）。
 - 製作名單：`meta.credits` 有內容時標題畫面多一個按鈕，打開 `.credits-overlay`。開發者面板拿掉關閉按鈕。
+- 介面樣式：`#stage[data-ui-style]`（`AdvView.applyUiStyle`，標題畫面時套用）；box／paper 的對話框是框，選項的位置另外往上移。
 

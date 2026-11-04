@@ -47,6 +47,8 @@ export interface Meta {
    * 題材包代號（packs/{pack}/pack.json）。省略＝dementia（相容舊腳本）；null 或 "plain"＝一般故事，沒有特殊效果。
    */
   pack?: string | null;
+  /** 介面樣式（呈現設定）：classic＝全幅漸層（預設）、box＝有邊框的對話框、paper＝米白紙張。 */
+  uiStyle?: UiStyle;
   /** 封面圖：assets/bg/{cover}（呈現設定）。省略＝沒有封面。 */
   cover?: string;
   /** 手機直式用的封面（選填），省略時用 cover（以中間為主裁切）。 */
@@ -87,6 +89,9 @@ export interface Credit {
   license?: string;
   url?: string;
 }
+
+export type UiStyle = 'classic' | 'box' | 'paper';
+export const UI_STYLES: UiStyle[] = ['classic', 'box', 'paper'];
 
 export type TransitionStyle = 'blink' | 'blink_soft' | 'fade' | 'focus';
 export const TRANSITION_STYLES: TransitionStyle[] = ['blink', 'blink_soft', 'fade', 'focus'];

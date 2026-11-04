@@ -526,9 +526,20 @@ export class DevPanel {
     chapterStyle.onchange = applyChapter;
     chapterScale.oninput = applyChapter;
     const previewChapter = this.button('預覽', () => void v.previewChapterCard(), { 'data-dev': 'preview-chapter' });
+    const uiStyle = el('select', { name: 'dev-ui-style' }, [
+      el('option', { value: 'classic' }, ['經典（全幅漸層）']),
+      el('option', { value: 'box' }, ['對話框（有邊框）']),
+      el('option', { value: 'paper' }, ['紙張（米白、深色字）']),
+    ]);
+    uiStyle.value = meta.uiStyle ?? 'classic';
+    uiStyle.onchange = () => {
+      meta.uiStyle = uiStyle.value as 'classic' | 'box' | 'paper';
+      v.applyUiStyle();
+    };
 
     return this.section(
       '呈現調整',
+      el('label', { class: 'dev-row' }, ['介面樣式', uiStyle]),
       el('label', { class: 'dev-row' }, ['遊戲名稱', titleInput]),
       el('label', { class: 'dev-row' }, ['封面', coverInput]),
       el('label', { class: 'dev-row' }, ['直式封面', coverPortraitInput]),

@@ -813,6 +813,7 @@ export class AdvView implements View {
       this.onStart();
     };
     this.applyCover();
+    this.applyUiStyle();
     const saveButtons = this.titleSaveButtons(start);
     this.titleScreen.replaceChildren(
       el('h1', {}, [meta.title]),
@@ -903,6 +904,12 @@ export class AdvView implements View {
     box.onclick = (e) => e.stopPropagation();
     this.stage.append(overlay);
     close.focus();
+  }
+
+  /** 介面樣式（meta.uiStyle）：classic、box、paper。 */
+  applyUiStyle(): void {
+    const s = this.engine.script.meta.uiStyle;
+    this.stage.dataset.uiStyle = s === 'box' || s === 'paper' ? s : 'classic';
   }
 
   /** 封面圖：meta.cover（手機直式用 coverPortrait，沒有就用 cover，以中間為主裁切）。 */

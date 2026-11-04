@@ -445,6 +445,7 @@
 - `meta.credits`：標題畫面「製作名單」按鈕（有內容時才出現），每筆顯示 `title`（沒有就用 `file`）、`author`、`license`，`url` 是「出處」連結（新分頁）。格式不對時給警告。
 - **封面與章節卡（呈現設定，開發者面板可調，不算結構）**：`meta.cover`（`assets/bg/` 的圖名稱）、`meta.coverPortrait`（選填，手機直式用）、`meta.chapterStyle`：`{ "style": "stacked" | "bold" | "quiet", "scale": 0.6～1.6 }`。封面算在需要的背景圖裡（素材清單、匯出都會帶）。`meta.title` 也可以在開發者面板改。
 - 物件的 `sfx` 也算在需要的音效裡（素材清單、匯出）。
+- **介面樣式** `meta.uiStyle`：`"classic"`（預設）、`"box"`、`"paper"`，呈現設定，開發者面板切換。
 
 ### 結局可達性測試
 

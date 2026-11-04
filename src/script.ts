@@ -74,6 +74,9 @@ export function validateScript(script: Script, pack?: Pack): string[] {
   if (meta.objectHighlight !== undefined && !['glow', 'ring'].includes(meta.objectHighlight)) {
     problems.push('meta.objectHighlight 必須是 "glow" 或 "ring"');
   }
+  if (meta.uiStyle !== undefined && !['classic', 'box', 'paper'].includes(meta.uiStyle)) {
+    problems.push('（警告）meta.uiStyle 必須是 "classic"、"box" 或 "paper"');
+  }
   for (const k of ['cover', 'coverPortrait'] as const) {
     const c = meta[k];
     if (c !== undefined && !(typeof c === 'string' && c.trim())) problems.push(`（警告）meta.${k} 必須是背景圖名稱（文字）`);

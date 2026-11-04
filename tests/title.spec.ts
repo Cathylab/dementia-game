@@ -86,3 +86,16 @@ test('沒有 credits：沒有製作名單按鈕', async ({ page }) => {
   await openWithTestScript(page);
   await expect(page.locator('[data-ui=credits]')).toHaveCount(0);
 });
+
+test('介面樣式：開發者面板切換 classic／box／paper，存進 meta.uiStyle', async ({ page }) => {
+  await openWithTestScript(page);
+  await expect(page.locator('#stage')).toHaveAttribute('data-ui-style', 'classic');
+  await page.keyboard.press('Backquote');
+  await page.selectOption('select[name=dev-ui-style]', 'paper');
+  await expect(page.locator('#stage')).toHaveAttribute('data-ui-style', 'paper');
+  await page.selectOption('select[name=dev-ui-style]', 'box');
+  await expect(page.locator('#stage')).toHaveAttribute('data-ui-style', 'box');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-dev=save-presentation]')]);
+  const saved = JSON.parse(await readFile(await download.path(), 'utf8')) as Script;
+  expect(saved.meta.uiStyle).toBe('box');
+});
