@@ -512,3 +512,10 @@ html[data-page='guide'] #app {
   color: var(--g-ink);
 }
 
+.g-howto {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.4em;
+}
+

@@ -63,7 +63,7 @@ npm run dev
   6. **美術需求**：可以先寫想要的畫風；提示詞會列出劇本需要的每張圖。
   7. **素材**：打開故事編輯器的素材頁。
   8. **試玩與修改**：試玩、檢查清單、劇本檢查（有「必須修正」時不能下一步）。
-  9. **匯出**：專案檔。
+  9. **匯出與發佈**：專案檔（之後繼續編輯）、**可以玩的版本**（壓縮檔，見下方）、發佈到 GitHub Pages 的步驟。
 - 需要 AI 的步驟（2～6）：每一步都**自動產生提示詞**，一鍵複製，貼給任何 AI，再把回答貼回來。提示詞包含前面所有步驟填的內容、題材包的寫作準則與注意事項（`packs/{id}/guide.md`、`cautions.md`），第 5 步另外附上劇本格式（只列題材包啟用的效果）。貼回來的內容檢查通過，「下一步」才會亮；「先跳過」隨時可以按。離線時提示詞照樣能複製，畫面會提醒到有網路的地方用 AI。
 
 遊戲本身在 `play.html`。兩頁用同一份程式（`src/main.ts` 依 `<html data-page>` 決定）。
@@ -499,6 +499,23 @@ script.json    劇本
 assets/bg/…  assets/char/…  assets/fg/…  assets/voice/…  assets/music/…  assets/sfx/…
 ```
 
+### 可以玩的版本（給別人玩）
+
+引導流程第 9 步，或開發者面板「專案」的「匯出可以玩的版本」，會下載 `作品名-可以玩的版本.zip`：
+
+```
+作品名/
+  index.html          放到網站時的首頁
+  玩 作品名.html      雙擊就能玩（和 index.html 一樣）
+  game/assets/…       劇本用到的圖片與音檔（本機專案上傳的，加上網站上有的）
+  說明.txt
+```
+
+- 解壓縮後雙擊 html 就能玩，不需要網路；也可以把資料夾裡的全部檔案放到任何網站空間。發佈到 GitHub Pages 的步驟見 [`docs/publish-github-pages.md`](docs/publish-github-pages.md)。
+- 劇本、題材包、音檔清單都寫在 html 裡；**永遠玩自己的故事**，不會被那台電腦瀏覽器裡的本機專案蓋掉。
+- 還沒有檔案的素材用佔位圖或合成音。離線版匯出時只放得進自己上傳的素材。
+- 引擎程式來自離線版建置：建置時產生 `player-template.html`（網站版與離線版都有），離線版直接讀自己頁面上的程式。
+
 ### 上傳素材
 
 面板的「上傳素材」可以把電腦裡的檔案直接放進遊戲試看：
@@ -569,6 +586,8 @@ docs/
   script-format-v2.md  v2 腳本格式（給劇本 AI 與引擎 AI）
   script-format-v3-voice.md  v3 配音
   product-requirements.md    產品需求書（產品化的總規格與實作順序）
+  publish-github-pages.md    把遊戲放上 GitHub Pages 的教學
+  packs.md                   怎麼做一個題材包
 index.html             引導網站（首頁）
 play.html              遊戲
 guide/
@@ -584,6 +603,7 @@ src/
   guide/               引導網站：guide.ts（首頁、開始、步驟頁）、steps.ts（九個步驟）、stepviews.ts（每一步的畫面）、prompts.ts（提示詞產生器）、format.ts（給 AI 的劇本格式）、state.ts（做到哪裡）、links.ts（連到遊戲的網址）
   paths.ts             目前載入哪個專案、素材在哪裡（?project=…）
   embed.ts             離線版內嵌的劇本、音檔清單、題材包，離線模式的限制
+  exporter.ts          匯出可以玩的版本（壓縮檔）
   checks.ts            白話的檢查訊息、兩級、抓出 JSON、修正提示詞
   issueview.ts         檢查結果的畫面（故事編輯器、開發者面板共用）
   assetcatalog.ts      劇本需要哪些素材、用在哪裡、要畫什麼（故事編輯器「素材」分頁）

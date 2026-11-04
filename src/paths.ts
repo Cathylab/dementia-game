@@ -8,7 +8,8 @@ export const DEFAULT_PROJECT = 'examples/寫給未來的我';
 
 /** 只接受 examples/ 或 templates/ 底下一層的資料夾，避免網址參數指到別的地方。 */
 export function isProjectDir(dir: string): boolean {
-  if (!/^(examples|templates)\/[^/\\.][^/\\]*$/.test(dir)) return false;
+  // game＝匯出的「可以玩的版本」裡的專案資料夾
+  if (!/^(examples|templates)\/[^/\\.][^/\\]*$/.test(dir) && dir !== 'game') return false;
   // 離線版只認得建置時放進去的專案
   return EMBED ? dir in EMBED.projects : true;
 }

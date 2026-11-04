@@ -82,7 +82,7 @@ async function boot() {
   let session: ProjectSession | null = null;
   try {
     // 開過專案檔就用瀏覽器裡的專案；網址加 ?site=1 可以暫時略過，看網站原本的遊戲
-    const started = await ProjectSession.start(store, () => embeddedScript(projectDir()) ?? loadScript(scriptUrl()), !!urlParam('site'));
+    const started = await ProjectSession.start(store, () => embeddedScript(projectDir()) ?? loadScript(scriptUrl()), !!urlParam('site') || !!EMBED?.player);
     session = started.session;
     const script = started.script;
     const packProblems: string[] = [];

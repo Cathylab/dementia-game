@@ -7,6 +7,7 @@ import { FILE_MODE } from '../embed';
 import { issueSummary, renderIssues } from '../issueview';
 import { type Pack } from '../pack';
 import { listPacks, loadPack, loadPackDocs } from '../packloader';
+import { exportPlayable } from '../exporter';
 import { downloadBlob } from '../project';
 import { packProject, projectFileName } from '../projectfile';
 import type { Script } from '../types';
@@ -407,13 +408,39 @@ registerStep('publish', (ctx) => {
     downloadBlob(blob, name);
     msg.textContent = `已下載 ${name}。換電腦或給別人繼續編輯時，用遊戲頁開發者面板的「開啟專案檔」。`;
   };
+  const playMsg = el('p', { class: 'g-status', 'data-guide': 'play-status', 'aria-live': 'polite' });
+  const exportPlay = el('button', { type: 'button', class: 'g-btn primary', 'data-guide': 'export-playable' }, ['匯出可以玩的版本（.zip）']);
+  exportPlay.onclick = async () => {
+    exportPlay.disabled = true;
+    playMsg.textContent = '打包中…';
+    try {
+      const r = await exportPlayable(ctx.project.script, ctx.project.files);
+      downloadBlob(r.blob, r.fileName);
+      playMsg.textContent = `已下載 ${r.fileName}（${r.files} 個素材）。${r.note}`;
+    } catch (err) {
+      playMsg.textContent = `沒有成功：${(err as Error)?.message ?? err}`;
+    }
+    exportPlay.disabled = false;
+  };
   ctx.setReady(true);
   return el('div', { class: 'g-form' }, [
     el('h3', {}, ['專案檔：之後繼續編輯']),
     el('p', {}, ['把劇本和你上傳的素材裝在一個檔案裡，存在電腦或雲端硬碟。這個瀏覽器的資料被清掉時，可以用它找回來。']),
     el('div', { class: 'g-actions' }, [exportProject]),
     msg,
-    el('h3', {}, ['可以直接玩的版本']),
-    el('p', { class: 'g-meta' }, ['匯出「雙擊就能玩」的壓縮檔、發佈到 GitHub Pages 的教學，會在下一版加入。現在可以先用「試玩」連結在這台電腦上玩。']),
+    el('h3', {}, ['可以玩的版本：給別人玩']),
+    el('p', {}, ['一個壓縮檔：解壓縮後雙擊 html 就能玩（不需要網路），也可以整個放到學校、單位的網站或 GitHub Pages。']),
+    el('div', { class: 'g-actions' }, [exportPlay]),
+    playMsg,
+    el('h3', {}, ['發佈到 GitHub Pages（免費、不用寫程式）']),
+    el('ol', { class: 'g-howto' }, [
+      el('li', {}, ['按上面的「匯出可以玩的版本」，下載後先解壓縮。']),
+      el('li', {}, ['到 github.com 註冊帳號（免費）。']),
+      el('li', {}, ['按右上角「＋」→ New repository，名稱用英文（例如 my-game），選 Public，按 Create repository。']),
+      el('li', {}, ['按 uploading an existing file，把解壓縮後資料夾「裡面」的所有檔案和 game 資料夾一起拖進去，按 Commit changes。']),
+      el('li', {}, ['到 Settings → Pages：Source 選 Deploy from a branch，Branch 選 main、資料夾選 / (root)，按 Save。']),
+      el('li', {}, ['等一兩分鐘，Pages 設定頁上方會出現網址（https://帳號.github.io/my-game/），打開就能玩。']),
+    ]),
+    el('p', { class: 'g-meta' }, ['之後要更新：重新匯出、解壓縮，再上傳一次覆蓋。完整說明與常見問題見 docs/publish-github-pages.md。']),
   ]);
 });
