@@ -29,8 +29,14 @@ export default defineConfig(({ mode }) => {
             },
           }
         : {
-            // 網站：index.html＝引導網站（首頁），play.html＝遊戲
-            rollupOptions: { input: { index: resolve(import.meta.dirname, 'index.html'), play: resolve(import.meta.dirname, 'play.html') } },
+            // 網站：index.html＝引導網站（首頁），play.html＝遊戲，tools.html＝製作者工具（引導網站的 #/tools）
+            rollupOptions: {
+              input: {
+                index: resolve(import.meta.dirname, 'index.html'),
+                play: resolve(import.meta.dirname, 'play.html'),
+                tools: resolve(import.meta.dirname, 'tools.html'),
+              },
+            },
           }),
     },
   };

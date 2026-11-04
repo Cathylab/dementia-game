@@ -29,13 +29,21 @@ test('首頁：一句話說明、開始按鈕、試玩片段、九個步驟、�
   expect(errors).toEqual([]);
 });
 
-test('首頁「製作者入口」：開原版的開發者面板、配音總表、故事編輯器', async ({ page }) => {
+test('兩個入口：遊戲（play.html）只有遊戲；製作者工具（tools.html）只有工具', async ({ page }) => {
   await page.goto('./');
   const maker = page.locator('[data-guide=maker]');
-  await expect(maker.locator('[data-guide=maker-dev]')).toHaveAttribute('href', /play\.html\?project=.*&site=1&dev=1$/);
-  await expect(maker.locator('[data-guide=maker-voice]')).toHaveAttribute('href', /&site=1&voice=1$/);
-  await expect(maker.locator('[data-guide=maker-story]')).toHaveAttribute('href', /&site=1&story=1$/);
-  await maker.locator('[data-guide=maker-dev]').click();
+  await expect(maker.locator('[data-guide=maker-game]')).toHaveAttribute('href', /^play\.html\?project=.*&site=1$/);
+  await expect(maker.locator('[data-guide=maker-tools]')).toHaveAttribute('href', 'tools.html');
+  await maker.locator('[data-guide=maker-tools]').click();
+  await expect(page).toHaveURL(/tools\.html$/);
+  await expect(page.locator('h1')).toHaveText('製作者工具');
+  const demo = page.locator('[data-tools-project="examples/寫給未來的我"]');
+  await expect(demo.locator('[data-tool=demo-voice]')).toHaveAttribute('href', /&site=1&voice=1$/);
+  await expect(demo.locator('[data-tool=demo-story]')).toHaveAttribute('href', /&site=1&story=1$/);
+  await expect(page.locator('[data-tools-project="templates/空白"] [data-tool$=-story]')).toHaveAttribute('href', /templates%2F.*&site=1&story=1$/);
+  // 這個瀏覽器沒有自己的專案時不列
+  await expect(page.locator('[data-tools-project=local]')).toHaveCount(0);
+  await demo.locator('[data-tool=demo-dev]').click();
   await expect(page.locator('.devpanel')).toBeVisible();
   await expect(page.locator('[data-dev=project-mode]')).toHaveAttribute('data-mode', 'site');
 });
@@ -100,6 +108,10 @@ test('引導流程：從空白開始，看得到第幾步；上一步、跳過�
   await page.goto('./play.html');
   await expect(page.locator('.title-screen h1')).toHaveText('寫給未來的我');
   await expect(page.locator('.project-badge')).toHaveCount(0);
+  // 製作者工具頁也列出自己的專案
+  await page.goto('./tools.html');
+  await expect(page.locator('[data-tools-project=local]')).toContainText('《我的遊戲》');
+  await expect(page.locator('[data-tool=local-story]')).toHaveAttribute('href', 'play.html?local=1&story=1');
   expect(errors).toEqual([]);
 });
 
@@ -125,6 +137,11 @@ test('離線版「開始.html」：引導網站照樣能用，連結指到離線
   await expect(page.locator('iframe.g-clip')).toHaveAttribute('src', /^%E7%8E%A9%20Demo\.html\?.*clip=a4_s14/);
   await expect(page.locator('[data-guide=play-demo]')).toHaveAttribute('href', /^%E7%8E%A9%20Demo\.html\?site=1$/);
   await expect(page.locator('[data-guide=packs]')).toContainText('一般故事');
+  // 離線版的製作者工具在 #/tools，連結指到離線的 html
+  await page.click('[data-guide=maker-tools]');
+  await expect(page.locator('h1')).toHaveText('製作者工具');
+  await expect(page.locator('[data-tool=demo-voice]')).toHaveAttribute('href', /^%E7%8E%A9%20Demo\.html\?site=1&voice=1$/);
+  await page.click('[data-guide=tools-home]');
   await page.click('[data-guide=begin]');
   await page.click('[data-guide=start-blank]');
   await expect(page.locator('[data-guide=progress]')).toContainText('第 1 步，共 9 步');
