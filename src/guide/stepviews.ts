@@ -13,19 +13,11 @@ import { packProject, projectFileName } from '../projectfile';
 import type { Script } from '../types';
 import { el } from '../util';
 import { registerStep, type StepContext } from './guide';
+import { debounce } from './pending';
 import { gameHref } from './links';
 import { DESIGN_CHECKLIST, LENGTH_TEXT, promptFor, type Answers, type Length, type ThemeAnswer } from './prompts';
 
 const answersOf = (ctx: StepContext) => ctx.state.answers as Answers;
-
-/** 延遲存檔：連續打字時不要每個字都寫一次。 */
-function debounce(fn: () => void, ms = 400): () => void {
-  let t = 0;
-  return () => {
-    clearTimeout(t);
-    t = window.setTimeout(fn, ms);
-  };
-}
 
 function copyButton(label: string, text: () => string, attrs: Record<string, string> = {}): HTMLButtonElement {
   const b = el('button', { type: 'button', class: 'g-btn', ...attrs }, [label]);

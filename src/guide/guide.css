@@ -519,3 +519,75 @@ html[data-page='guide'] #app {
   padding-left: 1.4em;
 }
 
+/* 課堂模式：任務卡 */
+.g-pills.lessons {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.g-tasks {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.g-task-meta {
+  margin-left: auto;
+  flex: none;
+  color: var(--g-dim);
+  font-size: 13px;
+}
+
+.g-teacher {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--g-bg);
+}
+
+.g-teacher summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.g-embed {
+  margin: 20px 0;
+  padding: 20px 24px;
+  border: 1px dashed var(--g-line);
+  border-radius: 16px;
+  background: var(--g-paper);
+}
+
+.g-embed > h3 {
+  margin: 0 0 4px;
+}
+
+/* 列印任務卡：只印卡片本身 */
+@media print {
+  html[data-page='guide'],
+  html[data-page='guide'] body {
+    background: #fff;
+    color: #000;
+  }
+
+  .g-noprint {
+    display: none !important;
+  }
+
+  .g-card-lesson {
+    border: 2px solid #000;
+    background: #fff;
+  }
+
+  .g-card-lesson input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+  }
+
+  .g-teacher {
+    background: #fff;
+    border: 1px solid #999;
+  }
+}
+
