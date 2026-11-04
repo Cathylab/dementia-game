@@ -37,7 +37,8 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/storyeditor.ts`＋`src/storyops.ts`：故事編輯器（`?story=1`），可改結構（場景、台詞、選項去向、角色、結局）。復原用整份腳本 JSON 快照；`restore` 原地換掉 `engine.script` 的內容後 `engine.reindex()`。改結構後呼叫 `TextEditor.invalidate()`。存檔走 `editor.save(true)`（dev 端點加 `?structure=1`）。
 - `src/editable.ts`：文字編輯器可改的欄位、`structureOf`（只比結構；呈現設定 `meta.transition`、`objectHighlight`、`sprite`、`characters[].sprite`、`scenes[].music` 視為可改）、JSON 排版 `formatScript`。瀏覽器與 dev server 共用。
 - `src/paths.ts`：目前專案（`?project=examples/…` 或 `templates/…`，預設 Demo）；`assetBase()`、`scriptUrl()`、`assetFolderLabel()`。**所有網站上的素材網址都要經過它**，不要寫死路徑。
-- `vite-plugin-content.ts`：`publicDir: false`；dev 時直接提供 `examples/`、`templates/`、`packs/`，build 時複製到 `dist/`，並產生每個專案的 `assets/{voice,sfx}/manifest.json` 與 `projects.json`。
+- 離線版：`npm run build` 也會跑 `vite build --mode offline` → `dist-offline/`（`玩 Demo.html`、`空白範本.html`，iife＋CSS＋`window.__VN_EMBED__` 寫進 html）。`src/embed.ts` 的 `FILE_MODE`（`file://`）下不可 fetch：劇本與清單從 `EMBED` 來，配音／音效／音樂檔用 `<audio>`（`ElementTrack`）。新增任何讀檔都要考慮這兩種模式。
+- `vite-plugin-content.ts`：`publicDir: false`；dev 時直接提供 `examples/`、`templates/`、`packs/`，build 時複製到 `dist/`，並產生每個專案的 `assets/{voice,sfx,music}/manifest.json` 與 `projects.json`。
 - `vite-plugin-script-save.ts`：dev 模式 `POST /__editor/save-script?project=…` 寫回該專案的 `script.json`（結構不同就拒絕，`&structure=1` 例外）。
 
 ### 容易踩到的設計
@@ -53,7 +54,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `tests/helpers.ts`：`jumpTo`（經開發者面板跳場景）、`advance`（等 `engine.phase === 'text'` 才點台詞區）、`?timescale=0.2` 讓動畫變快。熱點會隨畫面晃動，點擊要用 `click({ force: true })`。
 - `tests/simulate.ts` 窮舉選項與物件點擊組合檢查每個結局可達（狀態太多時隨機抽樣）；`play.spec.ts` 依它的路線在瀏覽器實際走到每個結局。
 - 本環境沒有設 `LANG`，Chromium 會把中文下載檔名改成 `download`；`playwright.config.ts` 已替瀏覽器補上 `C.UTF-8`。
-- 測試音檔／圖檔用 route 送假的 WAV／PNG；配音要同時 route `assets/voice/manifest.json`。
+- 測試音檔／圖檔用 route 送假的 WAV／PNG；配音、音效、音樂要同時 route 對應的 `assets/{voice,sfx,music}/manifest.json`。離線版測試（`tests/offline.spec.ts`）直接開 `dist-offline/` 的 `file://` 網址，route 不適用。
 - 改完功能後跑完整 `npm test` 再推。
 
 ## Git 與協作流程

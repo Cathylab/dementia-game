@@ -1289,6 +1289,25 @@ button {
   color: #8fd3ff;
 }
 
+/* 離線模式提示 */
+.dev-offline {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #302816;
+  color: #f2d9a0;
+  font-size: 12px;
+}
+
+.dev-offline p,
+.dev-offline ul {
+  margin: 4px 0 0;
+}
+
+.dev-offline ul {
+  padding-left: 1.2em;
+}
+
 /* 專案 */
 .dev-project-where {
   margin: 2px 0 6px;

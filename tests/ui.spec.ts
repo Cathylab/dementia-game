@@ -202,6 +202,8 @@ test('音樂：有音檔時改播檔案', async ({ page }) => {
   buf.writeUInt32LE(sr * 2, 40);
   for (let i = 0; i < sr; i++) buf.writeInt16LE(Math.round(Math.sin((i / sr) * 2 * Math.PI * 220) * 6000), 44 + i * 2);
   await page.route('**/assets/music/test_music.ogg', (r) => r.fulfill({ contentType: 'audio/ogg', body: buf }));
+  // 音樂和配音一樣依清單決定有沒有檔案
+  await page.route('**/assets/music/manifest.json', (r) => r.fulfill({ contentType: 'application/json', body: '["test_music.ogg"]' }));
   await startGame(page);
   await expect(page.locator('#stage')).toHaveAttribute('data-audio-mode', 'file');
 });

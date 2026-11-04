@@ -1,5 +1,6 @@
 // 目前載入的是哪一個專案資料夾（examples/… 或 templates/…），以及它的素材在哪裡。
 // 引擎所有「去網站上找檔案」的地方都經過這裡，不再寫死 public/。
+import { EMBED } from './embed';
 import { urlParam } from './util';
 
 /** 沒有指定時載入的 Demo。 */
@@ -7,14 +8,17 @@ export const DEFAULT_PROJECT = 'examples/寫給未來的我';
 
 /** 只接受 examples/ 或 templates/ 底下一層的資料夾，避免網址參數指到別的地方。 */
 export function isProjectDir(dir: string): boolean {
-  return /^(examples|templates)\/[^/\\.][^/\\]*$/.test(dir);
+  if (!/^(examples|templates)\/[^/\\.][^/\\]*$/.test(dir)) return false;
+  // 離線版只認得建置時放進去的專案
+  return EMBED ? dir in EMBED.projects : true;
 }
 
 let current = pickProject(urlParam('project'));
 
 function pickProject(param: string | null): string {
   const dir = (param ?? '').trim().replace(/\/+$/, '');
-  return dir && isProjectDir(dir) ? dir : DEFAULT_PROJECT;
+  if (dir && isProjectDir(dir)) return dir;
+  return EMBED && isProjectDir(EMBED.defaultProject) ? EMBED.defaultProject : DEFAULT_PROJECT;
 }
 
 /** 目前專案在 repo 裡的資料夾，例如 examples/寫給未來的我。 */

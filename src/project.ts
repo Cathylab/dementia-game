@@ -4,10 +4,11 @@
 import { ASSET_KINDS, assetNames, type AssetKind } from './assetnames';
 import { MUSIC_EXTENSIONS, VOICE_EXTENSIONS } from './audio';
 import { hasLocalFiles, localFiles, onLocalFile, putLocalFile } from './localfiles';
+import { FILE_MODE } from './embed';
 import { assetBase } from './paths';
 import { packProject, projectFileName, unpackProject, type Project } from './projectfile';
 import type { ProjectStore } from './projectstore';
-import { IMAGE_EXTENSIONS, loadScript } from './script';
+import { IMAGE_EXTENSIONS } from './script';
 import { isText, type Script } from './types';
 
 export type ProjectMode = 'site' | 'local';
@@ -34,10 +35,10 @@ export class ProjectSession {
    * 開始：store 裡有專案就用它（網址加 ?site=1 可以略過），否則載入網站上的 script.json。
    * 專案裡的素材放進本機素材，之後新增的素材自動存回 store。
    */
-  static async start(store: ProjectStore, siteScriptUrl: string, skipLocal = false): Promise<{ session: ProjectSession; script: Script }> {
+  static async start(store: ProjectStore, loadSiteScript: () => Script | Promise<Script>, skipLocal = false): Promise<{ session: ProjectSession; script: Script }> {
     const stored = skipLocal ? null : await store.load().catch(() => null);
     if (!stored) {
-      return { session: new ProjectSession(store, 'site', 0), script: await loadScript(siteScriptUrl) };
+      return { session: new ProjectSession(store, 'site', 0), script: await loadSiteScript() };
     }
     for (const [path, blob] of stored.files) putLocalFile(path, blob);
     const session = new ProjectSession(store, 'local', stored.savedAt);
@@ -82,11 +83,14 @@ export class ProjectSession {
     const manifests: Partial<Record<AssetKind, string[] | null>> = {
       voice: await fetchJson<string[]>(`${assetBase()}/voice/manifest.json`),
       sfx: await fetchJson<string[]>(`${assetBase()}/sfx/manifest.json`),
+      music: await fetchJson<string[]>(`${assetBase()}/music/manifest.json`),
     };
     const required = new Set(ASSET_KINDS.flatMap((k) => assetNames(script, k).map((n) => `${k}/${n}`)));
     const missing: string[] = [];
     let done = 0;
     onProgress?.(0, wanted.length);
+    // 離線模式（file://）不能 fetch 內建素材，只收本機素材
+    if (FILE_MODE) wanted.length = 0;
     await pool(wanted, 6, async ({ kind, name }) => {
       let exts = EXTS[kind];
       const list = manifests[kind];
@@ -113,6 +117,9 @@ export class ProjectSession {
     const name = projectFileName(script.meta?.title ?? '');
     downloadBlob(blob, name);
     const size = blob.size >= 1024 * 1024 ? `${(blob.size / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(blob.size / 1024)} KB`;
+    if (FILE_MODE) {
+      return `已下載 ${name}（${project.files.size} 個素材，${size}）。離線模式讀不到內建的素材，只包含你上傳或開啟的素材。`;
+    }
     return `已下載 ${name}（${project.files.size} 個素材，${size}）` + (missing.length ? `。還沒有檔案、目前用佔位圖或合成音的：${missing.length} 個` : '');
   }
 
