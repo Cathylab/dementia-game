@@ -61,3 +61,28 @@ test('章節卡預設樣式：「第一章」比以前大（至少畫面高度�
   const size = await no.evaluate((n) => parseFloat(getComputedStyle(n).fontSize));
   expect(size).toBeGreaterThanOrEqual(h * 0.04);
 });
+
+test('製作名單：meta.credits 有內容時標題畫面有按鈕，列出出處；沒有就不顯示', async ({ page }) => {
+  await openWithTestScript(page, 'timescale=0.2', {
+    mutate: (s) => (s.meta.credits = [{ file: 'phone_ring', title: 'Phone Ringing', author: '某人', license: 'CC0', url: 'https://openverse.org/x' }]),
+  });
+  await page.click('[data-ui=credits]');
+  const overlay = page.locator('[data-ui=credits-overlay]');
+  await expect(overlay.locator('li[data-file=phone_ring]')).toContainText('Phone Ringing');
+  await expect(overlay.locator('li[data-file=phone_ring]')).toContainText('CC0');
+  await expect(overlay.locator('a')).toHaveAttribute('target', '_blank');
+  await page.keyboard.press('Escape');
+  await expect(overlay).toHaveCount(0);
+  await expect(page.locator('.title-screen')).toHaveClass(/open/);
+});
+
+test('正式腳本：23 筆音效出處都在製作名單裡', async ({ page }) => {
+  await page.goto('./play.html?timescale=0.2');
+  await page.click('[data-ui=credits]');
+  await expect(page.locator('.credits-list li')).toHaveCount(23);
+});
+
+test('沒有 credits：沒有製作名單按鈕', async ({ page }) => {
+  await openWithTestScript(page);
+  await expect(page.locator('[data-ui=credits]')).toHaveCount(0);
+});

@@ -1396,11 +1396,6 @@ button {
   border-color: #8fd3ff;
 }
 
-.dev-close {
-  width: 36px;
-  font-size: 18px !important;
-}
-
 .dev-status {
   display: grid;
   grid-template-columns: 6.5em 1fr;
@@ -3385,4 +3380,87 @@ body.voice-desk-page #app {
 
 .chapter-card[data-style='quiet'] .chapter-time {
   font-size: calc(clamp(34px, min(13cqh, 12cqw), 104px) * var(--chapter-scale, 1));
+}
+
+/* ───────────── 製作名單（meta.credits） ───────────── */
+
+.credits-button {
+  min-height: 44px;
+  padding: 0.2em 1.4em;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: clamp(14px, 2.4cqh, 18px);
+  letter-spacing: 0.2em;
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+}
+
+.credits-button:hover,
+.credits-button:focus-visible {
+  color: var(--ink);
+}
+
+.credits-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4%;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.credits-box {
+  width: min(640px, 100%);
+  max-height: 90%;
+  overflow: auto;
+  padding: 1.2em 1.4em;
+  border-radius: 14px;
+  background: var(--panel);
+  font-size: clamp(14px, 2.4cqh, 18px);
+  line-height: 1.7;
+}
+
+.credits-box h2 {
+  margin: 0;
+  font-size: 1.3em;
+  letter-spacing: 0.2em;
+}
+
+.credits-note {
+  margin: 0.2em 0 0.8em;
+  color: var(--ink-dim);
+  font-size: 0.85em;
+}
+
+.credits-list {
+  margin: 0 0 1em;
+  padding-left: 1.2em;
+}
+
+.credits-list li {
+  margin: 0.3em 0;
+}
+
+.credits-license {
+  color: var(--ink-dim);
+}
+
+.credits-list a {
+  margin-left: 0.8em;
+  color: var(--accent);
+}
+
+.credits-close {
+  min-height: 44px;
+  padding: 0.2em 1.6em;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }

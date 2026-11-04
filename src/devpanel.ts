@@ -145,7 +145,6 @@ export class DevPanel {
 
   private build(): void {
     const e = this.engine;
-    const close = this.button('×', () => this.toggle(false), { class: 'dev-close', 'aria-label': '關閉' });
     const fold = this.button('', () => this.collapse(), { class: 'dev-fold', 'data-dev': 'collapse', 'aria-label': '收合／展開開發者面板' });
     const foldAll = this.button('全部摺疊', () => {
       const sections = [...this.root.querySelectorAll<HTMLDetailsElement>('details.dev-section')];
@@ -218,7 +217,7 @@ export class DevPanel {
     ]);
 
     this.root.append(
-      el('header', {}, [title, foldAll, fold, close]),
+      el('header', {}, [title, foldAll, fold]),
       ...(FILE_MODE
         ? [
             el('div', { class: 'dev-offline', 'data-dev': 'offline' }, [

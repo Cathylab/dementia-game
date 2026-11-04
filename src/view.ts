@@ -338,6 +338,7 @@ export class AdvView implements View {
   closeOverlays(): void {
     this.logOverlay.classList.remove('open');
     this.settingsOverlay.classList.remove('open');
+    this.stage.querySelector('.credits-overlay')?.remove();
   }
 
   // ───────────────────────── 功能列 ─────────────────────────
@@ -700,10 +701,59 @@ export class AdvView implements View {
       el('h1', {}, [meta.title]),
       el('p', { class: 'subtitle' }, [meta.durationMinutes ? `約 ${meta.durationMinutes} 分鐘 ・ 建議戴上耳機` : '建議戴上耳機']),
       start,
+      ...(this.creditsButton() ?? []),
       ...(this.titleNote ? [el('p', { class: 'project-badge' }, [this.titleNote])] : []),
     );
     this.titleScreen.classList.add('open');
     this.stage.dataset.phase = 'title';
+  }
+
+  /** 標題畫面的「製作名單」按鈕（meta.credits 有內容時才有）。 */
+  private creditsButton(): HTMLElement[] | null {
+    const credits = this.engine.script.meta.credits;
+    if (!Array.isArray(credits) || !credits.length) return null;
+    const b = el('button', { class: 'credits-button', type: 'button', 'data-ui': 'credits' }, ['製作名單']);
+    b.onclick = (e) => {
+      e.stopPropagation();
+      this.openCredits();
+    };
+    return [b];
+  }
+
+  /** 製作名單：素材出處（meta.credits），連結在新分頁開啟。 */
+  openCredits(): void {
+    const credits = (this.engine.script.meta.credits ?? []).filter((c) => c && typeof c === 'object');
+    const close = el('button', { class: 'credits-close', type: 'button' }, ['關閉']);
+    const box = el('div', { class: 'credits-box', role: 'dialog', 'aria-label': '製作名單' }, [
+      el('h2', {}, ['製作名單']),
+      el('p', { class: 'credits-note' }, ['素材出處']),
+      el(
+        'ul',
+        { class: 'credits-list' },
+        credits.map((c) =>
+          el('li', { 'data-file': c.file ?? '' }, [
+            el('strong', {}, [c.title || c.file || '（未命名）']),
+            ...(c.author ? [el('span', {}, [`　${c.author}`])] : []),
+            ...(c.license ? [el('span', { class: 'credits-license' }, [`　${c.license}`])] : []),
+            ...(c.url ? [el('a', { href: c.url, target: '_blank', rel: 'noopener noreferrer' }, ['出處'])] : []),
+          ]),
+        ),
+      ),
+      close,
+    ]);
+    const overlay = el('div', { class: 'credits-overlay open', 'data-ui': 'credits-overlay' }, [box]);
+    const shut = () => overlay.remove();
+    close.onclick = (e) => {
+      e.stopPropagation();
+      shut();
+    };
+    overlay.onclick = (e) => {
+      e.stopPropagation();
+      if (e.target === overlay) shut();
+    };
+    box.onclick = (e) => e.stopPropagation();
+    this.stage.append(overlay);
+    close.focus();
   }
 
   /** 封面圖：meta.cover（手機直式用 coverPortrait，沒有就用 cover，以中間為主裁切）。 */
