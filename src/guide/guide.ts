@@ -19,6 +19,7 @@ import { renderTeacher } from './teacher';
 import { renderRoles } from './rolespage';
 import { renderShowcase } from './showcase';
 import { renderTeacherDoc } from './teacherdocs';
+import { renderTools, toolsHref } from './toolspage';
 import './guide.css';
 
 const BLANK = 'templates/空白';
@@ -149,6 +150,11 @@ export class Guide {
     if (hash === 'teacher') return renderTeacher(this.root);
     if (hash === 'roles') return renderRoles(this.root);
     if (hash === 'showcase') return renderShowcase(this.root);
+    // 製作者工具：#/tools，或線上的 tools.html（沒有 hash 時）
+    if (hash === 'tools' || (!hash && document.documentElement.dataset.entry === 'tools')) {
+      document.title = '製作者工具｜同理體驗視覺小說';
+      return renderTools(this.root, listProjects(), this.project);
+    }
     const d = hash.match(/^docs(?:\/(\w+))?$/);
     if (d) return renderTeacherDoc(this.root, d[1] ?? '');
     return this.renderHome();
@@ -239,11 +245,10 @@ export class Guide {
       ]),
       el('section', { class: 'g-section', 'data-guide': 'maker' }, [
         el('h2', {}, ['製作者入口']),
-        el('p', { class: 'g-meta' }, ['打開《寫給未來的我》原版（網站上的版本，不是你在這裡做的遊戲）的製作工具。']),
+        el('p', { class: 'g-meta' }, ['兩個網址分開用：給玩家的「遊戲」只有遊戲；「製作者工具」只有開發者面板、故事編輯器、素材、配音總表。']),
         el('div', { class: 'g-actions' }, [
-          el('a', { class: 'g-btn', href: gameHref({ project: DEFAULT_PROJECT, site: '1', dev: '1' }), 'data-guide': 'maker-dev' }, ['開發者面板']),
-          el('a', { class: 'g-btn', href: gameHref({ project: DEFAULT_PROJECT, site: '1', voice: '1' }), 'data-guide': 'maker-voice' }, ['配音總表']),
-          el('a', { class: 'g-btn', href: gameHref({ project: DEFAULT_PROJECT, site: '1', story: '1' }), 'data-guide': 'maker-story' }, ['故事編輯器']),
+          el('a', { class: 'g-btn', href: gameHref({ project: DEFAULT_PROJECT, site: '1' }), 'data-guide': 'maker-game' }, ['遊戲']),
+          el('a', { class: 'g-btn', href: toolsHref(), 'data-guide': 'maker-tools' }, ['製作者工具']),
         ]),
       ]),
       el('footer', { class: 'g-footer' }, [

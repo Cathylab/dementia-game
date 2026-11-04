@@ -25,7 +25,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 
 ## 架構
 
-- 頁面：`index.html`＝引導網站（`src/guide/`，`data-page="guide"`），`play.html`＝遊戲。首頁收到遊戲參數會轉到 `play.html`。**測試開遊戲要用 `./play.html?…`**。離線版另有 `開始.html`。
+- 頁面：`index.html`＝引導網站（`src/guide/`，`data-page="guide"`），`play.html`＝遊戲，`tools.html`＝製作者工具（同一份引導網站程式，`data-entry="tools"`＝`#/tools`，`src/guide/toolspage.ts`；離線版用 `開始.html#/tools`）。首頁收到遊戲參數會轉到 `play.html`。**測試開遊戲要用 `./play.html?…`**。離線版另有 `開始.html`。
 - 老師代貼：`src/guide/relay.ts`（代貼單／回覆檔格式）、`teacher.ts`（`#/teacher` 工作台）、`stepviews.ts` 的 `relayBox`。
 - 角色卡與查證：`src/guide/roles.ts`（內容，不碰 DOM）、`rolespage.ts`（`#/roles`）、`inquiry.ts`（工具 `sources`／`stereotype`；資料來源會放進提示詞）。
 - 手繪拍照・小圖庫：`src/photo.ts`（去白紙、裁切、擺放；像素運算不碰 DOM）、`src/gallery.ts`（內建 SVG 圖庫）、`src/guide/drawings.ts`（工具 `drawings`，存進 `ProjectStore.saveFile`）。

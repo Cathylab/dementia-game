@@ -113,7 +113,9 @@ npm run dev
 - `templates/空白/`：空白範本。
 - `packs/`：題材包（之後加入）。
 
-網址沒有參數時載入 Demo；加 `?project=templates/空白` 載入空白範本（只接受 `examples/`、`templates/` 底下的資料夾）。可以和其他參數一起用，例如 `?project=templates/空白&story=1`。遊戲網址預設**永遠是網站上的原版**；瀏覽器裡的本機專案只有網址帶 `?local=1` 時才讀（引導網站的「試玩」「打開故事編輯器」會自動帶；`?site=1` 優先，強制看原版）。
+網站有三個入口：`index.html`＝引導網站（首頁）、`play.html`＝**只有遊戲**（給玩家）、`tools.html`＝**製作者工具**（每個遊戲的開發者面板、故事編輯器、素材、配音總表，以及這個瀏覽器裡的本機專案；離線版是 `開始.html#/tools`）。
+
+遊戲網址沒有參數時載入 Demo；加 `?project=templates/空白` 載入空白範本（只接受 `examples/`、`templates/` 底下的資料夾）。可以和其他參數一起用，例如 `?project=templates/空白&story=1`。遊戲網址預設**永遠是網站上的原版**；瀏覽器裡的本機專案只有網址帶 `?local=1` 時才讀（引導網站的「試玩」「打開故事編輯器」會自動帶；`?site=1` 優先，強制看原版）。
 
 建置時這三個資料夾原樣複製到 `dist/`，並為每個專案產生 `assets/voice/manifest.json`、`assets/sfx/manifest.json`，以及列出所有專案的 `projects.json`。
 
