@@ -591,3 +591,77 @@ html[data-page='guide'] #app {
   }
 }
 
+/* 照格子填 */
+.g-fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px 16px;
+  border: 1px solid var(--g-line);
+  border-radius: 12px;
+}
+
+.g-fieldset legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+
+.g-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.g-row > input,
+.g-row > textarea {
+  flex: 1 1 14em;
+  width: auto;
+}
+
+.guide select {
+  padding: 8px 10px;
+  border: 1px solid var(--g-line);
+  border-radius: 10px;
+  background: var(--g-bg);
+  color: var(--g-ink);
+  font: inherit;
+}
+
+.g-option {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.g-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--g-dim);
+  white-space: nowrap;
+}
+
+.g-ending {
+  display: grid;
+  gap: 6px;
+}
+
+.g-alt {
+  margin-top: 16px;
+}
+
+.g-alt > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--g-accent);
+}
+
+@media (max-width: 640px) {
+  .g-option {
+    grid-template-columns: 1fr;
+  }
+}
+
