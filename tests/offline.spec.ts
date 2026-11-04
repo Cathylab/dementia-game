@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import { packProject } from '../src/projectfile';
-import { testScript } from './helpers';
+import { testScript, unblock } from './helpers';
 
 const OUT = fileURLToPath(new URL('../dist-offline/', import.meta.url));
 const pageUrl = (file: string, query = 'timescale=0.3') => `${pathToFileURL(join(OUT, file)).href}?${query}`;
@@ -63,6 +63,7 @@ test('離線模式的配音用 <audio> 播放', async ({ page }) => {
   await expect(stage(page)).toHaveAttribute('data-scene', 'a1_s02');
   for (let i = 0; i < 12 && !(await stage(page).getAttribute('data-voice')); i++) {
     await page.waitForFunction(() => (window as unknown as { __vn: { engine: { phase: string } } }).__vn.engine.phase !== 'busy');
+    if (await unblock(page)) continue;
     await stage(page).click({ position: { x: 150, y: 620 } });
   }
   await expect(stage(page)).toHaveAttribute('data-voice', /^a1_s02_/);
@@ -157,6 +158,7 @@ test('玩 Demo.html：一路選第一個選項可以走到結局', async ({ page
       await choice.first().click({ timeout: 2000 }).catch(() => {});
       continue;
     }
+    if ((await page.evaluate(() => (window as unknown as { __vn: { engine: { phase: string } } }).__vn.engine.phase)) === 'text' && (await unblock(page))) continue;
     await stage(page).click({ position: { x: 190, y: 620 } });
   }
   await expect(ending.first()).toBeVisible();

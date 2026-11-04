@@ -33,6 +33,10 @@ export function validateScript(script: Script, pack?: Pack): string[] {
   const problems: string[] = [];
   const pk = script.meta?.pack;
   if (pk !== undefined && pk !== null && typeof pk !== 'string') problems.push('meta.pack 必須是題材包代號（文字）或 null');
+  const credits = script.meta?.credits;
+  if (credits !== undefined && !(Array.isArray(credits) && credits.every((c) => c && typeof c === 'object'))) {
+    problems.push('（警告）meta.credits 必須是清單，每一筆是 { file, title, author, license, url }');
+  }
   /** 用到了、但題材包沒有啟用的效果：效果 → 位置 */
   const offPack = new Map<string, string[]>();
   const notePack = (fx: string, where: string) => {
@@ -128,6 +132,20 @@ export function validateScript(script: Script, pack?: Pack): string[] {
         if (fx !== 'text_blur' && fx !== 'name_fade') problems.push(`${where}：物件說明只支援 text_blur、name_fade，不支援 "${fx}"`);
       }
       if (obj.truthVoice && !obj.truth) problems.push(`${where}：有 truthVoice 但沒有 truth`);
+      checkCond(`${where}.if`, obj.if);
+      if (obj.attention !== undefined && obj.attention !== 'ring' && obj.attention !== 'glow') {
+        problems.push(`${where}.attention：只能是 "ring" 或 "glow"`);
+      }
+      if (obj.required !== undefined && typeof obj.required !== 'boolean') problems.push(`${where}.required：必須是 true 或 false`);
+      if (obj.sfx !== undefined && !(typeof obj.sfx === 'string' && /^[A-Za-z0-9_-]+$/.test(obj.sfx))) {
+        problems.push(`${where}.sfx：音效名稱只能用英文字母、數字、底線或連字號`);
+      }
+      if (obj.overlayWidth !== undefined) {
+        if (typeof obj.overlayWidth !== 'number' || obj.overlayWidth < 0.03 || obj.overlayWidth > 0.3) {
+          problems.push(`（警告）${where}：overlayWidth ${obj.overlayWidth} 超出 0.03～0.3，會自動限制在範圍內`);
+        }
+        if (!obj.image) problems.push(`（警告）${where}：有 overlayWidth 但沒有 image，沒有圖可以疊`);
+      }
     });
     if (scene.ui?.back === 'wrong_scene') checkTarget(`${scene.id}.backTarget`, scene.backTarget);
     scene.lines.forEach((line, i) => {
@@ -183,6 +201,15 @@ export function validateScript(script: Script, pack?: Pack): string[] {
         if (list && !list.includes(line.expression)) {
           problems.push(`${where}：表情 "${line.expression}" 不在角色 ${line.speaker} 的 expressions 清單裡`);
         }
+      }
+      if (isText(line) && line.explore !== undefined) {
+        if (typeof line.explore !== 'string' || !line.explore.trim()) problems.push(`${where}.explore：必須是提示文字`);
+        const objs = scene.objects ?? [];
+        if (!objs.length) problems.push(`（警告）${where}：explore 所在的場景沒有可以點的物件`);
+        for (const o of objs) {
+          if ((o.appearAt ?? 0) > i) problems.push(`（警告）${where}：explore 之後才出現的物件 "${o.id}"，找找看的時候還看不到它`);
+        }
+        if (scene.lines.slice(i + 1).some((l) => isText(l) && l.explore)) problems.push(`（警告）${where}：同一個場景有兩次 explore（建議一個場景最多一次）`);
       }
       if (isText(line) && line.sfx !== undefined && !(typeof line.sfx === 'string' && /^[A-Za-z0-9_-]+$/.test(line.sfx))) {
         problems.push(`${where}.sfx：音效名稱只能用英文字母、數字、底線或連字號`);

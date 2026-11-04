@@ -127,6 +127,14 @@ const RULES: Rule[] = [
   { re: /^必須是曲名字串或 null$/, level: 'error', say: () => ['換音樂的設定格式不對', '請寫曲名，或選「停止音樂」。'] },
   { re: /^配音編號 "(.+)" 重複（(.+) 也用了）$/, level: 'error', say: (g) => [`配音編號「${g[1]}」和別句重複`, '每句配音的編號要不一樣，否則兩句會播同一個音檔。'] },
   { re: /^配音編號 "(.+)" 不符合 (.+) 的格式$/, level: 'warning', say: (g) => [`配音編號「${g[1]}」不符合命名規則`, `建議改成 ${g[2]} 的格式，方便配音檔對應。`] },
+  { re: /^只能是 "ring" 或 "glow"$/, level: 'warning', say: () => ['提醒動畫的設定不認得，不會有動畫', 'attention 請寫 "ring"（震動＋發亮）或 "glow"（柔和發亮）。'] },
+  { re: /^必須是 true 或 false$/, level: 'warning', say: () => ['「一定要點」的設定格式不對', 'required 請寫 true 或 false。'] },
+  { re: /^overlayWidth (\S+) 超出/, level: 'warning', say: () => ['物件圖疊在背景上的大小超出範圍，會自動調整', 'overlayWidth 請寫 0.03 到 0.3 之間（背景寬度的比例）。'] },
+  { re: /^有 overlayWidth 但沒有 image/, level: 'warning', say: () => ['要把物件圖疊在背景上，但沒有指定物件圖', '請補上 image，或刪掉 overlayWidth。'] },
+  { re: /^必須是提示文字$/, level: 'error', say: () => ['「找找看」的提示是空的', 'explore 請寫一句提示，例如「這裡好像有東西可以看看。」'] },
+  { re: /^explore 所在的場景沒有可以點的物件$/, level: 'warning', say: () => ['設了「找找看」，但這個場景沒有可以點的物件', '請在這個場景加物件，或刪掉 explore。'] },
+  { re: /^explore 之後才出現的物件 "(.+)"/, level: 'warning', say: (g) => [`物件「${g[1]}」在「找找看」之後才出現，找的時候看不到它`, '請把這個物件的 appearAt 改成不超過這一句。'] },
+  { re: /^同一個場景有兩次 explore/, level: 'warning', say: () => ['同一個場景有兩次「找找看」', '建議一個場景最多一次，整部作品約 4～8 次。'] },
   { re: /^缺少$/, level: 'error', say: () => ['缺少必要的設定', '請補上。'] },
 ];
 
@@ -134,6 +142,7 @@ const RULES: Rule[] = [
 const GLOBAL_RULES: Rule[] = [
   { re: /^meta\.title 缺少$/, level: 'error', say: () => ['遊戲沒有名稱', '請在 meta.title 寫上遊戲名稱。'] },
   { re: /^scenes 為空$/, level: 'error', say: () => ['劇本裡一個場景都沒有', '請至少寫一個場景。'] },
+  { re: /^meta\.credits/, level: 'warning', say: () => ['素材出處（製作名單）的格式不對，不會顯示', 'meta.credits 請寫成清單，每一筆有 file、title、author、license、url。'] },
   { re: /^meta\.pack/, level: 'error', say: () => ['題材包的設定格式不對', 'meta.pack 請寫題材包代號（例如 "dementia"），或 null。'] },
   { re: /^meta\.settingsDefaults/, level: 'warning', say: () => ['遊戲設定的預設值格式不對，會改用一般的預設值', '請照 docs/script-format-v2.md 的說明修正 settingsDefaults。'] },
   { re: /^meta\.(transition|objectHighlight)/, level: 'warning', say: () => ['畫面呈現的設定值不認得，會改用預設值', '可以在開發者面板「呈現調整」重新選一次。'] },

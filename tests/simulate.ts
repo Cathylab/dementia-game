@@ -65,10 +65,17 @@ function step(script: Script, st: State, chooseRandom: boolean): State[] | strin
     const ctx: CondContext = { stats: st.stats, flags: st.flags, seen };
     if (!evalCondition(line.if, ctx)) continue;
     if (!isChoice(line)) {
+      // 一定要點的物件（required）：出現時一定會點
+      for (const obj of scene.objects ?? []) {
+        if (obj.required && (obj.appearAt ?? 0) <= i && evalCondition(obj.if, ctx) && !seen.includes(obj.id)) {
+          seen.push(obj.id);
+          path.push(`click:${obj.id}`);
+        }
+      }
       // 台詞顯示中可以點已經出現的物件
       for (const id of toClick) {
         const obj = scene.objects?.find((o) => o.id === id);
-        if ((obj?.appearAt ?? 0) <= i) {
+        if ((obj?.appearAt ?? 0) <= i && evalCondition(obj?.if, ctx)) {
           if (!seen.includes(id)) seen.push(id);
           path.push(`click:${id}`);
         }

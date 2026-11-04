@@ -84,6 +84,8 @@ export interface View {
   showInspect(obj: SceneObject): void;
   /** 狀態改變（數值、場景、旗標等）時通知，供開發者面板更新。 */
   stateChanged(): void;
+  /** 玩家想往下但被擋住（要先點 required 物件，或找找看時刻要按「繼續」）：提示一下。 */
+  nudgeBlocked?(reason: 'required' | 'explore'): void;
 }
 
 const DEFAULT_POSE: CharPose = { expression: 'neutral', gaze: 'camera', distance: 'normal' };
@@ -111,6 +113,8 @@ export class Engine {
   virtual: TextLine[] = [];
   /** 自增序號：每次換句或換場景都會變，非同步流程據此判斷是否已過期。 */
   token = 0;
+  /** 目前顯示的是重播或記憶對照產生的台詞（不是 lines[index] 本身）。 */
+  private forced = false;
   textFinished = false;
   /** 目前顯示中的選項。 */
   shown: ShownOption[] = [];
@@ -278,6 +282,7 @@ export class Engine {
     }
     this.history.push(this.snapshot());
     this.token++;
+    this.forced = !!forced;
     this.view.clearChoice();
     if (isChoice(line)) {
       this.phase = 'choice';
@@ -337,10 +342,29 @@ export class Engine {
     return !!this.scene?.lines.some(isMemoryReview);
   }
 
-  /** 目前這一句可以點的物件（只在台詞播放中）。 */
+  /** 目前這一句可以點的物件（只在台詞播放中）。appearAt 是 lines 的原始索引（含被 if 跳過的句子）。 */
   get availableObjects(): SceneObject[] {
     if (this.phase !== 'text') return [];
-    return (this.scene.objects ?? []).filter((o) => (o.appearAt ?? 0) <= this.index);
+    return (this.scene.objects ?? []).filter((o) => (o.appearAt ?? 0) <= this.index && this.test(o.if));
+  }
+
+  /** 還沒點過的「一定要點」物件：有的話劇情停在這裡。 */
+  get pendingRequired(): SceneObject | undefined {
+    return this.availableObjects.find((o) => o.required && !this.seen.includes(o.id));
+  }
+
+  /** 目前這句是「找找看」時刻（explore）：點畫面不往下，要按「繼續」。 */
+  get exploring(): boolean {
+    const line = this.currentLine;
+    return this.phase === 'text' && !this.forced && !!line && isText(line) && !!line.explore;
+  }
+
+  /** 現在不能往下的原因（給畫面提示用）：required＝要先點物件；explore＝找找看，要按繼續。 */
+  get blocked(): 'required' | 'explore' | null {
+    if (this.phase !== 'text') return null;
+    if (this.pendingRequired) return 'required';
+    if (this.exploring) return 'explore';
+    return null;
   }
 
   /** 點物件：暫停遊戲、顯示說明、記為 seen（只記第一次的順序）。不推進劇情。 */
@@ -373,9 +397,20 @@ export class Engine {
     this.next();
   }
 
-  /** 前進到下一句（略過打字判定）。 */
-  next(): void {
+  /**
+   * 前進到下一句（略過打字判定）。有還沒點的 required 物件時不往下；
+   * 找找看時刻只有 explored（按了「繼續」）才往下。
+   */
+  next(explored = false): void {
     if (this.phase !== 'text') return;
+    if (this.pendingRequired) {
+      this.view.nudgeBlocked?.('required');
+      return;
+    }
+    if (this.exploring && !explored) {
+      this.view.nudgeBlocked?.('explore');
+      return;
+    }
     if (this.virtual.length) {
       this.playLine(this.index, { line: this.virtual.shift()!, repeated: false });
       return;

@@ -565,3 +565,11 @@ docs/                 規格文件與本需求書
 - 首頁「製作者入口」區塊只放兩個按鈕：「遊戲」與「製作者工具」。原本頁尾的「開發者版本」移除。
 - 以前分享的連結（首頁加 `?dev=1` 等）轉到遊戲頁時不加 `local=1`，開的是原版。
 - 看原版時，開發者面板「專案」區若發現瀏覽器裡還有本機專案，顯示「這個瀏覽器裡還有本機專案《…》：打開它」（離線版直接雙擊 html 也靠這個回到自己的專案）。
+
+### 試玩回饋 1a：可以點的物件（玩家這邊）
+
+- 新的 Demo 劇本（劇本 AI 試玩回饋第一輪）整份取代 `examples/寫給未來的我/script.json`；配音編號從 66 變成 65（三句舊提問拿掉，新的三句還沒錄）。
+- `Engine.blocked`（`required`／`explore`／null）是唯一的「能不能往下」判斷，`next(explored)` 檢查它；畫面用 `View.nudgeBlocked` 提示。自動測試的自動玩迴圈用 `tests/helpers.ts` 的 `unblock`。
+- 物件的循環音效由 `AudioEngine.setSfxLoops(names)` 管理（`#stage[data-sfx-loops]` 給測試看）。
+- 說明卡：靠下方、手機直式是底部卡片，「放大」按鈕切換 `.inspect.zoomed`；點卡片其他地方照舊關閉。
+
