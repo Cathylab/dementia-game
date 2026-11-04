@@ -14,6 +14,7 @@ import type { Script } from '../types';
 import { el } from '../util';
 import { registerStep, type StepContext } from './guide';
 import { debounce } from './pending';
+import { parseReply, relayFileName, requestText } from './relay';
 import { gameHref } from './links';
 import { DESIGN_CHECKLIST, LENGTH_TEXT, promptFor, type Answers, type Length, type ThemeAnswer } from './prompts';
 
@@ -44,6 +45,51 @@ async function packFor(ctx: StepContext): Promise<{ pack: Pack; docs: Record<str
 function offlineNote(): HTMLElement | null {
   if (!FILE_MODE && navigator.onLine) return null;
   return el('p', { class: 'g-offline' }, ['目前沒有網路（或是離線版）：提示詞照樣可以複製，請到有網路的地方貼給 AI，再把回答帶回來貼上。']);
+}
+
+// ───────── 請老師代貼（需求書 6-6） ─────────
+
+/**
+ * 「沒辦法自己用 AI？請老師代貼」：下載代貼單交給老師；讀取老師的回覆檔，自動填進貼上區。
+ * onFilled：填好之後要做的事（例如劇本那一步自動按「檢查」）。
+ */
+function relayBox(ctx: StepContext, getPrompt: () => string, paste: HTMLTextAreaElement, onFilled?: () => void): HTMLElement {
+  const a = answersOf(ctx);
+  const msg = el('p', { class: 'g-status', 'data-guide': 'relay-status', 'aria-live': 'polite' });
+  const request = () =>
+    requestText({ group: a.theme?.group ?? '', title: a.theme?.title || ctx.project.script.meta.title, step: ctx.step.id, stepTitle: ctx.step.title, prompt: getPrompt() });
+  const download = el('button', { type: 'button', class: 'g-btn', 'data-guide': 'relay-download' }, ['下載代貼單（交給老師）']);
+  download.onclick = () => {
+    const name = relayFileName('代貼單', { group: a.theme?.group ?? '', stepTitle: ctx.step.title });
+    downloadBlob(new Blob([request()], { type: 'text/plain;charset=utf-8' }), name);
+    msg.textContent = `已下載 ${name}。交給老師，等老師把回覆檔還給你。`;
+  };
+  const reply = el('input', { type: 'file', name: 'relay-reply', accept: '.txt,text/plain' });
+  reply.onchange = async () => {
+    const f = reply.files?.[0];
+    reply.value = '';
+    if (!f) return;
+    const r = parseReply(await f.text());
+    if (!r) {
+      msg.textContent = '這不是老師的回覆檔（應該是「回覆-組別-步驟.txt」）。';
+      return;
+    }
+    if (r.step && r.step !== ctx.step.id) {
+      msg.textContent = `這是「${r.stepTitle}」那一步的回覆，不是這一步的。請到「${r.stepTitle}」讀取。`;
+      return;
+    }
+    paste.value = r.answer;
+    paste.dispatchEvent(new Event('input'));
+    msg.textContent = `✓ 已讀取老師的回覆${r.group ? `（${r.group}）` : ''}，填進上面的貼上區。`;
+    onFilled?.();
+  };
+  return el('details', { class: 'g-relay', 'data-guide': 'relay' }, [
+    el('summary', {}, ['沒辦法自己用 AI？請老師代貼']),
+    el('p', { class: 'g-meta' }, ['下載代貼單交給老師（用隨身碟、雲端硬碟或學校的作業系統都可以）。老師貼給 AI、看過回答後，會給你一個回覆檔，在這裡讀取就好。']),
+    el('div', { class: 'g-actions' }, [download, copyButton('複製代貼單', request, { 'data-guide': 'relay-copy' })]),
+    el('label', { class: 'g-field' }, [el('span', { class: 'g-field-label' }, ['讀取老師的回覆檔']), reply]),
+    msg,
+  ]);
 }
 
 // ───────── 1. 選題材包與主題 ─────────
@@ -96,6 +142,12 @@ registerStep('theme', (ctx) => {
     t.goal = goal.value;
     changed();
   };
+  const group = el('input', { type: 'text', name: 'guide-group', placeholder: '例如：三年二班第 3 組（自己做的話可以空白）' });
+  group.value = t.group ?? '';
+  group.oninput = () => {
+    t.group = group.value;
+    changed();
+  };
   audience.oninput = () => {
     t.audience = audience.value;
     changed();
@@ -120,6 +172,7 @@ registerStep('theme', (ctx) => {
     field('想讓玩家體會的事（一句話）', goal, '之後每一步都會拿這句話來檢查。'),
     field('長度', lengths),
     field('給誰玩', audience),
+    field('組別（課堂用）', group, '請老師代貼提示詞時，老師用它分辨是哪一組。'),
   ]);
 });
 
@@ -170,6 +223,7 @@ function aiStep(ctx: StepContext, o: AiStepOptions): HTMLElement {
     ...(note ? [note] : []),
     prompt,
     el('div', { class: 'g-actions' }, [copyButton('複製提示詞', () => promptText, { 'data-guide': 'copy-prompt' })]),
+    relayBox(ctx, () => promptText, paste),
     el('h3', {}, [`② ${o.pasteLabel}`]),
     paste,
     ...(o.extra ? [o.extra(ctx, () => update())] : []),
@@ -303,6 +357,7 @@ registerStep('script', (ctx) => {
     ...(note ? [note] : []),
     prompt,
     el('div', { class: 'g-actions' }, [copyButton('複製提示詞', () => promptText, { 'data-guide': 'copy-prompt' })]),
+    relayBox(ctx, () => promptText, paste, () => check.click()),
     el('h3', {}, ['② 把 AI 寫的劇本貼回來檢查']),
     paste,
     el('div', { class: 'g-actions' }, [check]),

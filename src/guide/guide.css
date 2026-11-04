@@ -665,3 +665,20 @@ html[data-page='guide'] #app {
   }
 }
 
+/* 請老師代貼 */
+.g-relay {
+  padding: 10px 14px;
+  border: 1px dashed var(--g-line);
+  border-radius: 12px;
+}
+
+.g-relay > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--g-accent);
+}
+
+.g-relay-item h3 {
+  margin: 0 0 4px;
+}
+
