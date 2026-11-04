@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>使用說明｜同理體驗視覺小說</title>
+    <style>
+      :root {
+        --bg: #f6f1e7;
+        --paper: #fffdf8;
+        --ink: #2b2620;
+        --dim: #6b6157;
+        --line: #e2d8c6;
+        --accent: #a3542c;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1b1916;
+          --paper: #24211d;
+          --ink: #efe8dc;
+          --dim: #b0a596;
+          --line: #3a352e;
+          --accent: #e0956a;
+          color-scheme: dark;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 17px/1.8 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+      }
+      main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 32px 16px 64px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 5vw, 38px);
+        line-height: 1.3;
+      }
+      h2 {
+        margin: 40px 0 12px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        font-size: 24px;
+      }
+      h3 {
+        margin: 24px 0 8px;
+        font-size: 19px;
+      }
+      .lead {
+        color: var(--dim);
+      }
+      .toc {
+        padding: 16px 20px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+      }
+      .toc ol {
+        margin: 0;
+        padding-left: 1.4em;
+      }
+      a {
+        color: var(--accent);
+      }
+      figure {
+        margin: 16px 0;
+      }
+      figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      figcaption {
+        margin-top: 4px;
+        color: var(--dim);
+        font-size: 14px;
+      }
+      .tip {
+        padding: 12px 16px;
+        border-left: 4px solid var(--accent);
+        border-radius: 8px;
+        background: var(--paper);
+      }
+      .file {
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--paper);
+      }
+      th,
+      td {
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      ol li,
+      ul li {
+        margin: 4px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>使用說明</h1>
+      <p class="lead">
+        這是「同理體驗視覺小說」的離線版：不用安裝任何東西、不用網路，就能玩範例遊戲，也能一步一步做出自己的遊戲。
+      </p>
+
+      <nav class="toc" aria-label="目錄">
+        <ol>
+          <li><a href="#unzip">先解壓縮</a></li>
+          <li><a href="#demo">玩範例遊戲《寫給未來的我》</a></li>
+          <li><a href="#make">做自己的遊戲</a></li>
+          <li><a href="#save">你的作品存在哪裡</a></li>
+          <li><a href="#share">給別人玩</a></li>
+          <li><a href="#offline">離線時被簡化的效果</a></li>
+          <li><a href="#faq">常見問題</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="unzip">1. 先解壓縮</h2>
+      <p>下載的是一個壓縮檔（.zip）。<strong>一定要先解壓縮</strong>，不要直接在壓縮檔裡面點開，否則圖片和聲音會讀不到。</p>
+      <ul>
+        <li><strong>Windows</strong>：在壓縮檔上按右鍵 →「全部解壓縮」→「解壓縮」。</li>
+        <li><strong>Mac</strong>：雙擊壓縮檔，旁邊會出現一個同名的資料夾。</li>
+      </ul>
+      <p>解壓縮後的資料夾裡有這些檔案：</p>
+      <table>
+        <tr>
+          <th>檔案</th>
+          <th>用途</th>
+        </tr>
+        <tr>
+          <td><span class="file">開始.html</span></td>
+          <td>做自己的遊戲（引導網站）</td>
+        </tr>
+        <tr>
+          <td><span class="file">玩 Demo.html</span></td>
+          <td>玩範例遊戲《寫給未來的我》</td>
+        </tr>
+        <tr>
+          <td><span class="file">空白範本.html</span></td>
+          <td>一個空白的遊戲，給想直接用故事編輯器的人</td>
+        </tr>
+        <tr>
+          <td><span class="file">使用說明.html</span></td>
+          <td>這一份說明</td>
+        </tr>
+        <tr>
+          <td>examples、templates、packs 資料夾</td>
+          <td>範例、範本與題材包的檔案。<strong>不要移動或改名</strong>，html 檔要和它們放在一起。</td>
+        </tr>
+      </table>
+      <p class="tip">建議用 <strong>Chrome</strong> 或 <strong>Edge</strong> 開啟。Safari 對直接開啟電腦裡的檔案限制比較多，如果遇到問題請改用 Chrome。</p>
+
+      <h2 id="demo">2. 玩範例遊戲《寫給未來的我》</h2>
+      <p>雙擊 <span class="file">玩 Demo.html</span>，按「開始」。約 16 分鐘，建議戴上耳機。</p>
+      <figure>
+        <img src="usage/u4-demo-title.webp" alt="遊戲的標題畫面，中間是「寫給未來的我」與「開始」按鈕" width="1200" height="750" />
+        <figcaption>標題畫面</figcaption>
+      </figure>
+      <figure>
+        <img src="usage/u5-demo-play.webp" alt="遊戲畫面：早晨的廚房，下方是台詞，右下角是功能列" width="1200" height="750" />
+        <figcaption>點畫面（或按空白鍵）看下一句；右下角的功能列可以回上一句、看紀錄、調整設定。</figcaption>
+      </figure>
+
+      <h2 id="make">3. 做自己的遊戲</h2>
+      <p>雙擊 <span class="file">開始.html</span>。首頁可以先玩一分鐘的片段，再按「開始做我的遊戲」。</p>
+      <figure>
+        <img src="usage/u1-home.webp" alt="引導網站首頁：標題、開始做我的遊戲按鈕、試玩片段" width="1200" height="750" />
+        <figcaption>引導網站首頁</figcaption>
+      </figure>
+      <p>選擇「從空白開始」（自己的故事）或「從範例開始」（以《寫給未來的我》為底改寫）。</p>
+      <figure>
+        <img src="usage/u2-start.webp" alt="選擇從空白開始或從範例開始" width="1200" height="750" />
+      </figure>
+      <h3>九個步驟</h3>
+      <p>畫面上方永遠看得到「現在在第幾步、還剩幾步」。每一步都可以回上一步修改，也可以「先跳過，用佔位內容」。</p>
+      <figure>
+        <img src="usage/u3-step.webp" alt="步驟頁：上方是九個步驟的進度，中間是要複製給 AI 的提示詞" width="1200" height="750" />
+        <figcaption>需要 AI 的步驟：複製提示詞 → 貼給任何 AI（例如 ChatGPT、Claude、Gemini）→ 把回答貼回來 → 檢查通過才能下一步。</figcaption>
+      </figure>
+      <ol>
+        <li><strong>選題材包與主題</strong>：作品名稱、處境（例如失智症）、一句話寫下想讓玩家體會什麼。</li>
+        <li><strong>三個方向的大綱</strong>（需要 AI）</li>
+        <li><strong>分場大綱</strong>（需要 AI）</li>
+        <li><strong>設計表</strong>（需要 AI）：可以點的物件、隱藏選項、每個效果用在哪裡。</li>
+        <li><strong>完整劇本</strong>（需要 AI）：貼回來的劇本會先檢查，有「必須修正」的問題時，會附上可以直接貼給 AI 的修正提示詞。</li>
+        <li><strong>美術需求</strong>（需要 AI）：產生美術說明與生圖提示詞。</li>
+        <li><strong>素材</strong>：上傳圖片、音樂、配音，或保留佔位圖。</li>
+        <li><strong>試玩與修改</strong></li>
+        <li><strong>匯出與發佈</strong></li>
+      </ol>
+      <p class="tip">
+        <strong>沒有網路的電腦也能做</strong>：提示詞照樣可以複製。把提示詞帶到有網路的電腦（或手機）貼給 AI，再把 AI 的回答帶回來貼上。
+      </p>
+      <h3>故事編輯器</h3>
+      <p>任何時候都可以按上方的「打開故事編輯器」，不用寫程式就能新增場景、寫台詞、做選項分支、上傳素材。</p>
+      <figure>
+        <img src="usage/u6-story.webp" alt="故事編輯器：左邊是場景列表，右邊是場景設定與台詞" width="1200" height="750" />
+        <figcaption>故事編輯器：左邊是場景列表（→ 是會走到哪裡），右邊編輯台詞與選項。</figcaption>
+      </figure>
+
+      <h2 id="save">4. 你的作品存在哪裡</h2>
+      <ul>
+        <li>作品存在<strong>這台電腦的這個瀏覽器</strong>裡（本機專案）。關掉再打開還在，首頁會有「繼續」。</li>
+        <li><strong>換電腦、換瀏覽器、清除瀏覽紀錄時會看不到</strong>。請常常到第 9 步按「匯出專案檔（.vnproj）」備份。</li>
+        <li>要在別的電腦繼續：打開遊戲頁，按 <span class="file">`</span> 鍵（Esc 下方）或網址加 <code>?dev=1</code> 打開開發者面板，在「專案」選「開啟專案檔」。</li>
+      </ul>
+
+      <h2 id="share">5. 給別人玩</h2>
+      <p>第 9 步按「<strong>匯出可以玩的版本</strong>」，會下載一個壓縮檔：</p>
+      <ul>
+        <li>傳給別人，對方解壓縮後雙擊 html 就能玩，不需要網路。</li>
+        <li>把資料夾裡的全部檔案放到學校、單位的網站，或免費的 GitHub Pages（第 9 步有步驟），就有一個網址可以分享。</li>
+      </ul>
+
+      <h2 id="offline">6. 離線時被簡化的效果</h2>
+      <p>直接開啟電腦裡的檔案時，瀏覽器不允許某些聲音處理，所以有幾個效果會自動簡化（遊戲照樣能玩）：</p>
+      <ul>
+        <li>音樂的「走音」只改變速度與音量，沒有「變悶」的濾波。</li>
+        <li>「聲音變悶」的效果只會降低音量。</li>
+        <li>匯出專案檔只包含你自己上傳或開啟的素材，不含範例內建的素材。</li>
+        <li>文字編輯、故事編輯的「儲存」：開著本機專案時存進瀏覽器；沒有本機專案時改成下載 script.json。</li>
+      </ul>
+
+      <h2 id="faq">7. 常見問題</h2>
+      <h3>雙擊後一片空白，或圖片沒有出來</h3>
+      <p>多半是沒有先解壓縮，或把 html 檔從資料夾裡拿出來了。請整個資料夾解壓縮，在資料夾裡雙擊。</p>
+      <h3>沒有聲音</h3>
+      <p>瀏覽器規定要先點一下畫面才能出聲：按「開始」後就會有聲音。也請檢查電腦音量與遊戲「設定」裡的音量。</p>
+      <h3>畫面晃動、閃爍讓人不舒服</h3>
+      <p>這是表現處境的效果。如果不舒服請先休息；之後的版本會提供關閉這類效果的設定。</p>
+      <h3>Safari 打不開或不能存</h3>
+      <p>Safari 對直接開啟電腦裡的檔案限制比較多，請改用 Chrome 或 Edge。</p>
+    </main>
+  </body>
+</html>

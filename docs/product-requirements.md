@@ -315,8 +315,8 @@ docs/                 規格文件與本需求書
 | 5 | 佔位素材升級與素材管理頁 | 5.4 | 完成（#17） |
 | 6 | 引導網站首頁 | 5.1 | 完成（#18） |
 | 7 | 引導流程與提示詞產生器 | 5.2 | 完成（#19） |
-| 8 | 匯出可遊玩版本、發佈到 GitHub Pages 教學 | 5.5 | 進行中 |
-| 9 | Release 壓縮檔（GitHub Actions）與使用說明 | 4.3 | |
+| 8 | 匯出可遊玩版本、發佈到 GitHub Pages 教學 | 5.5 | 完成（#20） |
+| 9 | Release 壓縮檔（GitHub Actions）與使用說明 | 4.3 | 進行中 |
 
 ### 4.2 repo 結構調整
 
@@ -445,4 +445,19 @@ docs/                 規格文件與本需求書
   - 缺的素材用佔位圖或合成音，訊息會告訴使用者缺幾個。
 - 入口：引導流程第 9 步、開發者面板「專案」。
 - GitHub Pages 教學：`docs/publish-github-pages.md`（圖文步驟改成文字步驟，因為 GitHub 介面常改版，截圖容易過時）；第 9 步畫面上也列出精簡版步驟。依需求書，本階段不做「面板裡直接發佈到 GitHub」。
+
+### 4.3 Release 壓縮檔
+
+- 打包：`scripts/package-release.mjs`（`npm run package`）。壓縮檔裡是一個資料夾：
+  - `dist-offline/` 的內容（`開始.html`、`玩 Demo.html`、`空白範本.html`、`examples/`、`templates/`、`packs/`）
+  - `使用說明.html` 與 `usage/` 截圖
+  - 去掉網站才用的 `player-template.html`、`projects.json`、`packs.json`
+- 資料夾與壓縮檔名稱暫用「同理體驗視覺小說」（產品名稱待使用者決定 #1，定了以後改 `FOLDER`）。
+- 使用說明選 html（不是 pdf）：離線也能看、截圖可以跟著改版重拍，也容易翻譯。截圖在 `guide/usage/`，用 Playwright 對離線版拍的。
+- 發佈：`.github/workflows/release.yml`。
+  - 推送 `v*` 標籤時，用 GitHub 內建的 `gh release create` 建立 Release，附上壓縮檔，說明裡寫大小。
+  - 手動執行時只上傳 Artifact，不發佈。
+  - **第一次推送標籤要使用者同意**（發佈後別人就可能下載）。
+- 授權與 Demo 素材權利（待使用者決定 #2、#3）尚未決定，壓縮檔目前沒有授權檔。發佈 v1.0.0 前應先決定。
+- 目前大小約 9.4 MB（README 有標示）。
 
