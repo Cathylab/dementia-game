@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { expect, test, type Download, type Page } from '@playwright/test';
+import { readdirSync, readFileSync } from 'node:fs';
 import { unzipSync } from 'fflate';
+import type { Script } from '../src/types';
+import { voiceEntries } from '../src/voice';
 
 const OUT = fileURLToPath(new URL('../dist-offline/', import.meta.url));
 
@@ -62,7 +65,12 @@ test('開發者面板：從網站版 Demo 匯出，素材一起打包，圖片�
   expect(download.suggestedFilename()).toBe('寫給未來的我-可以玩的版本.zip');
   const { dir, files } = await unzip(download);
   expect(files).toContain('寫給未來的我/game/assets/bg/kitchen_morning.webp');
-  expect(files.filter((f) => f.includes('/game/assets/voice/')).length).toBe(66);
+  // 劇本用到、而且 assets/voice 裡有檔案的配音都打包進去
+  const demoDir = new URL('../examples/寫給未來的我/', import.meta.url);
+  const demo = JSON.parse(readFileSync(new URL('script.json', demoDir), 'utf8')) as Script;
+  const onDisk = new Set(readdirSync(new URL('assets/voice/', demoDir)).map((f) => f.replace(/\.\w+$/, '')));
+  const expected = new Set(voiceEntries(demo).map((v) => v.id).filter((id) => onDisk.has(id))).size;
+  expect(files.filter((f) => f.includes('/game/assets/voice/')).length).toBe(expected);
 
   // 用另一個（離線版）頁面在這個瀏覽器建立一個不同的本機專案，確認匯出的遊戲不會被蓋掉
   await page.goto(pathToFileURL(join(OUT, '開始.html')).href);
