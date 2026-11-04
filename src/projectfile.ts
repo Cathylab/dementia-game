@@ -18,12 +18,16 @@ export interface ProjectInfo {
   version: number;
   title: string;
   exportedAt: string;
+  /** 組別（課堂用，班級展示時顯示）。 */
+  group?: string;
 }
 
 export interface Project {
   script: Script;
   /** 路徑同 {專案}/assets/ 底下，例如 bg/kitchen_morning.webp。 */
   files: Map<string, Blob>;
+  /** 組別（課堂用）。 */
+  group?: string;
 }
 
 /** 已經壓縮過的格式不再壓縮（省時間，也不會變小）。 */
@@ -37,6 +41,7 @@ export async function packProject(project: Project, now = new Date()): Promise<B
     version: PROJECT_VERSION,
     title: project.script.meta?.title ?? '',
     exportedAt: now.toISOString(),
+    ...(project.group ? { group: project.group } : {}),
   };
   const zip: Zippable = {
     'project.json': enc.encode(`${JSON.stringify(info, null, 2)}\n`),

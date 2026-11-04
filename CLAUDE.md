@@ -29,6 +29,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - 老師代貼：`src/guide/relay.ts`（代貼單／回覆檔格式）、`teacher.ts`（`#/teacher` 工作台）、`stepviews.ts` 的 `relayBox`。
 - 角色卡與查證：`src/guide/roles.ts`（內容，不碰 DOM）、`rolespage.ts`（`#/roles`）、`inquiry.ts`（工具 `sources`／`stereotype`；資料來源會放進提示詞）。
 - 手繪拍照・小圖庫：`src/photo.ts`（去白紙、裁切、擺放；像素運算不碰 DOM）、`src/gallery.ts`（內建 SVG 圖庫）、`src/guide/drawings.ts`（工具 `drawings`，存進 `ProjectStore.saveFile`）。
+- 班級展示：`src/guide/showcase.ts`（`#/showcase`；每個作品一個 IndexedDB `vn-showcase-{id}`，遊戲頁 `?showcase=id`）、`review.ts`（互評項目、CSV，不碰 DOM）。給老師的文件：`guide/teacher/*.md` → `teacherdocs.ts`（`#/docs/…`）。
 - 照格子填：`src/guide/grid.ts`（`gridToScript`，不碰 DOM）、`gridview.ts`（`registerTool('grid')`）。
 - 課堂模式：`src/guide/lessons.ts`（任務卡）、`guide.ts` 的 `renderLesson`／`embedStep`（`#/lesson/N`，`GuideState.mode = 'class'`）。引導頁的延遲存檔用 `src/guide/pending.ts` 的 `debounce`，換頁前 `flushPending()`。
 - 引導流程：`src/guide/steps.ts`（九步定義）、`stepviews.ts`（每步畫面，`registerStep`）、`prompts.ts`（提示詞，含前面答案、題材包 `guide.md`／`cautions.md`）、`format.ts`（給 AI 的劇本格式）。題材包文件離線時在 `EMBED.packs[id]._docs`。

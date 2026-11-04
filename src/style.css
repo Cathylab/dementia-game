@@ -2897,3 +2897,17 @@ body.voice-desk-page #app {
   text-decoration: none;
 }
 
+
+/* 班級展示：回到展示頁 */
+.showcase-back {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  z-index: 60;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 14px;
+  text-decoration: none;
+}

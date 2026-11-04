@@ -39,7 +39,7 @@ export const LESSONS: LessonDef[] = [
       { id: 'reflect', text: '每個人寫一句：我們想讓玩家「從裡面」體會到什麼？', minutes: 5, role: '全組' },
     ],
     steps: ['theme', 'sources'],
-    teacher: '開始前先說明這個題材可能觸及的感受，提醒同學尊重真實的當事人與家屬。可以先讓全班決定同一個題材包，比較好帶討論。',
+    teacher: '開始前先說明這個題材可能觸及的感受，提醒同學尊重真實的當事人與家屬。可以先讓全班決定同一個題材包，比較好帶討論。題材可能觸及自傷、霸凌等經驗時，請先讀「給老師」裡的安全守則，並事先和輔導老師聯繫。',
   },
   {
     id: 'l2',
@@ -89,7 +89,7 @@ export const LESSONS: LessonDef[] = [
       { id: 'fix', text: '依回饋修改，直到下面的劇本檢查沒有「必須修正」。', minutes: 15, role: '編劇' },
     ],
     steps: ['playtest', 'stereotype'],
-    teacher: '交換試玩時，請玩的人先說感受、再說建議。之後的版本會提供互評表。',
+    teacher: '交換試玩時，請玩的人先說感受、再說建議。可以用「班級展示」頁的互評表（電腦上填，或列印紙本）。',
   },
   {
     id: 'l6',
@@ -98,11 +98,11 @@ export const LESSONS: LessonDef[] = [
     tasks: [
       { id: 'submit', text: '匯出專案檔（.vnproj）交給老師。', minutes: 5, role: '全組' },
       { id: 'export', text: '匯出可以玩的版本（或 itch.io 用的壓縮檔）。', minutes: 5, role: '全組' },
-      { id: 'show', text: '全班輪流試玩各組作品，每組用一分鐘說明想讓玩家體會什麼。', minutes: 30, role: '全組' },
+      { id: 'show', text: '老師在「班級展示」載入全班的專案檔，輪流在大螢幕上玩；每組用一分鐘說明想讓玩家體會什麼，其他組填互評表。', minutes: 30, role: '全組' },
       { id: 'reflect', text: '寫下：做完這個遊戲，你對這個處境的想法有什麼改變？', minutes: 5, role: '全組' },
     ],
     steps: ['publish'],
-    teacher: '時間不夠時可以把這堂併到第五堂後半。作業以專案檔繳交，所有內容只存在學生自己的電腦與檔案裡。',
+    teacher: '時間不夠時可以把這堂併到第五堂後半。評分可以參考「給老師」裡的評分規準。作業以專案檔繳交，所有內容只存在學生自己的電腦與檔案裡。',
     optional: true,
   },
 ];

@@ -16,6 +16,7 @@ import { currentPack, packIdOf, setCurrentPack } from './pack';
 import { loadPack } from './packloader';
 import { ProjectSession } from './project';
 import { BrowserProjectStore } from './projectstore';
+import { showcaseDb } from './guide/review';
 import { StoryEditor } from './storyeditor';
 import { applyScriptDefaults, settings } from './settings';
 import { el, urlParam } from './util';
@@ -81,7 +82,9 @@ function setupClip(engine: Engine, view: AdvView): void {
 async function boot() {
   if (currentPage() === 'guide') return bootGuide();
   const app = document.getElementById('app')!;
-  const store = new BrowserProjectStore();
+  // 班級展示：?showcase=代號，讀那個作品自己的資料庫（不動到這台電腦上自己的專案）
+  const showcase = urlParam('showcase');
+  const store = new BrowserProjectStore(showcase ? showcaseDb(showcase) : undefined);
   let session: ProjectSession | null = null;
   try {
     // 開過專案檔就用瀏覽器裡的專案；網址加 ?site=1 可以暫時略過，看網站原本的遊戲
@@ -107,7 +110,10 @@ async function boot() {
     const project = session;
     if (project.mode === 'local') {
       editor.saveToProject = () => project.saveScript(engine.script);
-      view.titleNote = `本機專案（存在${store.label}裡）`;
+      view.titleNote = showcase ? '班級展示' : `本機專案（存在${store.label}裡）`;
+    }
+    if (showcase) {
+      app.append(el('a', { class: 'showcase-back', href: `${EMBED ? encodeURI('開始.html') : './'}#/showcase`, 'data-guide': 'showcase-back' }, ['← 回班級展示']));
     }
     const story = new StoryEditor(
       engine,
