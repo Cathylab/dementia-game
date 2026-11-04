@@ -86,6 +86,7 @@ button {
 }
 
 .bg,
+.bg-skip,
 .objects-bg {
   position: absolute;
   left: 50%;
@@ -789,11 +790,13 @@ button {
 
 /* text_blur */
 .stage.fx-text-blur .text {
-  animation: text-unsteady 2.4s ease-in-out infinite;
+  animation: text-unsteady 4s ease-in-out infinite;
 }
 
+/* 缺字：淡到幾乎看不見，而不是直接消失 */
 .text .ch.on.glitch-missing {
-  opacity: 0;
+  opacity: 0.15;
+  transition: opacity 1.2s ease;
 }
 
 .text .ch.glitch-block {
@@ -805,10 +808,10 @@ button {
 @keyframes text-unsteady {
   0%,
   100% {
-    filter: blur(0.2px);
+    filter: blur(0.1px);
   }
   50% {
-    filter: blur(1.1px);
+    filter: blur(0.6px);
   }
 }
 
@@ -847,9 +850,17 @@ button {
   transition: opacity 0.3s;
 }
 
-/* time_skip：短暫切到另一個時空，帶舊照片色調 */
-.stage.fx-time-skip .bg {
+/* time_skip：另一個時空的背景帶舊照片色調，慢慢浮上來再淡回去 */
+.bg-skip {
+  background: #222 center / cover no-repeat;
   filter: sepia(0.55) contrast(0.92) brightness(1.05);
+  opacity: 0;
+  transition: opacity 1.8s ease-in-out;
+  pointer-events: none;
+}
+
+.bg-skip.on {
+  opacity: 1;
 }
 
 /* focus_drift：對焦從角色飄到背景 */
@@ -922,13 +933,19 @@ button {
   filter: blur(0.5px);
 }
 
-/* flat_options：所有選項一樣灰、一樣的語氣 */
+/* flat_options：所有選項一樣灰、一樣的語氣（字仍然清楚可讀） */
 .choices.fx-flat-options .choice,
 .choices.fx-flat-options .choice:hover,
 .choices.fx-flat-options .choice:focus-visible {
-  background: rgba(70, 70, 70, 0.7);
-  border-color: rgba(150, 150, 150, 0.4);
-  color: #b4b4b4;
+  background: rgba(58, 58, 58, 0.88);
+  border-color: rgba(170, 170, 170, 0.45);
+  color: #d6d6d6;
+}
+
+/* desaturate：畫面褪色時，選項不跟著變淡（底色加深，維持清楚） */
+.stage.fx-desaturate .choice:not(.locked) {
+  background: rgba(8, 8, 8, 0.86);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 /* choice_vanish */
@@ -1594,7 +1611,7 @@ button {
 }
 
 .inspect-desc .ch.glitch-missing {
-  opacity: 0;
+  opacity: 0.15;
 }
 
 .inspect-card.fx-text-blur .inspect-desc {

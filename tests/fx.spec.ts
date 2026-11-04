@@ -79,11 +79,14 @@ test('wrong_object（無前景）：背景上多一個物件', async ({ page }) 
   await expect(page.locator('.bg-pan .wrong-object')).toHaveCount(1);
 });
 
-test('time_skip：眨眼換成另一個背景，數秒後切回', async ({ page }) => {
+test('time_skip：另一個背景慢慢浮上來（舊照片色調），數秒後淡回去', async ({ page }) => {
   await jumpTo(page, 'fx_time');
   await expect(page.locator('#stage')).toHaveClass(/fx-time-skip/);
-  await expect(page.locator('.bg')).toHaveAttribute('data-name', 'old_school');
-  await expect(page.locator('.bg')).toHaveAttribute('data-name', 'test_room', { timeout: 5000 });
+  // 原本的背景不換，另一個時空疊在上面交叉淡入淡出
+  await expect(page.locator('.bg-skip.on')).toHaveAttribute('data-name', 'old_school');
+  await expect(page.locator('.bg')).toHaveAttribute('data-name', 'test_room');
+  expect(await page.locator('.bg-skip').evaluate((n) => getComputedStyle(n).transitionDuration)).not.toBe('0s');
+  await expect(page.locator('.bg-skip')).toHaveCount(0, { timeout: 8000 });
   await expect(page.locator('#stage')).not.toHaveClass(/fx-time-skip/);
 });
 
@@ -99,6 +102,20 @@ test('desaturate：飽和度降低、可疊加、不會自己恢復', async ({ p
   expect(sat).toBeLessThan(1);
   await jumpTo(page, 'fx_text');
   await expect(stage).toHaveClass(/fx-desaturate/);
+});
+
+test('desaturate 掛在選項上：畫面褪色，選項不跟著變淡（不在褪色的畫面層裡）', async ({ page }) => {
+  await page.evaluate(() => {
+    const vn = (window as unknown as { __vn: { engine: { script: { scenes: { id: string; lines: { fx?: string[] }[] }[] } } } }).__vn;
+    vn.engine.script.scenes.find((s) => s.id === 'ch_flat')!.lines[0].fx = ['flat_options', 'desaturate'];
+  });
+  await jumpTo(page, 'ch_flat');
+  const stage = page.locator('#stage');
+  await expect(stage).toHaveClass(/fx-desaturate/);
+  const choice = page.locator('.choices.open .choice').first();
+  await expect(choice).toBeVisible();
+  // 選項在 .scene-layers（套飽和度濾鏡的那層）外面，本身沒有濾鏡、不透明度 1
+  expect(await choice.evaluate((n) => !n.closest('.scene-layers') && getComputedStyle(n).filter === 'none' && getComputedStyle(n).opacity === '1')).toBe(true);
 });
 
 test('focus_drift：角色變糊、對焦移到背景', async ({ page }) => {

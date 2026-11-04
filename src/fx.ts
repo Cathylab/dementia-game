@@ -138,21 +138,30 @@ export class Effects {
     this.v.bgPan.append(img);
   }
 
-  /** time_skip：眨眼後背景換成另一個場景，數秒後再眨眼切回。 */
+  /**
+   * time_skip：另一個時空的背景（舊照片色調）慢慢浮上來，停幾秒再慢慢淡回去。
+   * 試玩回饋：原本用眨眼切換像瞬間移動，改成柔和的交叉淡入淡出。
+   */
   async timeSkip(to?: string): Promise<void> {
     const seq = this.sceneSeq;
     const original = this.v.bg.dataset.name ?? '';
     const target = to ?? this.randomOtherBackground(original);
     if (!target) return;
     const url = await resolveImage('bg', target);
-    const back = original ? await resolveImage('bg', original) : '';
-    this.stage.classList.add('fx-time-skip');
-    await this.v.blink(() => this.v.setBackground(target, url), 200);
-    await sleep(T(3600));
     if (seq !== this.sceneSeq) return;
-    await this.v.blink(() => {
-      if (seq === this.sceneSeq) this.v.setBackground(original, back);
-    }, 200);
+    this.v.bgPan.querySelector('.bg-skip')?.remove();
+    const layer = document.createElement('div');
+    layer.className = 'bg-skip';
+    layer.dataset.name = target;
+    layer.style.backgroundImage = `url("${url}")`;
+    this.v.bgPan.append(layer);
+    this.stage.classList.add('fx-time-skip');
+    void layer.offsetWidth;
+    layer.classList.add('on');
+    await sleep(T(1800 + 3200));
+    if (seq === this.sceneSeq) layer.classList.remove('on');
+    await sleep(T(1800));
+    layer.remove();
     if (seq === this.sceneSeq) this.stage.classList.remove('fx-time-skip');
   }
 
@@ -189,6 +198,8 @@ export class Effects {
     const fx = activeFx(line.fx);
     if (fx.includes('flat_options')) this.flatOptions(container, items);
     if (fx.includes('choice_vanish')) this.choiceVanish(container, items, line.mode === 'hotspot');
+    // 選項上的 desaturate：畫面褪色，選項本身不變淡
+    if (fx.includes('desaturate')) this.desaturate();
   }
 
   /** flat_options：所有選項同樣灰色、同樣語氣；點哪個都走第一個選項的 goto（引擎處理）。 */
@@ -262,9 +273,10 @@ export function fadeText(node: HTMLElement, finalText: string, onDone?: () => vo
 /** 讓逐字 span 裡約三到四成的字缺失或變成亂碼方塊。 */
 export function glitchSpans(spans: HTMLSpanElement[]): void {
   const candidates = spans.filter((s) => !SKIP_CHARS.test(s.textContent ?? ''));
-  const count = Math.max(1, Math.round(candidates.length * rand(0.25, 0.4)));
+  // 柔和：少數幾個字變淡或換成方塊（以前 25～40%，讀起來太吃力）
+  const count = Math.max(1, Math.round(candidates.length * rand(0.1, 0.18)));
   for (const s of shuffle([...candidates]).slice(0, count)) {
-    if (Math.random() < 0.5) {
+    if (Math.random() < 0.65) {
       s.classList.add('glitch-missing');
     } else {
       s.dataset.orig = s.textContent ?? '';
