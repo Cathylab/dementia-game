@@ -465,6 +465,7 @@ export class DevPanel {
     const cs = () => (meta.choiceStyle ??= {});
     const choicePos = el('select', { name: 'dev-choice-position' }, [
       el('option', { value: 'right' }, ['對話框右上方']),
+      el('option', { value: 'left' }, ['對話框左上方']),
       el('option', { value: 'center' }, ['畫面中間']),
     ]);
     choicePos.value = meta.choiceStyle?.position ?? 'right';
@@ -473,7 +474,7 @@ export class DevPanel {
     const widthOut = el('output', {}, [`${Math.round(Number(choiceWidth.value) * 100)}%`]);
     const choiceScaleOut = el('output', {}, [`${Number(choiceScale.value).toFixed(2)} 倍`]);
     const applyChoice = () => {
-      cs().position = choicePos.value as 'right' | 'center';
+      cs().position = choicePos.value as 'right' | 'left' | 'center';
       cs().width = Number(choiceWidth.value);
       cs().scale = Number(choiceScale.value);
       widthOut.textContent = `${Math.round(cs().width! * 100)}%`;
@@ -530,6 +531,21 @@ export class DevPanel {
     chapterStyle.onchange = applyChapter;
     chapterScale.oninput = applyChapter;
     const previewChapter = this.button('預覽', () => void v.previewChapterCard(), { 'data-dev': 'preview-chapter' });
+    const monoStyle = el('select', { name: 'dev-monologue-style' }, [
+      el('option', { value: 'band' }, ['暗帶（清楚）']),
+      el('option', { value: 'card' }, ['半透明框']),
+      el('option', { value: 'soft' }, ['淡淡的斜體（舊樣式）']),
+    ]);
+    monoStyle.value = meta.monologueStyle?.style ?? 'band';
+    const monoScale = el('input', { type: 'range', name: 'dev-monologue-scale', min: '0.7', max: '1.5', step: '0.05', value: String(meta.monologueStyle?.scale ?? 1) });
+    const monoScaleOut = el('output', {}, [`${Number(monoScale.value).toFixed(2)} 倍`]);
+    const applyMono = () => {
+      meta.monologueStyle = { style: monoStyle.value as 'band' | 'card' | 'soft', scale: Number(monoScale.value) };
+      monoScaleOut.textContent = `${meta.monologueStyle.scale!.toFixed(2)} 倍`;
+      v.applyMonologueStyle();
+    };
+    monoStyle.onchange = applyMono;
+    monoScale.oninput = applyMono;
     const uiStyle = el('select', { name: 'dev-ui-style' }, [
       el('option', { value: 'classic' }, ['經典（全幅漸層）']),
       el('option', { value: 'box' }, ['對話框（有邊框）']),
@@ -547,6 +563,8 @@ export class DevPanel {
       el('label', { class: 'dev-row' }, ['遊戲名稱', titleInput]),
       el('label', { class: 'dev-row' }, ['封面', coverInput]),
       el('label', { class: 'dev-row' }, ['直式封面', coverPortraitInput]),
+      el('label', { class: 'dev-row' }, ['內心獨白', monoStyle]),
+      el('label', { class: 'dev-row' }, ['獨白大小', monoScale, monoScaleOut]),
       el('label', { class: 'dev-row' }, ['章節卡', chapterStyle, previewChapter]),
       el('label', { class: 'dev-row' }, ['章節卡大小', chapterScale, chapterScaleOut]),
       el('label', { class: 'dev-row' }, ['題材包', pack]),

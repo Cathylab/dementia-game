@@ -441,10 +441,11 @@
 - **`endings[].description`**：結局畫面標題下方顯示。
 - **choice 沒有 `prompt`**：選項出現時對話框保留前一句台詞與人名（引擎原本就不清空）。
 - **choice 有 `prompt`**（list 模式）：提問顯示在對話框裡（像一句旁白），不再放在選項上方。hotspot 模式的提問照舊在畫面上方。
-- **選項位置**：電腦橫式預設在對話框右上方（不擋角色的臉），手機直式置中、放在對話框上方。呈現設定 `meta.choiceStyle`：`{ "position": "right" | "center", "width": 0.2～0.8, "scale": 0.6～1.3 }`，開發者面板「呈現調整」可調、存檔；不算結構。
+- **選項位置**：電腦橫式預設在對話框右上方（不擋角色的臉），手機直式置中、放在對話框上方。呈現設定 `meta.choiceStyle`：`{ "position": "right" | "left" | "center", "width": 0.2～0.8, "scale": 0.6～1.3 }`，開發者面板「呈現調整」可調、存檔；不算結構。
 - `meta.credits`：標題畫面「製作名單」按鈕（有內容時才出現），每筆顯示 `title`（沒有就用 `file`）、`author`、`license`，`url` 是「出處」連結（新分頁）。格式不對時給警告。
 - **封面與章節卡（呈現設定，開發者面板可調，不算結構）**：`meta.cover`（`assets/bg/` 的圖名稱）、`meta.coverPortrait`（選填，手機直式用）、`meta.chapterStyle`：`{ "style": "stacked" | "bold" | "quiet", "scale": 0.6～1.6 }`。封面算在需要的背景圖裡（素材清單、匯出都會帶）。`meta.title` 也可以在開發者面板改。
 - 物件的 `sfx` 也算在需要的音效裡（素材清單、匯出）。
+- **內心獨白樣式** `meta.monologueStyle`：`{ "style": "band" | "card" | "soft", "scale": 0.7～1.5 }`，預設 band（暗帶、不斜體）。製作人說的「場景小標題（淡淡的置中字）」就是內心獨白。
 - **介面樣式** `meta.uiStyle`：`"classic"`（預設）、`"box"`、`"paper"`，呈現設定，開發者面板切換。
 
 ### 結局可達性測試

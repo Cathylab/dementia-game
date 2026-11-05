@@ -152,6 +152,7 @@ export class AdvView implements View {
     el('div', { class: 'explore-row' }, [this.exploreSwipe, this.exploreNext]),
   ]);
   private nudgeTimer = 0;
+  private spriteSeq = 0;
   /**
    * 開發者面板「物件位置」：編輯中時畫出場景裡所有物件（不管 appearAt、if），
    * 拖曳改位置、點一下選取，不會打開說明卡。
@@ -852,6 +853,7 @@ export class AdvView implements View {
     };
     this.applyCover();
     this.applyUiStyle();
+    this.applyMonologueStyle();
     this.applyAccessibility();
     const saveButtons = this.titleSaveButtons(start);
     this.titleScreen.replaceChildren(
@@ -991,6 +993,13 @@ export class AdvView implements View {
       if (this.titleScreen.dataset.cover !== name) return;
       this.titleScreen.style.backgroundImage = `linear-gradient(to bottom, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.35) 45%, rgba(0, 0, 0, 0.78) 100%), url("${url}")`;
     });
+  }
+
+  /** 內心獨白的樣式與大小（meta.monologueStyle）。 */
+  applyMonologueStyle(): void {
+    const ms = this.engine.script.meta.monologueStyle ?? {};
+    this.monologue.dataset.style = ms.style === 'card' || ms.style === 'soft' ? ms.style : 'band';
+    this.monologue.style.setProperty('--monologue-scale', String(clampN(ms.scale ?? 1, 0.7, 1.5)));
   }
 
   /** 章節卡的樣式與大小（meta.chapterStyle）。 */
@@ -1297,6 +1306,7 @@ export class AdvView implements View {
     if (line.music !== undefined) this.audio?.playMusic(line.music);
     if (line.sfx && !this.skip) this.audio?.playSfx(line.sfx);
     if (ctx.character && ctx.pose) void this.showSprite(ctx.character, ctx.pose);
+    else this.syncSprite();
     this.showMemoryCard(line);
     if (!line.memory) this.startVoice(line.voice);
     if (line.speaker === 'player' && !line.memory) {
@@ -1395,8 +1405,25 @@ export class AdvView implements View {
   }
 
   /** 立繪：依 gaze 翻轉或偏移、依 distance 縮放與上下位置（實際數值見 style.css）。 */
+  /**
+   * 旁白、獨白這種沒有角色的句子：畫面上的角色要和引擎記得的一致。
+   * 回上一句回到角色出現之前時，角色要消失；回到別的角色在場時，換成那個角色。
+   */
+  private syncSprite(): void {
+    const char = this.engine.getChar(this.engine.lastChar);
+    const pose = char ? this.engine.poses[char.id] : null;
+    if (!char || !pose) {
+      if (this.sprite.dataset.char) this.hideSprite();
+      return;
+    }
+    if (this.sprite.dataset.char !== char.id || this.sprite.dataset.expression !== pose.expression) void this.showSprite(char, pose);
+  }
+
   async showSprite(character: Character, pose: CharPose): Promise<void> {
+    const seq = ++this.spriteSeq;
     const url = await resolveSprite(character.id, pose.expression);
+    // 載入期間又換了（例如回上一句讓角色消失）：不要再把舊的顯示出來
+    if (seq !== this.spriteSeq) return;
     this.sprite.src = url;
     this.sprite.hidden = false;
     this.sprite.dataset.char = character.id;
@@ -1425,6 +1452,7 @@ export class AdvView implements View {
   }
 
   hideSprite(): void {
+    this.spriteSeq++;
     this.sprite.hidden = true;
     delete this.sprite.dataset.char;
     this.stage.classList.remove('has-char');
@@ -1683,7 +1711,7 @@ export class AdvView implements View {
   /** 選項的位置與大小（meta.choiceStyle，開發者面板「呈現調整」可調）。手機直式一律置中。 */
   applyChoiceStyle(): void {
     const cs = this.engine.script.meta.choiceStyle ?? {};
-    this.choices.dataset.layout = cs.position === 'center' ? 'center' : 'right';
+    this.choices.dataset.layout = cs.position === 'center' || cs.position === 'left' ? cs.position : 'right';
     this.choices.style.setProperty('--choice-width', `${Math.round(clampN(cs.width ?? 0.36, 0.2, 0.8) * 100)}%`);
     this.choices.style.setProperty('--choice-scale', String(clampN(cs.scale ?? 0.88, 0.6, 1.3)));
   }

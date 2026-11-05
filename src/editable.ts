@@ -102,6 +102,7 @@ export function stripPresentation(script: Script): void {
   delete script.meta.choiceStyle;
   delete script.meta.chapterStyle;
   delete script.meta.uiStyle;
+  delete script.meta.monologueStyle;
   delete script.meta.cover;
   delete script.meta.coverPortrait;
   // 遊戲名稱可以在開發者面板改

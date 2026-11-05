@@ -627,3 +627,10 @@ docs/                 規格文件與本需求書
 - `src/reviewdoc.ts` 的 `reviewText(script, checklist)` 產生純文字審閱文件；簽核清單是題材包 `docs.review`（`packs/dementia/review.md`，內容待顧問或內容 AI 撰寫，目前是標示「草稿」的範例），沒有就用通用四項。
 - 入口：開發者面板「專家審閱」。離線版從 `EMBED.packs[id]._docs.review` 讀清單。
 
+### 試玩回饋追加（2026-11-05）
+
+- 內心獨白樣式 `meta.monologueStyle`（呈現設定）：`.monologue[data-style]`，`AdvView.applyMonologueStyle`。
+- 說明卡改回畫面中間（製作人：靠下方很奇怪），保留「放大」與關閉。
+- 選項位置多了 `left`（對話框左上方）。
+- 修正：回上一句回到角色出現之前，立繪沒有消失。沒有角色的句子由 `AdvView.syncSprite` 依 `engine.lastChar` 對齊畫面；`showSprite` 用序號避免載入中的舊立繪又出現。
+
