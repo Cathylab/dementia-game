@@ -81,6 +81,13 @@ export function validateScript(script: Script, pack?: Pack): string[] {
     const c = meta[k];
     if (c !== undefined && !(typeof c === 'string' && c.trim())) problems.push(`（警告）meta.${k} 必須是背景圖名稱（文字）`);
   }
+  const mo = meta.monologueStyle;
+  if (mo !== undefined) {
+    const okScale = mo?.scale === undefined || (typeof mo.scale === 'number' && mo.scale >= 0.7 && mo.scale <= 1.5);
+    if (typeof mo !== 'object' || mo === null || !(mo.style === undefined || ['band', 'card', 'soft'].includes(mo.style)) || !okScale) {
+      problems.push('（警告）meta.monologueStyle 必須是 { style: "band"|"card"|"soft", scale: 0.7～1.5 }');
+    }
+  }
   const ch = meta.chapterStyle;
   if (ch !== undefined) {
     const okScale = ch?.scale === undefined || (typeof ch.scale === 'number' && ch.scale >= 0.6 && ch.scale <= 1.6);
@@ -91,8 +98,8 @@ export function validateScript(script: Script, pack?: Pack): string[] {
   const cs = meta.choiceStyle;
   if (cs !== undefined) {
     const num = (v: unknown, lo: number, hi: number) => v === undefined || (typeof v === 'number' && v >= lo && v <= hi);
-    if (typeof cs !== 'object' || cs === null || !(cs.position === undefined || cs.position === 'right' || cs.position === 'center') || !num(cs.width, 0.2, 0.8) || !num(cs.scale, 0.6, 1.3)) {
-      problems.push('（警告）meta.choiceStyle 必須是 { position: "right"|"center", width: 0.2～0.8, scale: 0.6～1.3 }');
+    if (typeof cs !== 'object' || cs === null || !(cs.position === undefined || cs.position === 'right' || cs.position === 'left' || cs.position === 'center') || !num(cs.width, 0.2, 0.8) || !num(cs.scale, 0.6, 1.3)) {
+      problems.push('（警告）meta.choiceStyle 必須是 { position: "right"|"left"|"center", width: 0.2～0.8, scale: 0.6～1.3 }');
     }
   }
   const checkFraming = (where: string, f: SpriteFraming | undefined) => {

@@ -53,6 +53,8 @@ export interface Meta {
   cover?: string;
   /** 手機直式用的封面（選填），省略時用 cover（以中間為主裁切）。 */
   coverPortrait?: string;
+  /** 主角內心獨白（畫面中間的字）的樣式與大小（呈現設定）。 */
+  monologueStyle?: MonologueStyle;
   /** 章節卡的樣式與大小（呈現設定）。 */
   chapterStyle?: ChapterStyle;
   /** 選項的位置與大小（呈現設定，開發者面板可調）。 */
@@ -62,12 +64,12 @@ export interface Meta {
 }
 
 /**
- * 選項的位置與大小。position：right＝對話框右上方（預設）、center＝畫面中間（舊樣式）；
+ * 選項的位置與大小。position：right＝對話框右上方（預設）、left＝對話框左上方、center＝畫面中間（舊樣式）；
  * width：選項寬度（畫面寬的比例 0.2～0.8，預設 0.36）；scale：字的大小倍數（0.6～1.3，預設 0.88）。
  * 手機直式一律置中。
  */
 export interface ChoiceStyle {
-  position?: 'right' | 'center';
+  position?: 'right' | 'left' | 'center';
   width?: number;
   scale?: number;
 }
@@ -78,6 +80,15 @@ export interface ChoiceStyle {
  */
 export interface ChapterStyle {
   style?: 'stacked' | 'bold' | 'quiet';
+  scale?: number;
+}
+
+/**
+ * 內心獨白：style＝band（預設：字後面一條柔和的暗帶，清楚好讀）、card（圓角的半透明框）、
+ * soft（淡淡的斜體、只有陰影，舊樣式）；scale＝字的大小倍數（0.7～1.5，預設 1）。
+ */
+export interface MonologueStyle {
+  style?: 'band' | 'card' | 'soft';
   scale?: number;
 }
 

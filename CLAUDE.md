@@ -40,7 +40,7 @@ npx playwright test tests/voice.spec.ts -g "缺檔"  # 單一測試
 - `src/view.ts`：ADV 介面、轉場（`blink()`，樣式由 `meta.transition` 決定）、打字、獨白、選項與 hotspot、可點物件與說明卡、記憶對照、對話紀錄、設定、手機直式拖曳背景。`src/fx.ts` 實作 11 個效果標籤與退化係數（act 1→0、2→0.5、3 以上→1）。
 - 存檔：`src/saves.ts`（`SaveStore`，1 個自動＋3 個手動，localStorage）；`Engine.saveData()`／`loadSave()`、`onCheckpoint`（每播一句，`main.ts` 寫自動存檔）。功能列最後一個是「暫停」（`AdvView.openPause`），`ui.title` 控制暫停選單裡的「回到標題」。標題畫面的「繼續」是 `.continue-button`（不是 `.start-button`）。
 - 試玩回饋第一輪的互動：`Engine.blocked`（`required`／`explore`）擋住 `next()`，畫面提示用 `View.nudgeBlocked`；自動玩的測試迴圈要呼叫 `tests/helpers.ts` 的 `unblock`。物件循環音效 `AudioEngine.setSfxLoops`。開發者面板拖曳物件：`AdvView.objectEdit`。
-- 呈現設定（開發者面板可調、`stripPresentation` 會去掉，不算結構）：`meta.transition`、`objectHighlight`、`sprite`、`pack`、`choiceStyle`、`chapterStyle`、`uiStyle`、`cover`、`coverPortrait`、`title`。
+- 呈現設定（開發者面板可調、`stripPresentation` 會去掉，不算結構）：`meta.transition`、`objectHighlight`、`sprite`、`pack`、`choiceStyle`、`chapterStyle`、`monologueStyle`、`uiStyle`、`cover`、`coverPortrait`、`title`。
 - 無障礙設定（`settings.ts`）：`textScale`、`calm`（預設跟著系統「減少動態」，`#stage.calm`、`blink()` 改 fade）、`colorAssist`；`AdvView.applyAccessibility`。
 - 選用的內容檔（和 `script.json` 同一層，內容由其他 AI 或單位寫）：`survey.json`（成效評估問卷，`src/survey.ts`、`surveyview.ts`，`docs/survey-format.md`）、`publish.json`（製作單位與結尾資源頁，`src/publish.ts`，`docs/publish-format.md`）。由 `src/extras.ts` 讀；網站版看 `projects.json` 的 `extras`（`vite-plugin-content.ts` 的 `EXTRA_FILES`）才發請求，避免 404。本機專案沒有。
 - 專家審閱：`src/reviewdoc.ts`（純文字審閱文件），簽核清單是題材包 `docs.review`（`packs/dementia/review.md`）。

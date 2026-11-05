@@ -62,6 +62,10 @@ test('開發者面板：選項位置、寬度、大小，存進 meta.choiceStyle
   await openWithTestScript(page);
   await toChoice(page);
   await page.keyboard.press('Backquote');
+  await page.selectOption('select[name=dev-choice-position]', 'left');
+  await expect(page.locator('.choices.open')).toHaveAttribute('data-layout', 'left');
+  const box = (await page.locator('.choices.open').boundingBox())!;
+  expect(box.x + box.width).toBeLessThan(page.viewportSize()!.width / 2);
   await page.selectOption('select[name=dev-choice-position]', 'center');
   await expect(page.locator('.choices.open')).toHaveAttribute('data-layout', 'center');
   await page.locator('input[name=dev-choice-width]').fill('0.5');

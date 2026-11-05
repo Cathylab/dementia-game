@@ -261,3 +261,16 @@ test.describe('手機直式', () => {
     await expect(page.locator('#stage')).toHaveAttribute('data-scene', 'ch_hot');
   });
 });
+
+test('回上一句回到角色出現之前：角色立繪消失；再往下又出現', async ({ page }) => {
+  await startGame(page);
+  await expect(page.locator('.sprite')).toBeHidden();
+  await advance(page);
+  await expect(page.locator('.dialog .name')).toHaveText('阿明哥');
+  await expect(page.locator('.sprite')).toBeVisible();
+  await page.click('.tool-back');
+  await expect(page.locator('.dialog .text')).toHaveText('旁白第一句。');
+  await expect(page.locator('.sprite')).toBeHidden();
+  await advance(page);
+  await expect(page.locator('.sprite')).toBeVisible();
+});

@@ -99,3 +99,18 @@ test('介面樣式：開發者面板切換 classic／box／paper，存進 meta.u
   const saved = JSON.parse(await readFile(await download.path(), 'utf8')) as Script;
   expect(saved.meta.uiStyle).toBe('box');
 });
+
+test('內心獨白樣式：預設暗帶（不斜體），開發者面板可以換框或舊樣式、調大小，存進 meta.monologueStyle', async ({ page }) => {
+  await openWithTestScript(page);
+  await expect(page.locator('.monologue')).toHaveAttribute('data-style', 'band');
+  expect(await page.locator('.monologue-text').evaluate((n) => getComputedStyle(n).fontStyle)).toBe('normal');
+  await page.keyboard.press('Backquote');
+  await page.selectOption('select[name=dev-monologue-style]', 'soft');
+  await expect(page.locator('.monologue')).toHaveAttribute('data-style', 'soft');
+  expect(await page.locator('.monologue-text').evaluate((n) => getComputedStyle(n).fontStyle)).toBe('italic');
+  await page.selectOption('select[name=dev-monologue-style]', 'card');
+  await page.locator('input[name=dev-monologue-scale]').fill('1.2');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-dev=save-presentation]')]);
+  const saved = JSON.parse(await readFile(await download.path(), 'utf8')) as Script;
+  expect(saved.meta.monologueStyle).toEqual({ style: 'card', scale: 1.2 });
+});

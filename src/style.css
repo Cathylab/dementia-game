@@ -3130,12 +3130,7 @@ body.voice-desk-page #app {
 
 /* ───────────── 說明卡：不擋角色的臉、照片可以放大、手機直式從下方滑出 ───────────── */
 
-/* 角色的臉在畫面上半部：說明卡靠下方 */
-.inspect {
-  align-items: flex-end;
-  padding-bottom: 3%;
-}
-
+/* 說明卡置中（製作人試玩後決定：靠下方很奇怪） */
 .inspect-card {
   position: relative;
   max-height: 68%;
@@ -3217,26 +3212,7 @@ body.voice-desk-page #app {
   bottom: 6px;
 }
 
-@media (orientation: portrait) {
-  .inspect:not(.zoomed) {
-    padding: 0;
-  }
-  .inspect:not(.zoomed) .inspect-card {
-    width: 100%;
-    max-width: 100%;
-    max-height: 72%;
-    border-radius: 18px 18px 0 0;
-    padding-bottom: calc(1em + env(safe-area-inset-bottom, 0px));
-    animation: sheet-up 0.35s ease both;
-  }
-}
 
-@keyframes sheet-up {
-  from {
-    translate: 0 40%;
-    opacity: 0;
-  }
-}
 
 /* ───────────── 開發者面板：編輯物件位置 ───────────── */
 
@@ -3960,4 +3936,63 @@ body.voice-desk-page #app {
 .resources-box .start-button {
   display: block;
   margin: 0 auto;
+}
+
+/* ───────────── 內心獨白樣式（meta.monologueStyle） ───────────── */
+
+.monologue .monologue-text {
+  font-size: calc(var(--text-size) * 1.08 * var(--monologue-scale, 1));
+}
+
+/* band（預設）：字後面一條柔和的暗帶，不斜體，清楚好讀 */
+.monologue[data-style='band'] .monologue-text {
+  padding: 0.5em 1.6em;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  color: #fffaf0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.45) 55%, rgba(0, 0, 0, 0) 78%);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+/* card：圓角的半透明框 */
+.monologue[data-style='card'] .monologue-text {
+  padding: 0.6em 1.4em;
+  border: 1px solid rgba(242, 201, 138, 0.35);
+  border-radius: 14px;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  background: rgba(12, 10, 8, 0.72);
+  text-shadow: none;
+}
+
+/* soft：舊樣式（淡淡的斜體），沿用上面 .monologue-text 的規則 */
+
+/* 紙張介面：框也用紙張色 */
+.stage[data-ui-style='paper'] .monologue[data-style='card'] .monologue-text {
+  background: rgba(247, 241, 228, 0.94);
+  color: #2b2620;
+  border-color: rgba(43, 38, 32, 0.2);
+}
+
+/* 選項在對話框左上方（meta.choiceStyle.position = left）：和右上方一樣，只是靠左 */
+@media (orientation: landscape) {
+  .choices[data-layout='left'] {
+    inset: auto auto 31% 5%;
+    width: var(--choice-width, 36%);
+    height: auto;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 1.4cqh;
+    padding: 0;
+    font-size: calc(var(--text-size) * var(--choice-scale, 0.88));
+  }
+  .choices[data-layout='left'] .choice {
+    min-width: 0;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.45em 1.2em;
+  }
+  .stage:is([data-ui-style='box'], [data-ui-style='paper']) .choices[data-layout='left'] {
+    bottom: calc(5cqh + 44px + 30cqh);
+  }
 }
