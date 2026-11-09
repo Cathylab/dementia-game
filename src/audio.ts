@@ -640,11 +640,33 @@ export class AudioEngine implements AudioLike {
    * 播一個音效：public/assets/sfx/{name}.mp3（或 .ogg）。和音樂走同一條音軌（受音樂音量與 muffle 影響，
    * 不受退化走音影響），可以和音樂、配音同時出現。缺檔時什麼都不做。
    */
+  /** 每個音效的音量倍數（meta.sfxVolume，0～1，沒寫的是 1）；main.ts 接到目前的劇本。 */
+  sfxLevel: (name: string) => number = () => 1;
+
+  private level(name: string): number {
+    const v = this.sfxLevel(name);
+    return typeof v === 'number' && v >= 0 ? Math.min(v, 1) : 1;
+  }
+
+  /** 這個音效接到音樂音軌，中間加一個依 sfxVolume 調整的音量。 */
+  private sfxOut(ctx: AudioContext, name: string): GainNode {
+    const g = ctx.createGain();
+    g.gain.value = this.level(name);
+    g.connect(this.bus);
+    return g;
+  }
+
+  /** 調整 sfxVolume 後，正在循環的那個音效立刻換音量。 */
+  refreshSfxLevel(name: string): void {
+    this.loopLevels.get(name)?.(this.level(name));
+  }
+
   playSfx(name: string): void {
     if (!this.ctx || !name) return;
     const ctx = this.ctx;
     this.statusEl.dataset.sfx = name;
     this.statusEl.dataset.sfxState = 'loading';
+    this.statusEl.dataset.sfxLevel = String(this.level(name));
     if (FILE_MODE && !this.sfxBuffers.has(name)) {
       void this.findAudio('sfx', name).then((url) => {
         if (!url) {
@@ -652,7 +674,7 @@ export class AudioEngine implements AudioLike {
           return;
         }
         const el = new Audio(url);
-        el.volume = clamp(this.volume * (this.muffled ? 0.4 : 1), 0, 1);
+        el.volume = clamp(this.volume * (this.muffled ? 0.4 : 1) * this.level(name), 0, 1);
         el.onended = () => {
           if (this.statusEl.dataset.sfx === name) this.statusEl.dataset.sfxState = 'ended';
         };
@@ -668,7 +690,7 @@ export class AudioEngine implements AudioLike {
       }
       const src = ctx.createBufferSource();
       src.buffer = buffer;
-      src.connect(this.bus);
+      src.connect(this.sfxOut(ctx, name));
       src.onended = () => {
         if (this.statusEl.dataset.sfx === name) this.statusEl.dataset.sfxState = 'ended';
       };
@@ -702,6 +724,8 @@ export class AudioEngine implements AudioLike {
 
   /** 正在循環的音效（物件的 sfx）：名稱 → 停止。 */
   private readonly sfxLoops = new Map<string, () => void>();
+  /** 正在循環的音效：名稱 → 換音量（refreshSfxLevel 用）。 */
+  private readonly loopLevels = new Map<string, (level: number) => void>();
 
   /**
    * 物件的循環音效：只留 names 裡的，其餘停止；新出現的開始循環。缺檔安靜略過。
@@ -713,6 +737,7 @@ export class AudioEngine implements AudioLike {
       if (want.has(name)) continue;
       stop();
       this.sfxLoops.delete(name);
+      this.loopLevels.delete(name);
     }
     this.statusEl.dataset.sfxLoops = [...want].join(' ');
     if (!this.ctx) return;
@@ -730,7 +755,9 @@ export class AudioEngine implements AudioLike {
           if (!url || stopped) return;
           const el = new Audio(url);
           el.loop = true;
-          el.volume = clamp(this.volume * (this.muffled ? 0.4 : 1), 0, 1);
+          const base = clamp(this.volume * (this.muffled ? 0.4 : 1), 0, 1);
+          el.volume = clamp(base * this.level(name), 0, 1);
+          this.loopLevels.set(name, (l) => (el.volume = clamp(base * l, 0, 1)));
           stopNow = () => el.pause();
           void el.play().catch(() => {});
         });
@@ -741,7 +768,9 @@ export class AudioEngine implements AudioLike {
         const src = ctx.createBufferSource();
         src.buffer = buffer;
         src.loop = true;
-        src.connect(this.bus);
+        const out = this.sfxOut(ctx, name);
+        src.connect(out);
+        this.loopLevels.set(name, (l) => out.gain.setTargetAtTime(l, ctx.currentTime, 0.03));
         stopNow = () => {
           try {
             src.stop();

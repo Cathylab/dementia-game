@@ -26,6 +26,8 @@ import { issueSummary, renderIssues } from './issueview';
 import { currentPack, setCurrentPack } from './pack';
 import { listPacks, loadPack, loadPackDocs } from './packloader';
 import { clamp, el, urlParam } from './util';
+import { assetNames } from './assetnames';
+import { copyText } from './clipboard';
 import type { AdvView } from './view';
 
 const GAZES: Gaze[] = ['camera', 'away', 'other'];
@@ -234,6 +236,7 @@ export class DevPanel {
       this.section('跳到場景', el('div', { class: 'dev-row' }, [this.sceneSelect, jump])),
       this.buildPresentation(),
       this.buildObjects(),
+      ...(assetNames(e.script, 'sfx').length ? [this.buildSfxVolume()] : []),
       ...(this.view.survey ? [this.buildSurvey()] : []),
       this.buildReview(),
       this.section('上傳素材', buildUploadSection(e, this.view, this.project?.mode === 'local')),
@@ -704,6 +707,43 @@ export class DevPanel {
   private syncSurvey: () => void = () => {};
 
   /** 專家審閱：下載審閱用劇本（純文字：簽核清單＋每個場景的台詞、選項、物件、結局，每段可以寫意見）。 */
+  /** 音效音量：每個音效一條滑桿（meta.sfxVolume），可以試聽、儲存或複製。 */
+  private buildSfxVolume(): HTMLElement {
+    const meta = this.engine.script.meta;
+    const names = assetNames(this.engine.script, 'sfx');
+    const rows = names.map((name) => {
+      const value = meta.sfxVolume?.[name] ?? 1;
+      const range = el('input', { type: 'range', name: `dev-sfx-volume-${name}`, 'data-sfx': name, min: '0', max: '1', step: '0.05', value: String(value) });
+      const out = el('output', {}, [`${Math.round(value * 100)}%`]);
+      range.oninput = () => {
+        const v = Math.round(Number(range.value) * 100) / 100;
+        (meta.sfxVolume ??= {})[name] = v;
+        out.textContent = `${Math.round(v * 100)}%`;
+        this.view.audio?.refreshSfxLevel(name);
+      };
+      const play = this.button('試聽', () => {
+        this.view.audio?.unlock();
+        this.view.audio?.playSfx(name);
+      }, { 'data-dev': 'sfx-preview', 'data-sfx': name });
+      return el('div', { class: 'dev-row dev-sfx-row' }, [el('span', { class: 'dev-sfx-name' }, [name]), range, out, play]);
+    });
+    const msg = el('p', { class: 'dev-note', 'aria-live': 'polite' });
+    const copy = this.button('複製 sfxVolume', () => {
+      const full = Object.fromEntries(names.map((n) => [n, meta.sfxVolume?.[n] ?? 1]));
+      void copyText(JSON.stringify({ sfxVolume: full }, null, 2)).then((ok) => (msg.textContent = ok ? '已複製，可以貼給劇本 AI。' : '複製失敗'));
+    }, { 'data-dev': 'sfx-copy' });
+    const save = this.button(import.meta.env.DEV ? '儲存（寫回 script.json）' : '儲存（下載 script.json）', () => {
+      void this.saveScript?.().then((m) => (msg.textContent = m));
+    }, { 'data-dev': 'sfx-save', class: 'dev-primary' });
+    return this.section(
+      '音效音量',
+      el('p', { class: 'dev-note' }, ['每個音效各自的音量（乘上設定裡的音量）。物件的循環音效拉了馬上變。']),
+      ...rows,
+      el('div', { class: 'dev-row' }, [save, copy]),
+      msg,
+    );
+  }
+
   private buildReview(): HTMLElement {
     const msg = el('p', { class: 'dev-note', 'aria-live': 'polite' });
     const download = this.button('下載審閱用劇本', () => {

@@ -107,8 +107,10 @@ async function boot() {
     applyScriptDefaults(script.meta.settingsDefaults);
     const engine = new Engine(script);
     const view = new AdvView(app, engine);
-    view.audio = new AudioEngine(settings.volume, view.stage);
-    view.audio.setVoiceVolume(settings.voiceVolume);
+    const audio = new AudioEngine(settings.volume, view.stage);
+    audio.setVoiceVolume(settings.voiceVolume);
+    audio.sfxLevel = (name) => engine.script.meta.sfxVolume?.[name] ?? 1;
+    view.audio = audio;
     engine.view = view;
     // 存檔：每個遊戲（專案、本機專案或班級作品、遊戲名稱）各自一份，存在這個瀏覽器
     const saves = new SaveStore([projectDir(), started.session.mode, showcase ?? '', EMBED?.player ? 'player' : '', script.meta.title].join('|'));

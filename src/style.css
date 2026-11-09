@@ -3996,3 +3996,27 @@ body.voice-desk-page #app {
     bottom: calc(5cqh + 44px + 30cqh);
   }
 }
+
+/* 開發者面板：音效音量 */
+.dev-sfx-row {
+  gap: 6px;
+}
+.dev-sfx-row input[type='range'] {
+  min-width: 0;
+}
+.dev-sfx-row button {
+  flex: none;
+}
+.dev-sfx-name {
+  flex: 0 1 8.5em;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+}
+.dev-sfx-row output {
+  flex: 0 0 2.6em;
+  text-align: right;
+}
