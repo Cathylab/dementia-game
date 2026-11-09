@@ -61,6 +61,8 @@ export interface Meta {
   choiceStyle?: ChoiceStyle;
   /** 素材出處（音效等），標題畫面「製作名單」顯示。 */
   credits?: Credit[];
+  /** 每個音效的音量（音效名稱 → 0～1，沒寫的當 1）；乘上設定裡的音量。呈現設定，開發者面板「音效音量」可調。 */
+  sfxVolume?: Record<string, number>;
 }
 
 /**

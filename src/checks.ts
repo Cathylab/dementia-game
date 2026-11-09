@@ -143,6 +143,7 @@ const GLOBAL_RULES: Rule[] = [
   { re: /^meta\.title 缺少$/, level: 'error', say: () => ['遊戲沒有名稱', '請在 meta.title 寫上遊戲名稱。'] },
   { re: /^scenes 為空$/, level: 'error', say: () => ['劇本裡一個場景都沒有', '請至少寫一個場景。'] },
   { re: /^meta\.credits/, level: 'warning', say: () => ['素材出處（製作名單）的格式不對，不會顯示', 'meta.credits 請寫成清單，每一筆有 file、title、author、license、url。'] },
+  { re: /^meta\.sfxVolume/, level: 'warning', say: () => ['音效音量的設定格式不對，那個音效會用原本的音量', 'meta.sfxVolume 請寫成 { "音效名稱": 0～1 }，可以在開發者面板「音效音量」重新調整。'] },
   { re: /^meta\.pack/, level: 'error', say: () => ['題材包的設定格式不對', 'meta.pack 請寫題材包代號（例如 "dementia"），或 null。'] },
   { re: /^meta\.settingsDefaults/, level: 'warning', say: () => ['遊戲設定的預設值格式不對，會改用一般的預設值', '請照 docs/script-format-v2.md 的說明修正 settingsDefaults。'] },
   { re: /^meta\.(transition|objectHighlight|choiceStyle|chapterStyle|cover|coverPortrait|uiStyle|monologueStyle)/, level: 'warning', say: () => ['畫面呈現的設定值不認得，會改用預設值', '可以在開發者面板「呈現調整」重新選一次。'] },

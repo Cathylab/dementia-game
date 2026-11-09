@@ -37,6 +37,13 @@ export function validateScript(script: Script, pack?: Pack): string[] {
   if (credits !== undefined && !(Array.isArray(credits) && credits.every((c) => c && typeof c === 'object'))) {
     problems.push('（警告）meta.credits 必須是清單，每一筆是 { file, title, author, license, url }');
   }
+  const sv = script.meta?.sfxVolume;
+  if (sv !== undefined) {
+    if (!sv || typeof sv !== 'object' || Array.isArray(sv)) problems.push('（警告）meta.sfxVolume 必須是「音效名稱 → 0～1」的對照表');
+    else for (const [k, v] of Object.entries(sv)) {
+      if (typeof v !== 'number' || !(v >= 0 && v <= 1)) problems.push(`（警告）meta.sfxVolume.${k} 必須是 0～1 的數字`);
+    }
+  }
   /** 用到了、但題材包沒有啟用的效果：效果 → 位置 */
   const offPack = new Map<string, string[]>();
   const notePack = (fx: string, where: string) => {

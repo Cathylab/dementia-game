@@ -53,6 +53,8 @@ export interface AudioLike {
   forgetSfx(name: string): void;
   /** 把電腦裡的音檔當成某個音效（開發者面板上傳用）。 */
   useSfxFile(name: string, file: Blob): Promise<boolean>;
+  /** 改了 meta.sfxVolume：正在循環的這個音效立刻換音量。 */
+  refreshSfxLevel(name: string): void;
 }
 
 /** 依 0–1 比例座標放置熱點（hotspot 選項與可點的物件共用）。 */

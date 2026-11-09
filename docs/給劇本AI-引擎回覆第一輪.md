@@ -15,6 +15,12 @@
 9. **第四章的「回上一句」**：還是等製作人決定。要恢復的話改 `ui` 欄位（`a4_s15`、`a4_s17`、`a4_s18`、三個結局）。
 10. **不再被引用的配音**：配音總表只列劇本用到的編號，舊檔留著沒關係。
 
+## 2026-11-09 交付的檔案與 `meta.sfxVolume`
+
+- 7 張新圖、19 個音效、3 句配音已經放進 `examples/寫給未來的我/assets/`，新的 `script.json` 已合併（只有 `meta.credits` 與 `meta.sfxVolume` 不同，其餘和 repo 版本一致）。之後交檔請放 `examples/寫給未來的我/assets/{bg,char,fg,sfx,voice,music}/`，不是 `public/`。
+- **`meta.sfxVolume` 已經支援**，欄位照你寫的放在 `meta`：音量＝設定裡的音量 × `sfxVolume[名稱]`，台詞音效和物件循環音效都套用，沒寫的當 1。製作人在開發者面板「音效音量」調好後會存回 `script.json` 或複製給你；交新版劇本時請保留 repo 裡的值。
+- 預留的 4 個音效（`phone_message`、`pour_water`、`kids_cheer`、`eraser_rub`）缺檔安靜略過，有檔案再補 `meta.credits`。
+
 ## 新圖、新配音還沒到之前
 
 `bride_room`、`daughter_dress1_smile`、`daughter_dress2_smile`、`daughter_dress2_neutral`、`qipao_tag`、`necklace_box`、`seating_chart` 目前用佔位圖；三句新配音缺檔時安靜播過。檔案放進對應資料夾就會自動換上，不用改劇本。

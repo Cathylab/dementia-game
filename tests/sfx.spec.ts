@@ -111,3 +111,34 @@ test('上傳素材：音效放進遊戲後馬上播一次，之後台詞也播�
   );
   expect(has).toBe(true);
 });
+
+test('meta.sfxVolume：每個音效各自的音量；開發者面板可調、試聽；格式錯誤會警告', async ({ page }) => {
+  const s0 = testScript();
+  withSfx(s0);
+  s0.meta.sfxVolume = { ding: 0.4 };
+  expect(validateScript(s0).filter((p) => p.includes('sfxVolume'))).toEqual([]);
+  s0.meta.sfxVolume = { ding: 2 };
+  expect(validateScript(s0)).toContain('（警告）meta.sfxVolume.ding 必須是 0～1 的數字');
+
+  await serveSfx(page, ['ding.mp3']);
+  await openWithTestScript(page, 'timescale=0.2', {
+    mutate: (s) => {
+      withSfx(s);
+      s.meta.sfxVolume = { ding: 0.4 };
+    },
+  });
+  await startGame(page);
+  await expect(page.locator('#stage')).toHaveAttribute('data-sfx', 'ding');
+  await expect(page.locator('#stage')).toHaveAttribute('data-sfx-level', '0.4');
+
+  await page.keyboard.press('Backquote');
+  const range = page.locator('input[name="dev-sfx-volume-ding"]');
+  await expect(range).toHaveValue('0.4');
+  await range.fill('0.75');
+  expect(await page.evaluate(() => (window as any).__vn.engine.script.meta.sfxVolume)).toEqual({ ding: 0.75 });
+  await page.click('[data-dev=sfx-preview][data-sfx=ding]');
+  await expect(page.locator('#stage')).toHaveAttribute('data-sfx-level', '0.75');
+  // 沒寫的音效當 1
+  await page.click('[data-dev=sfx-preview][data-sfx=missing_one]');
+  await expect(page.locator('#stage')).toHaveAttribute('data-sfx-level', '1');
+});
