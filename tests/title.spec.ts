@@ -76,10 +76,10 @@ test('製作名單：meta.credits 有內容時標題畫面有按鈕，列出出�
   await expect(page.locator('.title-screen')).toHaveClass(/open/);
 });
 
-test('正式腳本：23 筆音效出處都在製作名單裡', async ({ page }) => {
+test('正式腳本：19 筆音效出處都在製作名單裡', async ({ page }) => {
   await page.goto('./play.html?timescale=0.2');
   await page.click('[data-ui=credits]');
-  await expect(page.locator('.credits-list li')).toHaveCount(23);
+  await expect(page.locator('.credits-list li')).toHaveCount(19);
 });
 
 test('沒有 credits：沒有製作名單按鈕', async ({ page }) => {

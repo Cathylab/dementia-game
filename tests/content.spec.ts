@@ -51,7 +51,7 @@ test('建置產生 projects.json 與每個專案的音檔清單', async ({ reque
     ]),
   );
   const voices = (await (await request.get(`./${encodeURI('examples/寫給未來的我')}/assets/voice/manifest.json`)).json()) as string[];
-  expect(voices.length).toBe(66);
+  expect(voices.length).toBe(68);
   const blank = (await (await request.get(`./${encodeURI('templates/空白')}/assets/sfx/manifest.json`)).json()) as string[];
   expect(blank).toEqual([]);
 });
